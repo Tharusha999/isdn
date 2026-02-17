@@ -3,8 +3,6 @@
 import { cn } from "@/lib/utils";
 import {
     BarChart3,
-    Bell,
-    Box,
     CreditCard,
     LayoutDashboard,
     LogOut,
@@ -39,8 +37,11 @@ export function Sidebar() {
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
-        setRole(storedRole);
-        setIsLoaded(true);
+        const timer = setTimeout(() => {
+            setRole(storedRole);
+            setIsLoaded(true);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const handleSignOut = () => {

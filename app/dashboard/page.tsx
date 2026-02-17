@@ -11,7 +11,10 @@ import {
     Calendar,
     Zap,
     ArrowRight,
-    ShieldCheck
+    ShieldCheck,
+    MapPin,
+    Navigation,
+    Clock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +27,8 @@ export default function DashboardPage() {
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
         if (role !== storedRole) {
-            setRole(storedRole);
+            const timer = setTimeout(() => setRole(storedRole), 0);
+            return () => clearTimeout(timer);
         }
     }, [role]);
 
@@ -70,6 +74,117 @@ export default function DashboardPage() {
                 >
                     Quick Order Console <Zap className="ml-3 h-6 w-6 text-amber-400 fill-current group-hover:scale-125 transition-transform" />
                 </Button>
+            </div>
+        );
+    }
+
+    if (role === 'driver') {
+        const activeRoute = {
+            id: 'RT-2280',
+            vehicle: 'IS-VAN-782',
+            location: 'Pettah Distribution Center',
+            kmDelta: '142.5 KM',
+            status: 'In Transit',
+            progress: 65,
+            tasks: [
+                { time: '08:00', label: 'Payload Picked Up', done: true },
+                { time: '10:30', label: 'Keells Super - Colombo 03', done: true },
+                { time: '14:15', label: 'Cargills Food City - Nugegoda', done: false },
+                { time: '16:45', label: 'Arpico - Hyde Park', done: false }
+            ]
+        };
+
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase">Operations Portal</h2>
+                    <p className="text-sm text-muted-foreground font-bold italic text-primary uppercase tracking-widest">Active Duty: Alpha-7 Logistics Team</p>
+                </div>
+
+                <div className="grid gap-8 md:grid-cols-3">
+                    <Card className="border-none shadow-sm bg-black text-white rounded-[2rem] p-8 group">
+                        <div className="flex justify-between items-start mb-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Active Vehicle</p>
+                            <Truck className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="text-3xl font-black italic tracking-tighter uppercase mb-2">{activeRoute.vehicle}</div>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            System Connected
+                        </div>
+                    </Card>
+
+                    <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8">
+                        <div className="flex justify-between items-start mb-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Grid Location</p>
+                            <MapPin className="h-6 w-6 text-primary/20" />
+                        </div>
+                        <div className="text-2xl font-black italic tracking-tighter uppercase mb-2 leading-tight">{activeRoute.location}</div>
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sector: S-02 (Central)</div>
+                    </Card>
+
+                    <Card className="border-none shadow-sm bg-primary rounded-[2rem] p-8 text-white">
+                        <div className="flex justify-between items-start mb-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Distance Tracked</p>
+                            <Navigation className="h-6 w-6 text-white/20" />
+                        </div>
+                        <div className="text-3xl font-black italic tracking-tighter uppercase mb-2">{activeRoute.kmDelta}</div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Today&apos;s Total Yield</div>
+                    </Card>
+                </div>
+
+                <div className="grid gap-8 lg:grid-cols-3">
+                    <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] overflow-hidden flex flex-col">
+                        <CardHeader className="p-10 border-b border-black/5 bg-black/[0.02]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Transit Timeline</CardTitle>
+                                    <CardDescription className="text-[10px] font-black uppercase tracking-widest mt-1">Real-time task synchronization for {activeRoute.id}</CardDescription>
+                                </div>
+                                <Badge className="bg-primary text-white border-none font-black text-[8px] uppercase px-3 h-6">Live Update</Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-10">
+                            <div className="space-y-10 relative">
+                                <div className="absolute left-4 top-2 bottom-2 w-px bg-black/5" />
+                                {activeRoute.tasks.map((task, idx) => (
+                                    <div key={idx} className="flex gap-8 relative">
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center relative z-10 shadow-sm border-4 border-white ${task.done ? 'bg-emerald-500 text-white' : 'bg-white text-muted-foreground'}`}>
+                                            {task.done ? <Zap className="h-3 w-3 fill-current" /> : <Clock className="h-3 w-3" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <p className={`font-black text-sm uppercase italic tracking-tight ${task.done ? 'text-black' : 'text-muted-foreground'}`}>{task.label}</p>
+                                                <span className="text-[10px] font-black tabular-nums text-muted-foreground/40">{task.time}</span>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{task.done ? 'COMPLETED' : 'PENDING ETA'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="space-y-8">
+                        <Card className="border-none shadow-sm bg-black text-white rounded-[2.5rem] p-10 relative overflow-hidden h-full">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div className="space-y-6">
+                                    <div className="h-16 w-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center">
+                                        <Navigation className="h-8 w-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">Route Optimization</h3>
+                                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-2">AI-suggested adjustments for current traffic grid.</p>
+                                    </div>
+                                </div>
+                                <Button className="w-full h-16 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase text-xs tracking-widest shadow-2xl transition-all">
+                                    Re-calculate ETA <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
             </div>
         );
     }

@@ -37,19 +37,18 @@ export default function DashboardLayout({
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
+        if (!isLoaded) {
+            const timer = setTimeout(() => {
+                setRole(storedRole);
+                setIsLoaded(true);
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+
         if (!storedRole && pathname !== '/') {
             router.push('/');
-            return;
         }
-
-        if (role !== storedRole) {
-            setRole(storedRole);
-        }
-
-        if (!isLoaded) {
-            setIsLoaded(true);
-        }
-    }, [pathname, router, role, isLoaded]);
+    }, [pathname, router, isLoaded]);
 
     const roleInfo = {
         admin: {
