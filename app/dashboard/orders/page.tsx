@@ -76,26 +76,48 @@ export default function OrdersPage() {
     };
 
     const handleNewOrder = () => {
-        alert("A new order form would normally appear here. This functionality will be fully implemented once the database is connected.");
+        const nextId = orders.length + 1;
+        const newOrder = {
+            id: `ORD-00${nextId}`,
+            customer: "New Retail Partner - Colombo",
+            date: new Date().toISOString().split('T')[0],
+            total: `Rs. ${(Math.random() * 5000 + 500).toFixed(2)}`,
+            status: "Pending",
+            items: Math.floor(Math.random() * 100) + 10,
+        };
+        setOrders([newOrder, ...orders]);
     };
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Orders</h2>
-                    <p className="text-muted-foreground">
+                    <h2 className="text-3xl font-black tracking-tight uppercase">Orders Hub</h2>
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         Manage incoming orders from retail outlets.
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleExport} className="rounded-xl border-black/5 bg-white shadow-sm">
-                        <Download className="mr-2 h-4 w-4" /> Export
-                    </Button>
-                    <Button size="sm" onClick={handleNewOrder} className="rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-                        <Plus className="mr-2 h-4 w-4" /> New Order
+                    <Button variant="outline" size="sm" onClick={handleExport} className="rounded-xl border-black/5 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest h-10 px-6">
+                        <Download className="mr-2 h-4 w-4" /> Export All
                     </Button>
                 </div>
+            </div>
+
+            {/* Centered Large Action Button */}
+            <div className="flex justify-center py-6">
+                <Button
+                    size="lg"
+                    onClick={handleNewOrder}
+                    className="rounded-2xl bg-black text-white shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all duration-300 h-16 px-12 text-lg font-black uppercase tracking-tighter group"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 group-hover:bg-primary transition-colors">
+                            <Plus className="h-5 w-5 text-white" />
+                        </div>
+                        Create New Order
+                    </div>
+                </Button>
             </div>
 
             <Card className="border-none shadow-sm bg-white/50">
