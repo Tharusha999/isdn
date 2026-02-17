@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
     BarChart3,
+    Bell,
     Box,
     CreditCard,
     LayoutDashboard,
@@ -15,60 +16,39 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Card } from "@/components/ui/card";
 
 const sidebarItems = [
-    {
-        title: "Overview",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-    },
-    {
-        title: "Orders",
-        href: "/dashboard/orders",
-        icon: ShoppingCart,
-    },
-    {
-        title: "Inventory",
-        href: "/dashboard/inventory",
-        icon: Package,
-    },
-    {
-        title: "Logistics",
-        href: "/dashboard/logistics",
-        icon: Truck,
-    },
-    {
-        title: "Finance",
-        href: "/dashboard/finance",
-        icon: CreditCard,
-    },
-    {
-        title: "Staff",
-        href: "/dashboard/staff",
-        icon: Users,
-    },
-    {
-        title: "Settings",
-        href: "/dashboard/settings",
-        icon: Settings,
-    },
+    { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { title: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
+    { title: "Inventory", href: "/dashboard/inventory", icon: Package },
+    { title: "Delivery", href: "/dashboard/logistics", icon: Truck },
+    { title: "Billing", href: "/dashboard/finance", icon: CreditCard },
+    { title: "Reporting", href: "/dashboard/reports", icon: BarChart3 },
+    { title: "Customer Portal", href: "/dashboard/staff", icon: Users },
+    { title: "RDC Partners", href: "/dashboard/management/partners", icon: Truck },
+    { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
 
     return (
-        <div className="flex h-full w-full flex-col border-r bg-sidebar text-card-foreground sidebar-glass">
-            <div className="flex h-16 items-center px-6">
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-                        <Box className="h-4 w-4" />
+        <div className="flex h-full w-full flex-col border-r border-black/5 bg-white text-card-foreground">
+            <div className="flex h-24 items-center px-6 border-b border-black/5">
+                <Link href="/dashboard" className="flex items-center gap-4 group">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                        <LayoutDashboard className="h-6 w-6" />
                     </div>
-                    <span className="text-xl tracking-tight">ISDN</span>
+                    <div className="flex flex-col">
+                        <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
+                        <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">Head Office Admin</span>
+                    </div>
                 </Link>
             </div>
-            <div className="flex-1 overflow-auto py-4 px-3">
-                <nav className="grid items-start gap-1">
+
+            <div className="flex-1 overflow-auto py-8 px-4">
+                <nav className="grid gap-2">
                     {sidebarItems.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
@@ -77,25 +57,28 @@ export function Sidebar() {
                                 key={index}
                                 href={item.href}
                                 className={cn(
-                                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-in-out",
+                                    "group flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 relative",
                                     isActive
-                                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                                        : "text-muted-foreground hover:bg-black/5 hover:text-foreground active:scale-[0.98]"
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:bg-black/5 hover:text-foreground"
                                 )}
                             >
-                                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110", isActive ? "text-white" : "")} />
-                                {item.title}
+                                <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                                <span className="flex-1">{item.title}</span>
                             </Link>
                         );
                     })}
                 </nav>
             </div>
-            <div className="mt-auto border-t border-black/5 p-4">
+
+            <div className="mt-auto p-4 space-y-4 border-t border-black/5">
                 <Link
                     href="/"
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-red-50 hover:text-red-600 active:scale-[0.98]"
+                    className="flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-bold text-muted-foreground transition-all hover:bg-rose-50 hover:text-rose-600 group"
                 >
-                    <LogOut className="h-4 w-4" />
+                    <div className="h-10 w-10 rounded-xl bg-secondary/50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                        <LogOut className="h-5 w-5" />
+                    </div>
                     Sign Out
                 </Link>
             </div>
