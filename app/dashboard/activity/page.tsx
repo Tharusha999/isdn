@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {  CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Circle } from "lucide-react";
 
 export default function ActivityPage() {
