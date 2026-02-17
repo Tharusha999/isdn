@@ -51,6 +51,9 @@ export function Sidebar() {
         if (role === 'customer') {
             return ['Dashboard', 'Orders', 'Settings'].includes(item.title);
         }
+        if (role === 'driver') {
+            return ['Dashboard', 'Logistics', 'Settings'].includes(item.title);
+        }
         return true; // Admin sees everything
     });
 
@@ -64,7 +67,7 @@ export function Sidebar() {
                     <div className="flex flex-col">
                         <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : 'Head Office Admin')}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Head Office Admin'))}
                         </span>
                     </div>
                 </Link>

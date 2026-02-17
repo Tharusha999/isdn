@@ -16,7 +16,8 @@ import {
     Truck,
     CheckCircle2,
     Calendar,
-    ExternalLink
+    ExternalLink,
+    Download
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,99 +31,173 @@ export default function DashboardPage() {
 
     if (role === 'customer') {
         return (
-            <div className="space-y-8 text-foreground/90">
+            <div className="space-y-6 text-foreground/90">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-3xl font-black tracking-tight uppercase">My Orders & Tracking</h2>
-                    <p className="text-sm text-muted-foreground font-medium">Welcome back! Here's an overview of your recent activity and orders.</p>
+                    <h2 className="text-3xl font-black tracking-tight uppercase">My Orders</h2>
+                    <p className="text-sm text-muted-foreground font-medium">View and track all your recent orders below.</p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
-                    <Card className="border-none shadow-sm bg-primary text-white shadow-primary/20 overflow-hidden relative group font-sans">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full translate-x-8 -translate-y-8" />
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-white/80">Active Orders</CardTitle>
-                            <Package className="h-4 w-4" />
+                <Card className="border-none shadow-sm bg-white/50">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg font-bold tracking-tight">Recent Activity</CardTitle>
+                        <Button variant="outline" size="sm" className="text-[10px] font-black uppercase tracking-widest border-black/5 bg-white">
+                            <Download className="mr-2 h-3 w-3" /> Export List
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-xl border border-black/5 overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-black/[0.02] border-b border-black/5">
+                                    <tr>
+                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Order ID</th>
+                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Date</th>
+                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Amount</th>
+                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
+                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-black/5">
+                                    {[
+                                        { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: '$145.20' },
+                                        { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: '$210.00' },
+                                        { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2024', amount: '$85.00' },
+                                        { id: '#ORD-9960', status: 'Pending', date: 'Feb 18, 2024', amount: '$320.40' },
+                                    ].map((order, i) => (
+                                        <tr key={i} className="hover:bg-black/[0.01] transition-colors group">
+                                            <td className="px-6 py-4 font-bold text-sm text-primary">{order.id}</td>
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">{order.date}</td>
+                                            <td className="px-6 py-4 text-sm font-black">{order.amount}</td>
+                                            <td className="px-6 py-4">
+                                                <Badge variant="outline" className={`text-[8px] font-black uppercase border-none ${order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-600' :
+                                                    order.status === 'In Transit' ? 'bg-indigo-500/10 text-indigo-600' :
+                                                        order.status === 'Processing' ? 'bg-amber-500/10 text-amber-600' :
+                                                            'bg-primary/10 text-primary'
+                                                    }`}>
+                                                    {order.status}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-[10px] font-bold uppercase hover:bg-black/5">Track</Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (role === 'driver') {
+        return (
+            <div className="space-y-6 text-foreground/90">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-black tracking-tight uppercase">Driver Dispatch</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Safe driving, Sam! Here is your vehicle information and assigned route.</p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <Card className="border-none shadow-sm bg-indigo-600 text-white shadow-indigo-200 overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full translate-x-8 -translate-y-8" />
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-white/70">Assigned Vehicle</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black tracking-tighter">04</div>
-                            <p className="text-xs font-bold text-white/90 mt-1">2 arriving today</p>
+                            <div className="text-2xl font-black tracking-tight">Isuzu NPR 400</div>
+                            <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="outline" className="text-white border-white/30 bg-white/10 px-2 py-0.5 text-[10px] font-black">WP CAD-4212</Badge>
+                                <span className="text-[10px] font-bold text-white/60">• Light Truck</span>
+                            </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Spent</CardTitle>
-                            <DollarSign className="h-4 w-4 text-emerald-500" />
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Today's Distance</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-emerald-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black tracking-tighter">$1,240.00</div>
-                            <p className="text-xs font-bold text-emerald-600 mt-1">Across 12 orders</p>
+                            <div className="text-3xl font-black tracking-tighter italic">142.5 KM</div>
+                            <p className="text-xs font-bold text-emerald-600 mt-1">+12.4 KM <span className="text-muted-foreground font-normal">from last hour</span></p>
                         </CardContent>
                     </Card>
 
                     <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loyalty Points</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-primary" />
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</CardTitle>
+                            <MapIcon className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black tracking-tighter">840</div>
-                            <p className="text-xs font-bold text-primary mt-1">Silver Member Status</p>
+                            <div className="text-2xl font-black tracking-tighter uppercase truncate text-primary">Nugegoda, LK</div>
+                            <p className="text-xs font-bold text-muted-foreground mt-1">Heading to South RDC</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card className="border-none shadow-sm bg-white/50">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-lg font-bold tracking-tight">Recent Orders</CardTitle>
-                            <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary">View All</Button>
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold tracking-tight">Active Delivery Job</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {[
-                                    { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: '$145.20' },
-                                    { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: '$210.00' },
-                                ].map((order, i) => (
-                                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white border border-black/5 hover:shadow-sm transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-lg bg-secondary/50 flex items-center justify-center">
-                                                <Package className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold">{order.id}</p>
-                                                <p className="text-[10px] text-muted-foreground">{order.date}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-black">{order.amount}</p>
-                                            <Badge variant="outline" className={`mt-1 text-[8px] font-black uppercase border-none ${order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-primary/10 text-primary'}`}>
-                                                {order.status}
-                                            </Badge>
-                                        </div>
+                        <CardContent className="space-y-6">
+                            <div className="relative pl-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-black/5">
+                                <div className="relative mb-8">
+                                    <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pickup Location</p>
+                                    <p className="text-sm font-bold text-foreground">Main Distribution Hub, Colombo</p>
+                                    <p className="text-[10px] text-muted-foreground">Departure: 08:30 AM</p>
+                                </div>
+                                <div className="relative">
+                                    <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-primary border-4 border-white shadow-sm ring-2 ring-primary/20 animate-pulse" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Next Destination</p>
+                                    <p className="text-sm font-bold text-foreground">South Regional DC, Miami Coastal</p>
+                                    <p className="text-[10px] text-muted-foreground italic">Estimated Arrival: 11:45 AM</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Package className="h-5 w-5 text-primary" />
+                                    <div>
+                                        <p className="text-xs font-bold">Consignment #DLV-8201</p>
+                                        <p className="text-[10px] text-muted-foreground">12 Large Pallets • Fragile</p>
                                     </div>
-                                ))}
+                                </div>
+                                <Button size="sm" className="rounded-lg text-[10px] font-black uppercase bg-primary hover:scale-105 transition-transform">Update Status</Button>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="border-none shadow-sm bg-white/50">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-lg font-bold tracking-tight">Support & Assistance</CardTitle>
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold tracking-tight">Vehicle Health & Stats</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white">
-                                    <Users className="h-5 w-5" />
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-muted-foreground">Fuel Level</span>
+                                    <span className="text-amber-600">65% • Standard Range</span>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-indigo-900">Need help with an order?</p>
-                                    <p className="text-[10px] text-indigo-700/70">Our support team is available 24/7.</p>
+                                <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-amber-500 w-[65%]" />
                                 </div>
-                                <Button size="sm" className="ml-auto bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase">Chat Now</Button>
                             </div>
-                            <Button variant="outline" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-black/10 hover:bg-black/5 transition-all">
-                                <ExternalLink className="mr-2 h-4 w-4" /> Visit Help Center
+
+                            <div className="grid grid-cols-2 gap-4 pt-4">
+                                <div className="p-4 rounded-xl bg-white border border-black/5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Engine Temp</p>
+                                    <p className="text-sm font-bold text-emerald-600">82°C (Optimal)</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-white border border-black/5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Tire Pressure</p>
+                                    <p className="text-sm font-bold text-foreground">32 PSI (Normal)</p>
+                                </div>
+                            </div>
+
+                            <Button variant="outline" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-black/5 bg-white hover:bg-black/5">
+                                <AlertTriangle className="mr-2 h-4 w-4 text-rose-500" /> Report Vehicle Issue
                             </Button>
                         </CardContent>
                     </Card>

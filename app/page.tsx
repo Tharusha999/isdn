@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'customer'>('admin');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'customer' | 'driver'>('admin');
 
   useEffect(() => {
     localStorage.removeItem('userRole');
@@ -45,7 +45,7 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="grid grid-cols-3 gap-3 mb-2">
               <button
                 type="button"
                 onClick={() => setSelectedRole('admin')}
@@ -67,6 +67,17 @@ export default function Home() {
               >
                 <User className={`h-6 w-6 mb-2 ${selectedRole === 'customer' ? 'text-primary' : ''}`} />
                 <span className="text-sm font-semibold">Customer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRole('driver')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedRole === 'driver'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
+                  }`}
+              >
+                <Truck className={`h-6 w-6 mb-2 ${selectedRole === 'driver' ? 'text-primary' : ''}`} />
+                <span className="text-sm font-semibold">Driver</span>
               </button>
             </div>
 
@@ -93,18 +104,24 @@ export default function Home() {
             <div className="text-xs text-muted-foreground text-center mb-2">
               Quick Access (Demo)
             </div>
-            <div className="grid grid-cols-2 gap-2 w-full">
+            <div className="grid grid-cols-3 gap-2 w-full">
               <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
                 localStorage.setItem('userRole', 'admin');
                 router.push('/dashboard');
               }}>
-                <LayoutDashboard className="mr-2 h-3 w-3" /> Manager Login
+                <LayoutDashboard className="mr-2 h-3 w-3" /> Admin
               </Button>
               <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
                 localStorage.setItem('userRole', 'customer');
                 router.push('/dashboard');
               }}>
-                <Truck className="mr-2 h-3 w-3" /> Logistics Login
+                <User className="mr-2 h-3 w-3" /> Customer
+              </Button>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
+                localStorage.setItem('userRole', 'driver');
+                router.push('/dashboard');
+              }}>
+                <Truck className="mr-2 h-3 w-3" /> Driver
               </Button>
             </div>
           </CardFooter>

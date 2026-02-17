@@ -18,7 +18,9 @@ export default function DashboardLayout({
 
     const getTitle = () => {
         if (pathname === "/dashboard") {
-            return role === 'customer' ? "Customer Dashboard" : "Management Dashboard";
+            if (role === 'customer') return "My Orders";
+            if (role === 'driver') return "Driver Dispatch";
+            return "Management Dashboard";
         }
         if (pathname === "/dashboard/staff") return "Retailer Portal";
         if (pathname === "/dashboard/logistics") return "RDC Management Portal";
@@ -54,6 +56,11 @@ export default function DashboardLayout({
             label: "Customer",
             avatar: "Guest"
         },
+        driver: {
+            name: "Sam Perera",
+            label: "Logistics Driver",
+            avatar: "Sam"
+        },
         loading: {
             name: "Loading...",
             label: "...",
@@ -61,7 +68,7 @@ export default function DashboardLayout({
         }
     };
 
-    const currentInfo = role === 'customer' ? roleInfo.customer : (role === 'admin' ? roleInfo.admin : roleInfo.loading);
+    const currentInfo = role === 'customer' ? roleInfo.customer : (role === 'admin' ? roleInfo.admin : (role === 'driver' ? roleInfo.driver : roleInfo.loading));
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
