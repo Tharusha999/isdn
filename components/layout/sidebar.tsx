@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 
 const sidebarItems = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { title: "Products", href: "/dashboard/products", icon: Package },
     { title: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
     { title: "Inventory", href: "/dashboard/inventory", icon: Package },
     { title: "Delivery", href: "/dashboard/logistics", icon: Truck },
@@ -47,14 +48,14 @@ export function Sidebar() {
     };
 
     const filteredItems = sidebarItems.filter(item => {
-        if (!isLoaded) return false; // Hide links until we know the role
+        if (!isLoaded) return false;
         if (role === 'customer') {
-            return ['Dashboard', 'Orders', 'Settings'].includes(item.title);
+            return ['Dashboard', 'Products', 'Orders', 'Settings'].includes(item.title);
         }
         if (role === 'driver') {
             return ['Dashboard', 'Logistics', 'Settings'].includes(item.title);
         }
-        return true; // Admin sees everything
+        return true;
     });
 
     return (

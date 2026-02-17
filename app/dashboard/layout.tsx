@@ -39,11 +39,17 @@ export default function DashboardLayout({
         const storedRole = localStorage.getItem('userRole');
         if (!storedRole && pathname !== '/') {
             router.push('/');
-        } else {
+            return;
+        }
+
+        if (role !== storedRole) {
             setRole(storedRole);
+        }
+
+        if (!isLoaded) {
             setIsLoaded(true);
         }
-    }, [pathname, router]);
+    }, [pathname, router, role, isLoaded]);
 
     const roleInfo = {
         admin: {

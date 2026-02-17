@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Filter, Plus, Search } from "lucide-react";
+import { Download, Filter, Plus, Search, Calendar, ChevronRight } from "lucide-react";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { useRouter } from "next/navigation";
 
 // Mock Data
 const initialOrders = [
@@ -53,6 +54,7 @@ const initialOrders = [
 ];
 
 export default function OrdersPage() {
+    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
     const [orders, setOrders] = useState(initialOrders);
 
@@ -76,16 +78,7 @@ export default function OrdersPage() {
     };
 
     const handleNewOrder = () => {
-        const nextId = orders.length + 1;
-        const newOrder = {
-            id: `ORD-00${nextId}`,
-            customer: "New Retail Partner - Colombo",
-            date: new Date().toISOString().split('T')[0],
-            total: `Rs. ${(Math.random() * 5000 + 500).toFixed(2)}`,
-            status: "Pending",
-            items: Math.floor(Math.random() * 100) + 10,
-        };
-        setOrders([newOrder, ...orders]);
+        router.push("/dashboard/products");
     };
 
     return (
@@ -115,7 +108,7 @@ export default function OrdersPage() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 group-hover:bg-primary transition-colors">
                             <Plus className="h-5 w-5 text-white" />
                         </div>
-                        Create New Order
+                        Browse Products & Place Order
                     </div>
                 </Button>
             </div>

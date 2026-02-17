@@ -1,441 +1,208 @@
 "use client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-    Activity,
-    CreditCard,
     DollarSign,
-    Users,
-    TrendingUp,
-    Map as MapIcon,
-    AlertTriangle,
     BarChart3,
     ArrowUpRight,
-    Circle,
     Package,
     Truck,
-    CheckCircle2,
     Calendar,
-    ExternalLink,
-    Download
+    Zap,
+    ArrowRight,
+    ShieldCheck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
 
     useEffect(() => {
-        setRole(localStorage.getItem('userRole'));
-    }, []);
+        const storedRole = localStorage.getItem('userRole');
+        if (role !== storedRole) {
+            setRole(storedRole);
+        }
+    }, [role]);
 
     if (role === 'customer') {
+        const orders = [
+            { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: 'Rs. 14,500' },
+            { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: 'Rs. 21,200' },
+            { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2024', amount: 'Rs. 8,500' },
+        ];
+
         return (
-            <div className="space-y-6 text-foreground/90">
+            <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-3xl font-black tracking-tight uppercase">My Orders</h2>
-                    <p className="text-sm text-muted-foreground font-medium">View and track all your recent orders below.</p>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase">My Supply Line</h2>
+                    <p className="text-sm text-muted-foreground font-bold italic">Tracking the flow of your bulk orders across the regional grid.</p>
                 </div>
 
-                <Card className="border-none shadow-sm bg-white/50">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg font-bold tracking-tight">Recent Activity</CardTitle>
-                        <Button variant="outline" size="sm" className="text-[10px] font-black uppercase tracking-widest border-black/5 bg-white">
-                            <Download className="mr-2 h-3 w-3" /> Export List
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="rounded-xl border border-black/5 overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-black/[0.02] border-b border-black/5">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Order ID</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Date</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Amount</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-black/5">
-                                    {[
-                                        { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: '$145.20' },
-                                        { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: '$210.00' },
-                                        { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2024', amount: '$85.00' },
-                                        { id: '#ORD-9960', status: 'Pending', date: 'Feb 18, 2024', amount: '$320.40' },
-                                    ].map((order, i) => (
-                                        <tr key={i} className="hover:bg-black/[0.01] transition-colors group">
-                                            <td className="px-6 py-4 font-bold text-sm text-primary">{order.id}</td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">{order.date}</td>
-                                            <td className="px-6 py-4 text-sm font-black">{order.amount}</td>
-                                            <td className="px-6 py-4">
-                                                <Badge variant="outline" className={`text-[8px] font-black uppercase border-none ${order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-600' :
-                                                    order.status === 'In Transit' ? 'bg-indigo-500/10 text-indigo-600' :
-                                                        order.status === 'Processing' ? 'bg-amber-500/10 text-amber-600' :
-                                                            'bg-primary/10 text-primary'
-                                                    }`}>
-                                                    {order.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-[10px] font-bold uppercase hover:bg-black/5">Track</Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    if (role === 'driver') {
-        return (
-            <div className="space-y-6 text-foreground/90">
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-3xl font-black tracking-tight uppercase">Driver Dispatch</h2>
-                    <p className="text-sm text-muted-foreground font-medium">Safe driving, Sam! Here is your vehicle information and assigned route.</p>
+                <div className="grid gap-8 md:grid-cols-3">
+                    {orders.map((order, i) => (
+                        <Card key={i} className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 group hover:shadow-xl transition-all">
+                            <div className="flex justify-between items-start mb-6">
+                                <p className="font-black text-xs uppercase text-primary">{order.id}</p>
+                                <Badge className={`rounded-full px-3 py-1 font-black text-[8px] uppercase tracking-widest border-none ${order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-600' :
+                                    order.status === 'In Transit' ? 'bg-indigo-500/10 text-indigo-600' : 'bg-amber-500/10 text-amber-600'
+                                    }`}>
+                                    {order.status}
+                                </Badge>
+                            </div>
+                            <div className="text-2xl font-black italic tracking-tighter mb-4">{order.amount}</div>
+                            <div className="flex justify-between items-end">
+                                <p className="text-[10px] font-bold text-muted-foreground">{order.date}</p>
+                                <Button variant="ghost" size="icon" className="h-10 w-10 p-0 rounded-xl hover:bg-black hover:text-white transition-all">
+                                    <ArrowRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </Card>
+                    ))}
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <Card className="border-none shadow-sm bg-indigo-600 text-white shadow-indigo-200 overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full translate-x-8 -translate-y-8" />
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-white/70">Assigned Vehicle</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-black tracking-tight">Isuzu NPR 400</div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline" className="text-white border-white/30 bg-white/10 px-2 py-0.5 text-[10px] font-black">WP CAD-4212</Badge>
-                                <span className="text-[10px] font-bold text-white/60">• Light Truck</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Today's Distance</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-emerald-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-black tracking-tighter italic">142.5 KM</div>
-                            <p className="text-xs font-bold text-emerald-600 mt-1">+12.4 KM <span className="text-muted-foreground font-normal">from last hour</span></p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</CardTitle>
-                            <MapIcon className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-black tracking-tighter uppercase truncate text-primary">Nugegoda, LK</div>
-                            <p className="text-xs font-bold text-muted-foreground mt-1">Heading to South RDC</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <Card className="border-none shadow-sm bg-white/50">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold tracking-tight">Active Delivery Job</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="relative pl-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-black/5">
-                                <div className="relative mb-8">
-                                    <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pickup Location</p>
-                                    <p className="text-sm font-bold text-foreground">Main Distribution Hub, Colombo</p>
-                                    <p className="text-[10px] text-muted-foreground">Departure: 08:30 AM</p>
-                                </div>
-                                <div className="relative">
-                                    <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-primary border-4 border-white shadow-sm ring-2 ring-primary/20 animate-pulse" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Next Destination</p>
-                                    <p className="text-sm font-bold text-foreground">South Regional DC, Miami Coastal</p>
-                                    <p className="text-[10px] text-muted-foreground italic">Estimated Arrival: 11:45 AM</p>
-                                </div>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Package className="h-5 w-5 text-primary" />
-                                    <div>
-                                        <p className="text-xs font-bold">Consignment #DLV-8201</p>
-                                        <p className="text-[10px] text-muted-foreground">12 Large Pallets • Fragile</p>
-                                    </div>
-                                </div>
-                                <Button size="sm" className="rounded-lg text-[10px] font-black uppercase bg-primary hover:scale-105 transition-transform">Update Status</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-none shadow-sm bg-white/50">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold tracking-tight">Vehicle Health & Stats</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                    <span className="text-muted-foreground">Fuel Level</span>
-                                    <span className="text-amber-600">65% • Standard Range</span>
-                                </div>
-                                <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-amber-500 w-[65%]" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 pt-4">
-                                <div className="p-4 rounded-xl bg-white border border-black/5">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Engine Temp</p>
-                                    <p className="text-sm font-bold text-emerald-600">82°C (Optimal)</p>
-                                </div>
-                                <div className="p-4 rounded-xl bg-white border border-black/5">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Tire Pressure</p>
-                                    <p className="text-sm font-bold text-foreground">32 PSI (Normal)</p>
-                                </div>
-                            </div>
-
-                            <Button variant="outline" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-black/5 bg-white hover:bg-black/5">
-                                <AlertTriangle className="mr-2 h-4 w-4 text-rose-500" /> Report Vehicle Issue
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Button
+                    onClick={() => router.push('/dashboard/products')}
+                    className="w-full h-20 rounded-[2rem] bg-black text-white hover:bg-black/90 font-black uppercase tracking-widest text-lg shadow-2xl group"
+                >
+                    Quick Order Console <Zap className="ml-3 h-6 w-6 text-amber-400 fill-current group-hover:scale-125 transition-transform" />
+                </Button>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
-            {/* Top Stat Cards */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover overflow-hidden group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-                            Total Daily Sales
-                        </CardTitle>
-                        <TrendingUp className="h-4 w-4 text-emerald-500 group-hover:scale-110 transition-transform" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tight">$42,850.40</div>
-                        <p className="text-xs font-bold text-emerald-600 mt-2 flex items-center gap-1">
-                            +5.2% <span className="text-muted-foreground font-normal">from yesterday</span>
-                        </p>
-                    </CardContent>
-                    <div className="h-1.5 w-full bg-emerald-500/10 mt-auto">
-                        <div className="h-full bg-emerald-500 w-[65%]" />
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Executive Welcome */}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-4xl font-black italic tracking-tighter uppercase">ISDN Network Commander</h2>
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_theme(colors.emerald.500)]" />
                     </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover overflow-hidden group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-                            Active Deliveries
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] uppercase font-black px-2 py-0.5">Map Toggle</Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tight">124</div>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">
-                            Real-time status tracking
-                        </p>
-                    </CardContent>
-                    <div className="h-1.5 w-full bg-primary/10 mt-auto flex items-end">
-                        <div className="h-[40%] bg-primary w-[40%] ml-4 rounded-t-sm" />
-                        <div className="h-[70%] bg-primary w-[30%] ml-1 rounded-t-sm" />
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover overflow-hidden group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-                            Low Stock Alerts
-                        </CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-rose-500 group-hover:animate-pulse" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tight">18 Items</div>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">
-                            Across <span className="text-rose-500 font-bold">5 RDCs</span>
-                        </p>
-                    </CardContent>
-                    <div className="h-1.5 w-full bg-rose-500/10 mt-auto">
-                        <div className="h-full bg-rose-500 w-[20%]" />
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover overflow-hidden group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70">
-                            Monthly Revenue
-                        </CardTitle>
-                        <BarChart3 className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tight font-sans">+12.5%</div>
-                        <p className="text-xs font-bold text-emerald-600 mt-2 flex items-center gap-1">
-                            +$4.2k <span className="text-muted-foreground font-normal">projected growth</span>
-                        </p>
-                    </CardContent>
-                    <div className="h-2 w-full bg-secondary/30 mt-auto px-4 flex items-end gap-1 pb-1">
-                        {[40, 60, 30, 80, 50, 90, 70].map((h, i) => (
-                            <div key={i} className={`flex-1 bg-primary/20 rounded-t-[1px]`} style={{ height: `${h}%` }} />
-                        ))}
-                    </div>
-                </Card>
-            </div>
-
-            {/* Middle Section: Regional Performance & Activity Feed */}
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-2 border-none shadow-sm bg-white/50">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="text-lg font-bold tracking-tight">Regional Performance</CardTitle>
-                            <p className="text-xs text-muted-foreground mt-1 font-medium">Sales volume by distribution center</p>
-                        </div>
-                        <Button variant="outline" size="sm" className="rounded-lg border-black/5 bg-white shadow-sm text-[10px] font-bold uppercase">
-                            Last 30 Days <ArrowUpRight className="ml-2 h-3 w-3" />
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full flex items-end justify-around gap-4 px-4 pb-8">
-                            {[
-                                { name: 'North', val: 70 },
-                                { name: 'South', val: 45 },
-                                { name: 'East', val: 90 },
-                                { name: 'West', val: 60 },
-                                { name: 'Central', val: 80 }
-                            ].map((item, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
-                                    <div className="w-full relative flex items-end justify-center">
-                                        <div className="w-full bg-primary/5 rounded-xl absolute bottom-0 h-[100%] border border-black/[0.02]" />
-                                        <div
-                                            className="w-10 md:w-16 bg-gradient-to-t from-primary to-primary/60 rounded-xl transition-all duration-500 group-hover:scale-x-105"
-                                            style={{ height: `${item.val}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg font-bold tracking-tight">Activity Feed</CardTitle>
-                        <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500 animate-pulse" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="relative space-y-6 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-primary/20 before:via-primary/5 before:to-transparent">
-                            {[
-                                {
-                                    icon: Truck,
-                                    color: 'bg-emerald-500',
-                                    title: 'Delivery #8231 Completed',
-                                    desc: 'South RDC • Driver: J. Smith',
-                                    time: '2 mins ago'
-                                },
-                                {
-                                    icon: Package,
-                                    color: 'bg-indigo-500',
-                                    title: 'New Bulk Order #9102',
-                                    desc: 'North RDC • 142 items',
-                                    time: '14 mins ago'
-                                },
-                                {
-                                    icon: AlertTriangle,
-                                    color: 'bg-amber-500',
-                                    title: 'Inventory Level Critical',
-                                    desc: 'East RDC • SKU: ISL-99',
-                                    time: '32 mins ago'
-                                },
-                                {
-                                    icon: Users,
-                                    color: 'bg-slate-500',
-                                    title: 'RDC Admin Logged In',
-                                    desc: 'Central RDC • M. Taylor',
-                                    time: '1 hour ago'
-                                }
-                            ].map((item, i) => (
-                                <div key={i} className="relative flex items-start gap-4 pl-1">
-                                    <div className={`h-8 w-8 rounded-full ${item.color} flex items-center justify-center text-white shadow-lg shadow-${item.color.split('-')[1]}-500/20 z-10 scale-90`}>
-                                        <item.icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate">{item.title}</p>
-                                        <p className="text-[10px] text-muted-foreground font-medium mt-1">{item.desc}</p>
-                                        <p className="text-[10px] text-muted-foreground/60 mt-1">{item.time}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Bottom Section: Inventory Criticality Matrix */}
-            <Card className="border-none shadow-sm bg-white/50">
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                        <CardTitle className="text-xl font-black tracking-tight uppercase">Inventory Criticality Matrix</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1 font-medium">Live stock status across all Regional Distribution Centers</p>
-                    </div>
-                    <Button size="sm" className="rounded-xl px-6 bg-primary text-white font-bold tracking-tight hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-primary/20">
-                        Export Stock Report
+                    <p className="text-muted-foreground font-bold text-sm">
+                        Unified executive oversight of regional distribution, inventory, and finance.
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <Button variant="outline" className="rounded-2xl border-black/5 bg-white shadow-sm font-black uppercase text-[10px] tracking-widest h-14 px-8">
+                        <Calendar className="mr-2 h-4 w-4" /> Network Schedule
                     </Button>
-                </CardHeader>
-                <CardContent>
-                    <div className="relative overflow-x-auto rounded-xl">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-black/5 bg-black/[0.02]">
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Distribution Center</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stock Level (%)</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Open Alerts</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Avg. Fulfillment</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-black/5">
-                                {[
-                                    { name: 'North RDC (Toronto Hub)', stock: 65, alerts: '2 Critical', time: '4.2 hours', status: 'STABLE', statusColor: 'emerald' },
-                                    { name: 'South RDC (Miami Coastal)', stock: 35, alerts: '8 Alerts', time: '12.5 hours', status: 'LOW STOCK', statusColor: 'amber' },
-                                    { name: 'Central Hub (Dallas TX)', stock: 88, alerts: 'No Alerts', time: '2.8 hours', status: 'OPTIMAL', statusColor: 'indigo' },
-                                    { name: 'West Coast RDC (LA)', stock: 15, alerts: '14 Critical', time: '18.2 hours', status: 'CRITICAL', statusColor: 'rose' }
-                                ].map((item, i) => (
-                                    <tr key={i} className="hover:bg-black/[0.01] transition-colors group">
-                                        <td className="px-6 py-5 font-bold text-sm">{item.name}</td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center gap-4 w-40">
-                                                <div className="h-2 flex-1 bg-secondary/50 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full bg-${item.statusColor}-500 shadow-[0_0_8px_rgba(0,0,0,0.1)]`}
-                                                        style={{ width: `${item.stock}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-xs font-bold text-muted-foreground min-w-[30px]">{item.stock}%</span>
-                                            </div>
-                                        </td>
-                                        <td className={`px-6 py-5 text-sm font-bold ${item.alerts.includes('Critical') ? 'text-rose-500' : item.alerts.includes('Alerts') ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                                            {item.alerts}
-                                        </td>
-                                        <td className="px-6 py-5 text-sm font-medium">{item.time}</td>
-                                        <td className="px-6 py-5">
-                                            <Badge variant="outline" className={`rounded-lg px-3 py-1 border-none bg-${item.statusColor}-500/10 text-${item.statusColor}-600 text-[10px] font-black uppercase`}>
-                                                {item.status}
-                                            </Badge>
-                                        </td>
-                                    </tr>
+                    <Button className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10">
+                        <Globe className="mr-2 h-4 w-4 text-primary" /> System Health: 99.9%
+                    </Button>
+                </div>
+            </div>
+
+            {/* Hub Quick-Links */}
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                {[
+                    { label: "Inventory Hub", path: "/dashboard/inventory", color: "bg-indigo-500", icon: Package, val: "1,204 SKU" },
+                    { label: "Logistics Grid", path: "/dashboard/logistics", color: "bg-emerald-500", icon: Truck, val: "14 Active" },
+                    { label: "Finance Ledger", path: "/dashboard/finance", color: "bg-amber-500", icon: DollarSign, val: "Rs. 8.2M" },
+                    { label: "Intelligence", path: "/dashboard/reports", color: "bg-primary", icon: BarChart3, val: "+12.5% Growth" }
+                ].map((hub) => (
+                    <Card
+                        key={hub.label}
+                        onClick={() => router.push(hub.path)}
+                        className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 group cursor-pointer hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 transition-all"
+                    >
+                        <div className="flex justify-between items-start mb-6">
+                            <div className={`h-12 w-12 rounded-2xl ${hub.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                                <hub.icon className="h-6 w-6" />
+                            </div>
+                            <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-black group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{hub.label}</p>
+                        <div className="text-2xl font-black italic tracking-tighter uppercase">{hub.val}</div>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Network Health & Activity Matrix */}
+            <div className="grid gap-8 lg:grid-cols-3">
+                <Card className="lg:col-span-2 border-none shadow-sm bg-black text-white rounded-[2.5rem] overflow-hidden group relative">
+                    <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black via-transparent to-primary/10" />
+
+                    <CardHeader className="p-10 border-b border-white/5 relative z-10">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Network Health Matrix</CardTitle>
+                                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-white/40 mt-1">Live synchronisation of regional توزيع (distribution) nodes.</CardDescription>
+                            </div>
+                            <ShieldCheck className="h-8 w-8 text-emerald-500" />
+                        </div>
+                    </CardHeader>
+
+                    <CardContent className="p-10 relative z-10 h-[350px] flex items-center justify-center">
+                        <div className="relative w-full max-w-md h-full flex items-center justify-center">
+                            {/* 3D-effect Grid Visualisation */}
+                            <div className="absolute inset-0 border border-white/5 rounded-[2rem] rotate-x-45 scale-y-50 -skew-x-12 bg-white/[0.02]" />
+                            <div className="absolute inset-0 border border-white/5 rounded-[2rem] rotate-x-45 scale-y-50 -skew-x-12 translate-y-10 bg-white/[0.01]" />
+
+                            <div className="relative flex gap-8">
+                                {[65, 82, 45, 95, 78].map((h, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-4 group/node">
+                                        <div className="w-8 h-40 bg-white/5 rounded-full relative flex items-end p-1">
+                                            <div
+                                                className={`w-full rounded-full transition-all duration-1000 ${h > 80 ? 'bg-primary' : h > 50 ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+                                                style={{ height: `${h}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Node {i + 1}</span>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+                    </CardContent>
+
+                    <div className="absolute bottom-10 left-10 right-10 flex justify-between items-center opacity-40">
+                        <p className="text-[8px] font-black uppercase tracking-widest">End-to-End Encryption Active</p>
+                        <p className="text-[8px] font-black uppercase tracking-widest">Protocol: ISDN-SIGMA-9</p>
                     </div>
-                </CardContent>
-            </Card>
+                </Card>
+
+                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] overflow-hidden flex flex-col h-[550px]">
+                    <CardHeader className="p-8 border-b border-black/5 bg-black/[0.02]">
+                        <CardTitle className="text-xl font-black uppercase tracking-tighter italic">Live System Feed</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6 overflow-y-auto flex-1">
+                        {[
+                            { title: "Stock Authorized", desc: "450 Units moved Central → North", color: "bg-emerald-500", time: "2m" },
+                            { title: "Dispatch Active", desc: "Truck #RT-2280 is now in transit", color: "bg-primary", time: "14m" },
+                            { title: "Payment Verified", desc: "Invoice #INV-201-B settled", color: "bg-amber-500", time: "32m" },
+                            { title: "Alert Clearance", desc: "Low stock alert resolved at West RDC", color: "bg-indigo-500", time: "1h" },
+                            { title: "System Sync", desc: "Manual node reconciliation complete", color: "bg-slate-500", time: "3h" }
+                        ].map((log, i) => (
+                            <div key={i} className="flex gap-4 group">
+                                <div className={`h-8 w-8 rounded-xl ${log.color} flex items-center justify-center shrink-0 shadow-lg shadow-black/5`}>
+                                    <Zap className="h-4 w-4 text-white" />
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between items-baseline gap-4">
+                                        <p className="font-black text-[10px] uppercase tracking-tighter">{log.title}</p>
+                                        <span className="text-[8px] font-bold text-muted-foreground">{log.time}</span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-muted-foreground/60 leading-tight">{log.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                    <div className="p-8 border-t border-black/5 bg-black/[0.02]">
+                        <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all h-10 rounded-xl">
+                            All Events Log
+                        </Button>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 }
+
+const Globe = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+);

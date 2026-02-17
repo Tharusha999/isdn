@@ -1,70 +1,40 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     MapPin,
     Truck,
-    Calendar,
-    MoreHorizontal,
     ArrowRight,
-    ArrowUp,
-    ArrowDown,
     RefreshCw,
-    Box,
-    AlertTriangle,
     Navigation,
-    Clock,
-    User,
-    Edit2,
     Plus,
     TrendingUp,
-    ChevronRight
+    ChevronRight,
+    Zap,
+    LocateFixed,
+    Maximize2
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
-const inventory = [
-    {
-        id: "IL-9842-X",
-        name: "Solar Array Connector Kit",
-        onHand: 1240,
-        buffer: 200,
-        incoming: "+ 450 (2h)",
-        allocated: "120 (Pending)",
-        status: "OPTIMAL",
-        statusColor: "emerald"
-    },
-    {
-        id: "IL-2104-M",
-        name: "Lithium-Ion Battery Module (High Cap)",
-        onHand: 18,
-        buffer: 50,
-        incoming: "None Scheduled",
-        allocated: "0",
-        status: "LOW STOCK",
-        statusColor: "rose"
-    },
-    {
-        id: "IL-5532-S",
-        name: "Mounting Bracket Sub-Assembly",
-        onHand: 3400,
-        buffer: 500,
-        incoming: "+ 1,200 (Tomorrow)",
-        allocated: "850 (In Queue)",
-        status: "OVERSTOCK",
-        statusColor: "indigo"
-    }
-];
-
-const deliveryQueue = [
+const INITIAL_QUEUE = [
     {
         id: "RT-2280",
         driver: "Marcus Thorne",
         vehicle: "IS-VAN-782",
-        eta: "14:45 (22m)",
+        eta: "In 12m",
         status: "IN ROUTE",
-        statusColor: "emerald"
+        progress: 65,
+        location: { x: 45, y: 55 }
     },
     {
         id: "RT-2291",
@@ -72,317 +42,291 @@ const deliveryQueue = [
         vehicle: "IS-LRY-403",
         eta: "8 Locations",
         status: "LOADING",
-        statusColor: "primary"
+        progress: 25,
+        location: { x: 60, y: 35 }
     },
     {
         id: "RT-2305",
-        driver: "Unassigned",
-        vehicle: "IS-LRY-000",
-        eta: "Awaiting cargo consolidation for 16:00 window.",
+        driver: "Dilshan Perera",
+        vehicle: "IS-LRY-112",
+        eta: "Scheduled 16:00",
         status: "STANDBY",
-        statusColor: "muted"
+        progress: 0,
+        location: { x: 30, y: 70 }
     }
 ];
 
 export default function LogisticsPage() {
+    const [queue, setQueue] = useState(INITIAL_QUEUE);
+    const [isOptimizing, setIsOptimizing] = useState(false);
+
+    // Simulate Live GPS Movement
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setQueue(prev => prev.map(item => {
+                if (item.status === "IN ROUTE") {
+                    // Small random movement simulation
+                    return {
+                        ...item,
+                        location: {
+                            x: item.location.x + (Math.random() - 0.5) * 2,
+                            y: item.location.y + (Math.random() - 0.5) * 2,
+                        }
+                    };
+                }
+                return item;
+            }));
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleOptimize = () => {
+        setIsOptimizing(true);
+        setTimeout(() => {
+            setIsOptimizing(false);
+        }, 2000);
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row items-baseline justify-between gap-4">
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-3xl font-black tracking-tight text-foreground/90 uppercase">RDC Management Portal</h2>
-                    <p className="text-sm text-muted-foreground font-medium mt-1">Real-time inventory and logistics oversight for regional hubs.</p>
-                </div>
-
-                <div className="bg-secondary/50 p-1 rounded-xl flex items-center gap-1">
-                    {["North", "South", "East", "West", "Central"].map((hub) => (
-                        <Button
-                            key={hub}
-                            variant={hub === "Central" ? "default" : "ghost"}
-                            className={`rounded-lg h-9 px-4 text-[10px] font-black uppercase tracking-widest ${hub === "Central" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
-                        >
-                            {hub}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Deliveries</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">142</div>
-                        <p className="text-xs font-bold text-emerald-600 mt-1">+12% from yesterday</p>
-                    </CardContent>
-                </Card>
-                <Card className="border-none shadow-sm bg-rose-500 text-white shadow-rose-500/20 group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-bl-full translate-x-4 -translate-y-4" />
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-white/80">Low Stock Alerts</CardTitle>
-                        <AlertTriangle className="h-4 w-4" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">12</div>
-                        <p className="text-xs font-bold text-white/90 mt-1">Critical items identified</p>
-                    </CardContent>
-                </Card>
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Fleet Utilization</CardTitle>
-                        <Truck className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">88%</div>
-                        <p className="text-xs font-bold text-primary mt-1">14 vehicles active</p>
-                    </CardContent>
-                </Card>
-                <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pending Outflows</CardTitle>
-                        <Box className="h-4 w-4 text-indigo-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">24</div>
-                        <p className="text-xs font-bold text-muted-foreground mt-1 text-indigo-600">Awaiting dispatch</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="border-none shadow-sm bg-white/60 backdrop-blur-sm">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg font-black tracking-tight">Local Stock Inventory</CardTitle>
-                                <p className="text-xs text-muted-foreground font-medium mt-0.5">Current levels for Central Regional Hub</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" className="rounded-lg h-9 border-black/5 bg-white font-bold text-[10px] uppercase tracking-widest">
-                                    <RefreshCw className="mr-2 h-3 w-3" /> Reconciliation
-                                </Button>
-                                <Button size="sm" className="rounded-lg h-9 bg-primary text-white font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
-                                    <Navigation className="mr-2 h-3 w-3" /> Transfer Stock
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="relative overflow-x-auto rounded-xl">
-                                <table className="w-full text-left text-sm">
-                                    <thead>
-                                        <tr className="border-b border-black/5 bg-black/[0.02]">
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">SKU / Product Name</th>
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">On Hand</th>
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Buffer</th>
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Incoming (ETA)</th>
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Allocated</th>
-                                            <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-black/5">
-                                        {inventory.map((item, i) => (
-                                            <tr key={i} className="hover:bg-black/[0.01] transition-colors">
-                                                <td className="px-4 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-xs uppercase tracking-tight">{item.id}</span>
-                                                        <span className="text-xs text-muted-foreground line-clamp-1">{item.name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-4 font-black">{item.onHand.toLocaleString()}</td>
-                                                <td className="px-4 py-4 text-muted-foreground">{item.buffer}</td>
-                                                <td className={`px-4 py-4 text-xs font-bold ${item.incoming.includes('+') ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                                                    {item.incoming.includes('+') ? <ArrowDown className="inline mr-1 h-3 w-3" /> : null}
-                                                    {item.incoming}
-                                                </td>
-                                                <td className={`px-4 py-4 text-xs font-bold ${item.allocated !== '0' ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                                                    {item.allocated !== '0' ? <ArrowUp className="inline mr-1 h-3 w-3" /> : null}
-                                                    {item.allocated}
-                                                </td>
-                                                <td className="px-4 py-4 text-center">
-                                                    <Badge variant="outline" className={`rounded-lg border-none px-2 py-0.5 text-[9px] font-black uppercase bg-${item.statusColor}-500/10 text-${item.statusColor}-600`}>
-                                                        {item.status}
-                                                    </Badge>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <Button variant="ghost" className="w-full mt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary h-10 group">
-                                View Complete Inventory <ChevronRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <Card className="border-none shadow-sm bg-white/50">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4 text-rose-500" /> Damages & Returns
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50/50 border border-rose-100">
-                                    <div>
-                                        <p className="text-xs font-black text-rose-700">Batch #REC-9812</p>
-                                        <p className="text-[10px] text-rose-600/70">RECEIVED 10:30 AM</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs font-black text-rose-700">4 Damaged</span>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-400 hover:text-rose-600 hover:bg-rose-100">
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-                                    <div>
-                                        <p className="text-xs font-black text-emerald-700">Batch #REC-9788</p>
-                                        <p className="text-[10px] text-emerald-600/70">RECEIVED 08:15 AM</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs font-black text-emerald-700">12 Restocked</span>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-400 hover:text-emerald-600 hover:bg-emerald-100">
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <Button variant="outline" className="w-full text-[10px] font-black uppercase tracking-widest h-10 border-black/5 hover:bg-black/5">
-                                    + Log New Reconciliation Data
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-none shadow-sm bg-white/50">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                                    <ArrowRight className="h-4 w-4 text-primary rotate-45" /> Inter-Branch Transfers
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                        <div>
-                                            <p className="text-xs font-black text-indigo-700">North → Central</p>
-                                            <p className="text-[10px] text-indigo-600/70 uppercase">PRIORITY: HIGH</p>
-                                        </div>
-                                    </div>
-                                    <Badge className="bg-indigo-500/10 text-indigo-700 border-none text-[8px] font-black uppercase px-2 h-5">In Transit</Badge>
-                                </div>
-                                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-200">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-slate-400" />
-                                        <div>
-                                            <p className="text-xs font-black text-slate-700">West → Central</p>
-                                            <p className="text-[10px] text-slate-600/70 uppercase">PRIORITY: STANDARD</p>
-                                        </div>
-                                    </div>
-                                    <Badge className="bg-slate-500/10 text-slate-700 border-none text-[8px] font-black uppercase px-2 h-5">Scheduled</Badge>
-                                </div>
-                                <Button className="w-full bg-primary text-white text-[10px] font-black uppercase tracking-widest h-10 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-98">
-                                    Initiate Bulk Transfer
-                                </Button>
-                            </CardContent>
-                        </Card>
+                    <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-4xl font-black italic tracking-tighter uppercase">Logistics Matrix</h2>
+                        <Badge className="bg-primary text-white font-black text-[8px] uppercase tracking-widest px-2 animate-pulse">Live: Grid-Alpha</Badge>
                     </div>
+                    <p className="text-muted-foreground font-bold text-sm">
+                        Enterprise fleet orchestration and AI-driven route optimization.
+                    </p>
                 </div>
-
-                <div className="space-y-6">
-                    <Card className="border-none shadow-sm bg-white overflow-hidden relative group">
-                        <CardHeader className="flex flex-row items-center justify-between absolute top-0 left-0 right-0 z-20 p-4 bg-white/80 backdrop-blur-md">
-                            <Badge className="bg-rose-500 text-white border-none font-black text-[8px] uppercase tracking-widest px-2 group-hover:animate-pulse">Live: GPS Grid</Badge>
-                            <Button variant="outline" className="h-6 px-2 text-[8px] font-black uppercase tracking-widest bg-primary text-white border-none shadow-sm">Central Hub View</Button>
-                        </CardHeader>
-                        <div className="h-[300px] w-full bg-slate-100 relative">
-                            {/* Map Mockup Background */}
-                            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }} />
-
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                <div className="relative">
-                                    <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping" />
-                                    <div className="w-4 h-4 rounded-full bg-primary border-2 border-white shadow-xl relative z-10" />
+                <div className="flex gap-3">
+                    <Button
+                        onClick={handleOptimize}
+                        disabled={isOptimizing}
+                        className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 group transition-all"
+                    >
+                        {isOptimizing ? (
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Zap className="mr-2 h-4 w-4 text-amber-400 fill-current group-hover:scale-125 transition-transform" />
+                        )}
+                        {isOptimizing ? "Optimizing Routes..." : "AI Route Optimizer"}
+                    </Button>
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" className="rounded-2xl border-black/5 bg-white shadow-sm font-black uppercase text-[10px] tracking-widest h-14 px-8">
+                                <Plus className="mr-2 h-4 w-4" /> New Dispatch
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-full sm:max-w-md border-none p-0">
+                            <div className="flex flex-col h-full bg-white">
+                                <SheetHeader className="p-8 border-b border-black/5 bg-black/[0.02]">
+                                    <SheetTitle className="text-2xl font-black uppercase tracking-tighter italic">Fleet Dispatch System</SheetTitle>
+                                    <SheetDescription className="font-bold text-muted-foreground/60 text-[10px] uppercase tracking-widest">
+                                        Authorise new delivery routes for the regional network.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <div className="p-8 flex items-center justify-center flex-1">
+                                    <div className="text-center space-y-4">
+                                        <div className="h-16 w-16 bg-black/[0.03] rounded-full flex items-center justify-center mx-auto">
+                                            <Truck className="h-8 w-8 text-muted-foreground/40" />
+                                        </div>
+                                        <p className="text-sm font-bold text-muted-foreground">Select orders to begin payload consolidation.</p>
+                                    </div>
                                 </div>
                             </div>
+                        </SheetContent>
+                    </Sheet>
+                </div>
+            </div>
 
-                            <div className="absolute top-1/4 right-1/4">
-                                <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-lg animate-pulse" />
+            {/* Main Grid */}
+            <div className="grid gap-8 lg:grid-cols-3">
+                {/* Visual Map Section */}
+                <div className="lg:col-span-2 space-y-8">
+                    <Card className="border-none shadow-sm bg-black rounded-[2.5rem] overflow-hidden group h-[500px] relative">
+                        {/* Map Gradient/Texture Overlay */}
+                        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:32px_32px] pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+
+                        {/* Map Header Overlay */}
+                        <div className="absolute top-8 left-8 z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10">
+                                    <Navigation className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-black uppercase tracking-widest text-[10px]">Real-time Tracking Grid</h3>
+                                    <p className="text-white/40 text-[8px] font-bold uppercase">Active Nodes: 14 | Hubs: 05</p>
+                                </div>
                             </div>
+                        </div>
 
-                            <Button size="icon" variant="secondary" className="absolute bottom-4 right-4 h-8 w-8 bg-white/90 backdrop-blur shadow-xl rounded-lg">
-                                <Navigation className="h-4 w-4 text-primary" />
+                        <div className="absolute top-8 right-8 z-10">
+                            <Button size="icon" variant="secondary" className="h-10 w-10 bg-white/10 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 rounded-xl transition-all">
+                                <Maximize2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        {/* Animated Fleet Dots */}
+                        <div className="absolute inset-0 mt-20 p-20">
+                            {queue.map(truck => (
+                                <div
+                                    key={truck.id}
+                                    className="absolute transition-all duration-1000 group/node"
+                                    style={{ left: `${truck.location.x}%`, top: `${truck.location.y}%` }}
+                                >
+                                    <div className="relative">
+                                        {truck.status === "IN ROUTE" && (
+                                            <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping" />
+                                        )}
+                                        <div className={`w-4 h-4 rounded-full border-2 border-white shadow-2xl relative z-10 transition-colors ${truck.status === 'IN ROUTE' ? 'bg-emerald-500' :
+                                            truck.status === 'LOADING' ? 'bg-primary' : 'bg-slate-500'
+                                            }`} />
+
+                                        {/* Label on Hover */}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover/node:opacity-100 transition-opacity whitespace-nowrap z-20">
+                                            <div className="bg-white p-3 rounded-2xl shadow-2xl border border-black/5">
+                                                <p className="font-black text-[8px] uppercase text-black">{truck.id}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground">{truck.driver}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Optimization Lines Animation */}
+                            {isOptimizing && (
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                    <div className="w-full h-full animate-pulse flex items-center justify-center">
+                                        <Zap className="h-32 w-32 text-amber-500/10 fill-current" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Map Stats Footer */}
+                        <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+                            <div className="flex gap-4">
+                                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
+                                    <p className="text-[8px] font-black uppercase text-white/40 mb-1">Fleet Health</p>
+                                    <p className="text-xl font-black text-emerald-500 italic uppercase">Optimal</p>
+                                </div>
+                                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
+                                    <p className="text-[8px] font-black uppercase text-white/40 mb-1">Fuel Economy</p>
+                                    <p className="text-xl font-black text-white italic">+14%</p>
+                                </div>
+                            </div>
+                            <Button className="h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase text-[10px] tracking-widest shadow-2xl">
+                                <LocateFixed className="mr-2 h-4 w-4" /> Recenter View
                             </Button>
                         </div>
                     </Card>
 
-                    <Card className="border-none shadow-sm bg-white/50">
-                        <CardHeader className="flex flex-col space-y-4">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg font-black tracking-tight">Delivery Queue</CardTitle>
-                                <Badge variant="outline" className="rounded-lg h-6 border-black/5 text-[9px] font-black bg-secondary/50 uppercase">12 Routes Today</Badge>
+                    {/* Fleet Stats Summary */}
+                    <div className="grid gap-6 md:grid-cols-3">
+                        <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
+                            <div className="flex justify-between items-start mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Hubs</p>
+                                <MapPin className="h-5 w-5 text-primary/20" />
                             </div>
-                            <div className="flex bg-secondary/50 p-1 rounded-xl w-full">
-                                {["Active", "Pending", "Completed"].map((tab) => (
-                                    <Button
-                                        key={tab}
-                                        variant={tab === "Active" ? "default" : "ghost"}
-                                        className={`flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest ${tab === "Active" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`}
-                                    >
-                                        {tab}
-                                    </Button>
-                                ))}
+                            <div className="text-4xl font-black italic tracking-tighter uppercase leading-none">05</div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-4 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Sync Level: High
+                            </p>
+                        </Card>
+                        <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
+                            <div className="flex justify-between items-start mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Trucks Out</p>
+                                <Truck className="h-5 w-5 text-primary/20" />
                             </div>
+                            <div className="text-4xl font-black italic tracking-tighter uppercase leading-none">14</div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-4">Average Trip: 42km</p>
+                        </Card>
+                        <Card className="border-none shadow-sm bg-primary rounded-[2rem] p-8 overflow-hidden group">
+                            <div className="flex justify-between items-start mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Success Rate</p>
+                                <TrendingUp className="h-5 w-5 text-white/20" />
+                            </div>
+                            <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-white">99%</div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mt-4">Last 30 Days</p>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Tracking Queue Section */}
+                <div className="space-y-8">
+                    <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] overflow-hidden flex flex-col h-[700px]">
+                        <CardHeader className="p-8 border-b border-black/5 bg-black/[0.02]">
+                            <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Fleet Queue</CardTitle>
+                            <CardDescription className="font-bold text-muted-foreground/60 text-[10px] uppercase tracking-widest">
+                                Live dispatch status for ongoing deliveries.
+                            </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {deliveryQueue.map((route, i) => (
-                                <div key={i} className="space-y-3 p-4 rounded-2xl bg-white border border-black/[0.03] hover:shadow-md transition-shadow">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-secondary/50 rounded-xl">
-                                                <Navigation className="h-4 w-4 text-primary" />
+                        <CardContent className="p-8 space-y-6 overflow-y-auto flex-1">
+                            {queue.map(truck => (
+                                <div key={truck.id} className="p-6 rounded-3xl bg-white border border-black/5 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 transition-all group">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${truck.status === 'IN ROUTE' ? 'bg-emerald-50' :
+                                                truck.status === 'LOADING' ? 'bg-primary/10' : 'bg-slate-50'
+                                                }`}>
+                                                <Truck className={`h-6 w-6 ${truck.status === 'IN ROUTE' ? 'text-emerald-500' :
+                                                    truck.status === 'LOADING' ? 'text-primary' : 'text-slate-400'
+                                                    }`} />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black">Route #{route.id}</p>
-                                                <p className="text-[10px] text-muted-foreground font-medium">Driver: {route.driver}</p>
+                                                <p className="text-xs font-black uppercase tracking-tight">{truck.id}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground">{truck.driver}</p>
                                             </div>
                                         </div>
-                                        <Badge variant="outline" className={`h-5 border-none px-2 text-[8px] font-black uppercase bg-${route.statusColor}-500/10 text-${route.statusColor}-600`}>
-                                            {route.status}
+                                        <Badge className={`rounded-full px-4 py-1 font-black text-[8px] uppercase tracking-widest border-none ${truck.status === 'IN ROUTE' ? 'bg-emerald-500/10 text-emerald-600' :
+                                            truck.status === 'LOADING' ? 'bg-primary/10 text-primary' : 'bg-slate-500/10 text-slate-500'
+                                            }`}>
+                                            {truck.status}
                                         </Badge>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-[10px] font-bold">
-                                            <span className="text-muted-foreground uppercase flex items-center gap-1"><Truck className="h-3 w-3" /> Vehicle</span>
-                                            <span className="text-muted-foreground uppercase flex items-center gap-1"><Clock className="h-3 w-3" /> ETA</span>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                            <span>Progress</span>
+                                            <span className="text-black italic">{truck.progress}%</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-xs font-black">
-                                            <span>{route.vehicle}</span>
-                                            <span className={route.status === 'IN ROUTE' ? 'text-primary' : ''}>{route.eta}</span>
+                                        <div className="h-2 bg-black/5 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-1000 ${truck.status === 'IN ROUTE' ? 'bg-emerald-500' :
+                                                    truck.status === 'LOADING' ? 'bg-primary' : 'bg-slate-300'
+                                                    }`}
+                                                style={{ width: `${truck.progress}%` }}
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[8px] font-black uppercase text-muted-foreground/60 mb-1">ETA Window</p>
+                                                <p className="font-black italic text-sm">{truck.eta}</p>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-black hover:text-white transition-all">
+                                                <ChevronRight className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
-
-                                    {route.status === 'IN ROUTE' && (
-                                        <div className="h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                                            <div className="h-full bg-emerald-500 rounded-full w-[65%] animate-pulse" />
-                                        </div>
-                                    )}
-
-                                    {route.status === 'LOADING' && (
-                                        <div className="h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                                            <div className="h-full bg-primary rounded-full w-[25%]" />
-                                        </div>
-                                    )}
                                 </div>
                             ))}
-
-                            <Button className="w-full bg-white text-primary border-2 border-primary/10 rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 shadow-sm active:scale-95 transition-all mt-4">
-                                <Plus className="mr-2 h-4 w-4" /> Generate New Dispatch Route
-                            </Button>
                         </CardContent>
+                        <div className="p-8 border-t border-black/5 bg-black/[0.02]">
+                            <Button className="w-full h-16 rounded-2xl bg-black text-white hover:bg-black/90 font-black uppercase tracking-widest text-[10px] shadow-xl group">
+                                View Fleet Map Fullscreen <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                            </Button>
+                        </div>
                     </Card>
                 </div>
             </div>
         </div>
     );
 }
+
+const CheckCircle2 = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></svg>
+);

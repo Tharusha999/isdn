@@ -1,0 +1,4 @@
+﻿app/dashboard/finance/page.tsx(102,26): error TS2304: Cannot find name 'Plus'.
+app/dashboard/finance/page.tsx(339,52): error TS2552: Cannot find name 'ArrowRight'. Did you mean 'ArrowUpRight'?
+app/dashboard/page.tsx(25,5): error TS2440: Import declaration conflicts with local declaration of 'Globe'.
+app/dashboard/reports/page.tsx(238,26): error TS2304: Cannot find name 'FileText'.
