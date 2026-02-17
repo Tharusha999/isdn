@@ -2,10 +2,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Box, LayoutDashboard, Truck } from "lucide-react";
+import { ArrowRight, Box, LayoutDashboard, Truck, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'customer'>('admin');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('userRole', selectedRole);
+    router.push('/dashboard');
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50/50 p-4">
       <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -25,43 +36,70 @@ export default function Home() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Sign in</CardTitle>
             <CardDescription>
-              Enter your credentials to access the dashboard.
+              Choose your role and enter credentials to access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" placeholder="name@islandlink.com" type="email" />
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <button
+                type="button"
+                onClick={() => setSelectedRole('admin')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedRole === 'admin'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
+                  }`}
+              >
+                <ShieldCheck className={`h-6 w-6 mb-2 ${selectedRole === 'admin' ? 'text-primary' : ''}`} />
+                <span className="text-sm font-semibold">Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRole('customer')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedRole === 'customer'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
+                  }`}
+              >
+                <User className={`h-6 w-6 mb-2 ${selectedRole === 'customer' ? 'text-primary' : ''}`} />
+                <span className="text-sm font-semibold">Customer</span>
+              </button>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
-                  Forgot password?
-                </Link>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" placeholder={selectedRole === 'admin' ? 'admin@islandlink.com' : 'customer@demo.com'} type="email" />
               </div>
-              <Input id="password" type="password" />
-            </div>
-            <Button className="w-full" asChild>
-              <Link href="/dashboard">
-                Sign In <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="#" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input id="password" type="password" />
+              </div>
+              <Button type="submit" className="w-full">
+                Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </form>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 border-t bg-muted/20 p-6">
             <div className="text-xs text-muted-foreground text-center mb-2">
               Quick Access (Demo)
             </div>
             <div className="grid grid-cols-2 gap-2 w-full">
-              <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                <Link href="/dashboard">
-                  <LayoutDashboard className="mr-2 h-3 w-3" /> Manager
-                </Link>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
+                localStorage.setItem('userRole', 'admin');
+                router.push('/dashboard');
+              }}>
+                <LayoutDashboard className="mr-2 h-3 w-3" /> Manager Login
               </Button>
-              <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                <Link href="/dashboard">
-                  <Truck className="mr-2 h-3 w-3" /> Logistics
-                </Link>
+              <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
+                localStorage.setItem('userRole', 'customer');
+                router.push('/dashboard');
+              }}>
+                <Truck className="mr-2 h-3 w-3" /> Logistics Login
               </Button>
             </div>
           </CardFooter>

@@ -6,7 +6,7 @@ import { Bell, Menu, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DashboardLayout({
     children,
@@ -27,6 +27,26 @@ export default function DashboardLayout({
     };
 
     const [globalSearch, setGlobalSearch] = useState("");
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        setRole(localStorage.getItem('userRole'));
+    }, []);
+
+    const roleInfo = {
+        admin: {
+            name: "Alex Rivera",
+            label: "Global Admin",
+            avatar: "Alex"
+        },
+        customer: {
+            name: "Guest Customer",
+            label: "Customer",
+            avatar: "Guest"
+        }
+    };
+
+    const currentInfo = role === 'customer' ? roleInfo.customer : roleInfo.admin;
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,11 +111,11 @@ export default function DashboardLayout({
 
                         <div className="flex items-center gap-3 pl-2 border-l border-black/5">
                             <div className="hidden sm:block text-right">
-                                <p className="text-sm font-semibold leading-none">Alex Rivera</p>
-                                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">Global Admin</p>
+                                <p className="text-sm font-semibold leading-none">{currentInfo.name}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">{currentInfo.label}</p>
                             </div>
                             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center text-xs font-semibold text-primary shadow-sm border border-primary/10 overflow-hidden">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentInfo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
                         </div>
                     </div>

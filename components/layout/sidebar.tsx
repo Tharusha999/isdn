@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 
 const sidebarItems = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -32,6 +33,18 @@ const sidebarItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        setRole(localStorage.getItem('userRole'));
+    }, []);
+
+    const filteredItems = sidebarItems.filter(item => {
+        if (role === 'customer') {
+            return ['Dashboard', 'Orders', 'Settings'].includes(item.title);
+        }
+        return true; // Admin sees everything
+    });
 
     return (
         <div className="flex h-full w-full flex-col border-r border-black/5 bg-white text-card-foreground">
@@ -42,14 +55,16 @@ export function Sidebar() {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
-                        <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">Head Office Admin</span>
+                        <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
+                            {role === 'customer' ? 'Customer Portal' : 'Head Office Admin'}
+                        </span>
                     </div>
                 </Link>
             </div>
 
             <div className="flex-1 overflow-auto py-8 px-4">
                 <nav className="grid gap-2">
-                    {sidebarItems.map((item, index) => {
+                    {filteredItems.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
                         return (
