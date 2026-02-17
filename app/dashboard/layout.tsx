@@ -17,7 +17,9 @@ export default function DashboardLayout({
     const router = useRouter();
 
     const getTitle = () => {
-        if (pathname === "/dashboard") return "Management Dashboard";
+        if (pathname === "/dashboard") {
+            return role === 'customer' ? "Customer Dashboard" : "Management Dashboard";
+        }
         if (pathname === "/dashboard/staff") return "Retailer Portal";
         if (pathname === "/dashboard/logistics") return "RDC Management Portal";
         if (pathname === "/dashboard/management/staff") return "Staff Directory";

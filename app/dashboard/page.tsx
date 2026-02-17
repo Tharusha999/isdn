@@ -1,4 +1,6 @@
+"use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import {
     Activity,
     CreditCard,
@@ -20,6 +22,115 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        setRole(localStorage.getItem('userRole'));
+    }, []);
+
+    if (role === 'customer') {
+        return (
+            <div className="space-y-8 text-foreground/90">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-black tracking-tight uppercase">My Orders & Tracking</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Welcome back! Here's an overview of your recent activity and orders.</p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                    <Card className="border-none shadow-sm bg-primary text-white shadow-primary/20 overflow-hidden relative group font-sans">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full translate-x-8 -translate-y-8" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-white/80">Active Orders</CardTitle>
+                            <Package className="h-4 w-4" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black tracking-tighter">04</div>
+                            <p className="text-xs font-bold text-white/90 mt-1">2 arriving today</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Spent</CardTitle>
+                            <DollarSign className="h-4 w-4 text-emerald-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black tracking-tighter">$1,240.00</div>
+                            <p className="text-xs font-bold text-emerald-600 mt-1">Across 12 orders</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-sm bg-white/50 hover:bg-white transition-all card-hover group">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Loyalty Points</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black tracking-tighter">840</div>
+                            <p className="text-xs font-bold text-primary mt-1">Silver Member Status</p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <Card className="border-none shadow-sm bg-white/50">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg font-bold tracking-tight">Recent Orders</CardTitle>
+                            <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary">View All</Button>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {[
+                                    { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: '$145.20' },
+                                    { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: '$210.00' },
+                                ].map((order, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white border border-black/5 hover:shadow-sm transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-lg bg-secondary/50 flex items-center justify-center">
+                                                <Package className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">{order.id}</p>
+                                                <p className="text-[10px] text-muted-foreground">{order.date}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black">{order.amount}</p>
+                                            <Badge variant="outline" className={`mt-1 text-[8px] font-black uppercase border-none ${order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-primary/10 text-primary'}`}>
+                                                {order.status}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-sm bg-white/50">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg font-bold tracking-tight">Support & Assistance</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                                    <Users className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-indigo-900">Need help with an order?</p>
+                                    <p className="text-[10px] text-indigo-700/70">Our support team is available 24/7.</p>
+                                </div>
+                                <Button size="sm" className="ml-auto bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase">Chat Now</Button>
+                            </div>
+                            <Button variant="outline" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-black/10 hover:bg-black/5 transition-all">
+                                <ExternalLink className="mr-2 h-4 w-4" /> Visit Help Center
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             {/* Top Stat Cards */}
