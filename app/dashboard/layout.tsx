@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Menu, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function DashboardLayout({
@@ -14,6 +14,7 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const router = useRouter();
 
     const getTitle = () => {
         if (pathname === "/dashboard") return "Management Dashboard";
@@ -28,10 +29,17 @@ export default function DashboardLayout({
 
     const [globalSearch, setGlobalSearch] = useState("");
     const [role, setRole] = useState<string | null>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        setRole(localStorage.getItem('userRole'));
-    }, []);
+        const storedRole = localStorage.getItem('userRole');
+        if (!storedRole && pathname !== '/') {
+            router.push('/');
+        } else {
+            setRole(storedRole);
+            setIsLoaded(true);
+        }
+    }, [pathname, router]);
 
     const roleInfo = {
         admin: {
@@ -43,10 +51,15 @@ export default function DashboardLayout({
             name: "Guest Customer",
             label: "Customer",
             avatar: "Guest"
+        },
+        loading: {
+            name: "Loading...",
+            label: "...",
+            avatar: "placeholder"
         }
     };
 
-    const currentInfo = role === 'customer' ? roleInfo.customer : roleInfo.admin;
+    const currentInfo = role === 'customer' ? roleInfo.customer : (role === 'admin' ? roleInfo.admin : roleInfo.loading);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -121,7 +134,7 @@ export default function DashboardLayout({
                     </div>
                 </header>
                 <main className="flex flex-1 flex-col gap-6 p-4 lg:p-6 xl:p-8 min-w-0">
-                    {children}
+                    {isLoaded ? children : <div className="flex-1 flex items-center justify-center font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Initializing Portal...</div>}
                 </main>
             </div>
         </div>

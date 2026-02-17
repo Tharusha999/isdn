@@ -5,11 +5,15 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, Box, LayoutDashboard, Truck, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<'admin' | 'customer'>('admin');
+
+  useEffect(() => {
+    localStorage.removeItem('userRole');
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,8 +49,8 @@ export default function Home() {
                 type="button"
                 onClick={() => setSelectedRole('admin')}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedRole === 'admin'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
                   }`}
               >
                 <ShieldCheck className={`h-6 w-6 mb-2 ${selectedRole === 'admin' ? 'text-primary' : ''}`} />
@@ -56,8 +60,8 @@ export default function Home() {
                 type="button"
                 onClick={() => setSelectedRole('customer')}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedRole === 'customer'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border/50 hover:border-border hover:bg-muted/50 text-muted-foreground'
                   }`}
               >
                 <User className={`h-6 w-6 mb-2 ${selectedRole === 'customer' ? 'text-primary' : ''}`} />

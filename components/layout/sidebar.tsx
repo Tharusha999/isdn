@@ -34,12 +34,20 @@ const sidebarItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const [role, setRole] = useState<string | null>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        setRole(localStorage.getItem('userRole'));
+        const storedRole = localStorage.getItem('userRole');
+        setRole(storedRole);
+        setIsLoaded(true);
     }, []);
 
+    const handleSignOut = () => {
+        localStorage.removeItem('userRole');
+    };
+
     const filteredItems = sidebarItems.filter(item => {
+        if (!isLoaded) return false; // Hide links until we know the role
         if (role === 'customer') {
             return ['Dashboard', 'Orders', 'Settings'].includes(item.title);
         }
@@ -56,7 +64,7 @@ export function Sidebar() {
                     <div className="flex flex-col">
                         <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {role === 'customer' ? 'Customer Portal' : 'Head Office Admin'}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : 'Head Office Admin')}
                         </span>
                     </div>
                 </Link>
@@ -89,6 +97,7 @@ export function Sidebar() {
             <div className="mt-auto p-4 space-y-4 border-t border-black/5">
                 <Link
                     href="/"
+                    onClick={handleSignOut}
                     className="flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-bold text-muted-foreground transition-all hover:bg-rose-50 hover:text-rose-600 group"
                 >
                     <div className="h-10 w-10 rounded-xl bg-secondary/50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
