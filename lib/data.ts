@@ -121,8 +121,8 @@ export const INITIAL_ORDERS: Order[] = [
         total: 12500,
         status: "In Transit",
         rdc: "West (Colombo)",
-        date: "2024-02-18",
-        eta: "2024-02-20"
+        date: "2026-02-18",
+        eta: "2026-02-20"
     },
     {
         id: "ORD-9922",
@@ -131,8 +131,8 @@ export const INITIAL_ORDERS: Order[] = [
         total: 49000,
         status: "Delivered",
         rdc: "South (Galle)",
-        date: "2024-02-15",
-        eta: "2024-02-17"
+        date: "2026-02-15",
+        eta: "2026-02-17"
     },
     {
         id: "ORD-9923",
@@ -141,8 +141,8 @@ export const INITIAL_ORDERS: Order[] = [
         total: 245000,
         status: "Pending",
         rdc: "Central (Kandy)",
-        date: "2024-02-18",
-        eta: "2024-02-19"
+        date: "2026-02-18",
+        eta: "2026-02-19"
     }
 ];
 
@@ -158,28 +158,28 @@ export interface Transaction {
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [
     {
-        id: "INV-2024-101",
+        id: "INV-2026-101",
         orderId: "ORD-9922",
         customer: "Singer Mega - Colombo 03",
         amount: 145000.00,
-        date: "2024-02-18",
+        date: "2026-02-18",
         status: "PAID",
         method: "Credit Card"
     },
     {
-        id: "INV-2024-102",
+        id: "INV-2026-102",
         orderId: "ORD-9923",
         customer: "Softlogic Retail - Galle",
         amount: 245000.00,
-        date: "2024-02-18",
+        date: "2026-02-18",
         status: "PENDING",
         method: "Bank Transfer"
     },
     {
-        id: "INV-2024-103",
+        id: "INV-2026-103",
         customer: "Abans PLC - Kandy",
         amount: 212500.00,
-        date: "2024-02-17",
+        date: "2026-02-17",
         status: "PAID",
         method: "Online Banking"
     }
