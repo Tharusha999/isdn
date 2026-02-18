@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import { INITIAL_MISSIONS, INITIAL_PRODUCTS, Mission } from "@/lib/data";
 
 export default function DashboardPage() {
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
+    const [missions, setMissions] = useState<Mission[]>(INITIAL_MISSIONS);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
@@ -31,6 +35,38 @@ export default function DashboardPage() {
             return () => clearTimeout(timer);
         }
     }, [role]);
+
+    // Load missions from localStorage on mount
+    useEffect(() => {
+        const savedMissions = localStorage.getItem('isdn_missions');
+        if (savedMissions) {
+            try {
+                setMissions(JSON.parse(savedMissions));
+            } catch (e) {
+                console.error("Failed to parse missions", e);
+            }
+        }
+    }, []);
+
+    // Save missions to localStorage on change
+    useEffect(() => {
+        localStorage.setItem('isdn_missions', JSON.stringify(missions));
+    }, [missions]);
+
+    const handleUpdateMission = (missionId: string, updates: Partial<Mission>) => {
+        setMissions(prev => prev.map(m => m.id === missionId ? { ...m, ...updates } : m));
+    };
+
+    const handleToggleTask = (missionId: string, taskIdx: number) => {
+        setMissions(prev => prev.map(m => {
+            if (m.id === missionId) {
+                const tasks = [...m.tasks];
+                tasks[taskIdx] = { ...tasks[taskIdx], done: !tasks[taskIdx].done };
+                return { ...m, tasks };
+            }
+            return m;
+        }));
+    };
 
     if (role === 'customer') {
         const activeOrders = [
@@ -180,25 +216,7 @@ export default function DashboardPage() {
     }
 
     if (role === 'driver') {
-        const activeRoute = {
-            id: 'RT-2280',
-            vehicle: 'IS-VAN-782',
-            location: 'Pettah Distribution Center',
-            kmDelta: '142.5 KM',
-            status: 'In Transit',
-            progress: 65,
-            telemetry: {
-                fuel: '42%',
-                temp: '88°C',
-                load: '840kg'
-            },
-            tasks: [
-                { time: '08:00', label: 'Payload Picked Up', location: 'Central RDC', done: true },
-                { time: '10:30', label: 'Keells Super - Colombo 03', location: 'Kollupitiya', done: true },
-                { time: '14:15', label: 'Cargills Food City - Nugegoda', location: 'Nugegoda High St', done: false },
-                { time: '16:45', label: 'Arpico - Hyde Park', location: 'Union Place', done: false }
-            ]
-        };
+        const activeRoute = missions.find(m => m.driverName === 'Sam Perera') || missions[0];
 
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
@@ -227,7 +245,7 @@ export default function DashboardPage() {
                     <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
-                            <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.location}</div>
+                            <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.currentLocation}</div>
                         </div>
                         <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
                             <MapPin className="h-3 w-3" /> Sector S-02
@@ -253,7 +271,7 @@ export default function DashboardPage() {
                     <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
-                            <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmDelta}</div>
+                            <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
                         </div>
                         <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
                     </Card>
@@ -307,6 +325,7 @@ export default function DashboardPage() {
         );
     }
 
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Executive Welcome */}
@@ -314,7 +333,7 @@ export default function DashboardPage() {
                 <div>
                     <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">Network Commander</h2>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">
-                        Unified executive oversight of regional distribution, inventory, and finance.
+                        Unified executive oversight of regional distribution, inventory, and fleet missions.
                     </p>
                 </div>
                 <div className="flex gap-4">
@@ -330,8 +349,15 @@ export default function DashboardPage() {
             {/* Hub Quick-Links */}
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                 {[
-                    { label: "Inventory Hub", path: "/dashboard/inventory", color: "bg-indigo-50", icon: Package, val: "1,204 SKU", text: "text-indigo-600" },
-                    { label: "Logistics Grid", path: "/dashboard/logistics", color: "bg-emerald-50", icon: Truck, val: "14 Active", text: "text-emerald-600" },
+                    {
+                        label: "Global Consignment",
+                        path: "/dashboard/inventory",
+                        color: "bg-indigo-50",
+                        icon: Package,
+                        val: INITIAL_PRODUCTS.reduce((acc, p) => acc + Object.values(p.stock).reduce((a, b) => a + b, 0), 0).toLocaleString(),
+                        text: "text-indigo-600"
+                    },
+                    { label: "Dispatch Management", path: "/dashboard/management/dispatch", color: "bg-emerald-50", icon: Navigation, val: "Command Center", text: "text-emerald-600" },
                     { label: "Finance Ledger", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: "Rs. 8.2M", text: "text-amber-600" },
                     { label: "Intelligence", path: "/dashboard/reports", color: "bg-slate-900", icon: BarChart3, val: "+12.5% Growth", text: "text-white" }
                 ].map((hub) => (
@@ -431,6 +457,97 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+const OperationsCockpit = ({ activeRoute }: { activeRoute: Mission }) => (
+    <div className="grid gap-6 md:grid-cols-4">
+        <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 group relative overflow-hidden border border-black/[0.03]">
+            <Truck className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-100 -rotate-12 group-hover:scale-110 transition-transform" />
+            <div className="relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Active Asset</p>
+                <div className="text-2xl font-black tracking-tight uppercase italic mb-4 text-slate-900">{activeRoute.vehicle}</div>
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
+                    <ShieldCheck className="h-3 w-3" /> System Secure
+                </div>
+            </div>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
+                <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.currentLocation}</div>
+            </div>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
+                <MapPin className="h-3 w-3" /> Sector S-02
+            </div>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Telemetry Index</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
+                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
+                    </div>
+                    <div>
+                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
+                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
+                    </div>
+                </div>
+            </div>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
+                <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
+            </div>
+            <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+        </Card>
+    </div>
+);
+
+const MissionTimeline = ({ activeRoute, fullWidth }: { activeRoute: Mission, fullWidth?: boolean }) => (
+    <Card className={`${fullWidth ? 'w-full' : 'w-full max-w-2xl'} border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]`}>
+        <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
+            <div className="flex items-center justify-between">
+                <div>
+                    <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Mission Timeline</CardTitle>
+                    <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route Sync: {activeRoute.id} | Priority High</CardDescription>
+                </div>
+                <div className="h-10 w-10 bg-white shadow-md rounded-xl flex items-center justify-center border border-black/5">
+                    <Clock className="h-5 w-5 text-slate-400" />
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="p-10">
+            <div className="space-y-10 relative">
+                <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
+                {activeRoute.tasks.map((task, idx) => (
+                    <div key={idx} className="flex gap-8 relative items-start group">
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg transition-all group-hover:scale-110 ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
+                            {task.done ? <ShieldCheck className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <p className={`font-black text-sm uppercase tracking-tight italic ${task.done ? 'text-slate-900' : 'text-slate-400'}`}>{task.label}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">{task.location}</p>
+                                </div>
+                                <span className="text-[10px] font-black tabular-nums text-slate-900 bg-slate-100 px-3 py-1 rounded-full">{task.time}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 border-none ${task.done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                                    {task.done ? 'Operations Complete' : 'Awaiting Arrival'}
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </CardContent>
+    </Card>
+);
 
 const Globe = ({ className }: { className?: string }) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>

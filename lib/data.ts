@@ -184,3 +184,51 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
         method: "Online Banking"
     }
 ];
+
+export interface MissionTask {
+    time: string;
+    label: string;
+    location: string;
+    done: boolean;
+}
+
+export interface Mission {
+    id: string;
+    driverId: string;
+    driverName: string;
+    vehicle: string;
+    currentLocation: string;
+    kmTraversed: string;
+    status: "In Transit" | "Maintenance" | "Idle";
+    progress: number;
+    telemetry: {
+        fuel: string;
+        temp: string;
+        load: string;
+    };
+    tasks: MissionTask[];
+}
+
+export const INITIAL_MISSIONS: Mission[] = [
+    {
+        id: 'RT-2280',
+        driverId: 'D001',
+        driverName: 'Sam Perera', // Matches the name in the header in screenshot
+        vehicle: 'IS-VAN-782',
+        currentLocation: 'Pettah Distribution Center',
+        kmTraversed: '142.5 KM',
+        status: 'In Transit',
+        progress: 65,
+        telemetry: {
+            fuel: '42%',
+            temp: '88°C',
+            load: '840kg'
+        },
+        tasks: [
+            { time: '08:00', label: 'Payload Picked Up', location: 'Central RDC', done: true },
+            { time: '10:30', label: 'Keells Super - Colombo 03', location: 'Kollupitiya', done: true },
+            { time: '14:15', label: 'Cargills Food City - Nugegoda', location: 'Nugegoda High St', done: false },
+            { time: '16:45', label: 'Arpico - Hyde Park', location: 'Union Place', done: false }
+        ]
+    }
+];

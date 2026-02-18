@@ -27,6 +27,7 @@ type StaffMember = {
 export default function StaffPage() {
     const [staffList, setStaffList] = useState<StaffMember[]>(initialStaff);
     const [showModal, setShowModal] = useState(false);
+    const [editIndex, setEditIndex] = useState<number | null>(null);
     const [search, setSearch] = useState("");
     const [form, setForm] = useState({
         name: "",
@@ -38,9 +39,32 @@ export default function StaffPage() {
 
     const handleAdd = () => {
         if (!form.name || !form.role || !form.email || !form.phone) return;
-        setStaffList([...staffList, form]);
+
+        if (editIndex !== null) {
+            // Update existing member
+            const updatedList = [...staffList];
+            updatedList[editIndex] = form;
+            setStaffList(updatedList);
+        } else {
+            // Add new member
+            setStaffList([...staffList, form]);
+        }
+
         setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
+        setEditIndex(null);
         setShowModal(false);
+    };
+
+    const handleEdit = (member: StaffMember, index: number) => {
+        setForm(member);
+        setEditIndex(index);
+        setShowModal(true);
+    };
+
+    const openAddModal = () => {
+        setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
+        setEditIndex(null);
+        setShowModal(true);
     };
 
     const handleRemove = (index: number) => {
@@ -60,7 +84,7 @@ export default function StaffPage() {
                     <h2 className="text-3xl font-black tracking-tight text-foreground/90 uppercase">Staff Directory</h2>
                     <p className="text-sm text-muted-foreground font-medium mt-1">Manage and monitor team performance across all branches.</p>
                 </div>
-                <Button onClick={() => setShowModal(true)} className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold px-6">
+                <Button onClick={openAddModal} className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold px-6">
                     <Plus className="mr-2 h-4 w-4" /> Add Team Member
                 </Button>
             </div>
@@ -86,8 +110,8 @@ export default function StaffPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                    <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider">Edit Details</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider">Remove</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEdit(member, index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Details</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Remove</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -130,7 +154,7 @@ export default function StaffPage() {
                 ))}
 
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={openAddModal}
                     className="flex flex-col items-center justify-center h-full min-h-[340px] border-2 border-dashed border-black/5 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group"
                 >
                     <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center group-hover:scale-110 transition-all shadow-sm border border-black/5">
@@ -140,7 +164,7 @@ export default function StaffPage() {
                 </button>
             </div>
 
-            {/* Add Staff Modal */}
+            {/* Add/Edit Staff Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative animate-in fade-in zoom-in-95 duration-200">
@@ -151,8 +175,12 @@ export default function StaffPage() {
                             <X className="h-4 w-4 text-slate-600" />
                         </button>
 
-                        <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-1">Add New Staff</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Fill in the details to add a new team member</p>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-1">
+                            {editIndex !== null ? 'Edit Staff Details' : 'Add New Staff'}
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                            {editIndex !== null ? 'Update the member information below' : 'Fill in the details to add a new team member'}
+                        </p>
 
                         <div className="space-y-5">
                             <div className="space-y-2">
@@ -220,7 +248,7 @@ export default function StaffPage() {
                                 disabled={!form.name || !form.role || !form.email || !form.phone}
                                 className="flex-1 h-12 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-xl"
                             >
-                                Add Member
+                                {editIndex !== null ? 'Update Member' : 'Add Member'}
                             </Button>
                         </div>
                     </div>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Mail,
     Phone,
@@ -13,7 +15,9 @@ import {
     MapPin,
     Truck,
     ShieldCheck,
-    Star
+    Star,
+    X,
+    User
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -22,50 +26,81 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const partners = [
-    {
-        name: "Lanka Logistics & Co.",
-        type: "Prime Logistics",
-        hub: "Central Hub",
-        contact: "Damien Silva",
-        email: "contact@lanka-log.lk",
-        phone: "+94 11 234 5678",
-        status: "Active",
-        rating: 4.8
-    },
-    {
-        name: "Island Wide Distributors",
-        type: "Regional Distributor",
-        hub: "North (Jaffna)",
-        contact: "K. Rathnam",
-        email: "jaffna-dist@iwd.lk",
-        phone: "+94 21 888 1234",
-        status: "Active",
-        rating: 4.5
-    },
-    {
-        name: "Eco-Fleet Express",
-        type: "Eco Delivery Partner",
-        hub: "West (Colombo)",
-        contact: "Sarah Perera",
-        email: "fleet@ecofleet.com",
-        phone: "+94 77 123 4455",
-        status: "Review",
-        rating: 4.2
-    },
-    {
-        name: "Southern Speed Logistics",
-        type: "Prime Logistics",
-        hub: "South (Galle)",
-        contact: "Roshan Kumara",
-        email: "ops@southernspeed.lk",
-        phone: "+94 91 555 6789",
-        status: "Active",
-        rating: 4.9
-    }
-];
+import { RDCPartner, partners as initialPartners } from "../../partners/data";
+import Link from "next/link";
 
 export default function PartnersPage() {
+    const [partnerList, setPartnerList] = useState<RDCPartner[]>(initialPartners);
+    const [showModal, setShowModal] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [search, setSearch] = useState("");
+    const [form, setForm] = useState<RDCPartner>({
+        name: "",
+        type: "",
+        hub: "",
+        contact: "",
+        email: "",
+        phone: "",
+        status: "Active",
+        rating: 5.0,
+        contractStart: "",
+        contractEnd: "",
+        agreementType: "",
+        complianceScore: 0,
+        bio: "",
+        recentAudits: []
+    });
+
+    const handleClose = () => {
+        setForm({
+            name: "",
+            type: "",
+            hub: "",
+            contact: "",
+            email: "",
+            phone: "",
+            status: "Active",
+            rating: 5.0,
+            contractStart: "",
+            contractEnd: "",
+            agreementType: "",
+            complianceScore: 0,
+            bio: "",
+            recentAudits: []
+        });
+        setEditingIndex(null);
+        setShowModal(false);
+    };
+
+    const handleEdit = (index: number) => {
+        setEditingIndex(index);
+        setForm(partnerList[index]);
+        setShowModal(true);
+    };
+
+    const handleSubmit = () => {
+        if (!form.name || !form.type || !form.hub || !form.email || !form.phone) return;
+
+        if (editingIndex !== null) {
+            const updated = [...partnerList];
+            updated[editingIndex] = form;
+            setPartnerList(updated);
+        } else {
+            setPartnerList([...partnerList, form]);
+        }
+        handleClose();
+    };
+
+    const handleRemove = (index: number) => {
+        setPartnerList(partnerList.filter((_, i) => i !== index));
+    };
+
+    const filtered = partnerList.filter(
+        (p) =>
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.hub.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -73,7 +108,7 @@ export default function PartnersPage() {
                     <h2 className="text-3xl font-black tracking-tight text-foreground/90 uppercase">RDC Partners</h2>
                     <p className="text-sm text-muted-foreground font-medium mt-1">Manage external logistics and distribution partners per region.</p>
                 </div>
-                <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold px-6">
+                <Button onClick={() => setShowModal(true)} className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold px-6">
                     <Plus className="mr-2 h-4 w-4" /> Register New Partner
                 </Button>
             </div>
@@ -82,12 +117,14 @@ export default function PartnersPage() {
                 <Search className="ml-3 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Search by partner name or region..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                     className="border-none bg-transparent shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/70 text-sm font-medium"
                 />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 border-t border-black/5 pt-6">
-                {partners.map((partner, index) => (
+                {filtered.map((partner, index) => (
                     <Card key={index} className="group border-none shadow-sm bg-white/50 hover:bg-white hover:scale-[1.02] transition-all duration-300 rounded-2xl overflow-hidden">
                         <CardContent className="pt-6 relative">
                             <DropdownMenu>
@@ -97,9 +134,9 @@ export default function PartnersPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                    <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider">Edit Agreement</DropdownMenuItem>
-                                    <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider">Performance Audit</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600 font-bold text-xs uppercase tracking-wider">Terminate Contract</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEdit(index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Agreement</DropdownMenuItem>
+                                    <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider cursor-pointer">Performance Audit</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Terminate Contract</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -140,21 +177,138 @@ export default function PartnersPage() {
                             </div>
 
                             <div className="mt-6">
-                                <Button variant="outline" className="w-full rounded-xl border-black/5 hover:bg-black/5 transition-all font-black text-[10px] uppercase tracking-widest h-11 shadow-sm active:scale-95">
-                                    View Contract Details
-                                </Button>
+                                <Link href={`/dashboard/partners/${partner.name}`}>
+                                    <Button variant="outline" className="w-full rounded-xl border-black/5 hover:bg-black/5 transition-all font-black text-[10px] uppercase tracking-widest h-11 shadow-sm active:scale-95">
+                                        View Contract Details
+                                    </Button>
+                                </Link>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
 
-                <button className="flex flex-col items-center justify-center h-full min-h-[360px] border-2 border-dashed border-black/5 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group">
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="flex flex-col items-center justify-center h-full min-h-[360px] border-2 border-dashed border-black/5 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                >
                     <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center group-hover:scale-110 transition-all shadow-sm border border-black/5">
                         <Plus className="h-6 w-6 text-primary" />
                     </div>
                     <p className="mt-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary">Register New Partner</p>
                 </button>
             </div>
+
+            {/* RDC Partner Modal (Register/Edit) */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+                        <button
+                            onClick={handleClose}
+                            className="absolute top-5 right-5 h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all"
+                        >
+                            <X className="h-4 w-4 text-slate-600" />
+                        </button>
+
+                        <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-1">
+                            {editingIndex !== null ? "Edit Partner Agreement" : "Register New Partner"}
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                            {editingIndex !== null ? "Update the partnership details and hub region" : "Fill in the details to onboard an external logistics partner"}
+                        </p>
+
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Partner Organization Name</Label>
+                                <Input
+                                    placeholder="e.g. Lanka Logistics & Co."
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logistics Service Type</Label>
+                                <Input
+                                    placeholder="e.g. Prime Logistics"
+                                    value={form.type}
+                                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                                    className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Designated Hub / Region</Label>
+                                <Input
+                                    placeholder="e.g. Central Hub"
+                                    value={form.hub}
+                                    onChange={(e) => setForm({ ...form, hub: e.target.value })}
+                                    className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Contact Person</Label>
+                                <Input
+                                    placeholder="e.g. Damien Silva"
+                                    value={form.contact}
+                                    onChange={(e) => setForm({ ...form, contact: e.target.value })}
+                                    className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Status</Label>
+                                <select
+                                    value={form.status}
+                                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                                    className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5 cursor-pointer"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Review">Review</option>
+                                    <option value="Offline">Offline</option>
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</Label>
+                                    <Input
+                                        placeholder="ops@partner.lk"
+                                        type="email"
+                                        value={form.email}
+                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number</Label>
+                                    <Input
+                                        placeholder="+94 11 234 5678"
+                                        value={form.phone}
+                                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <Button
+                                variant="outline"
+                                onClick={handleClose}
+                                className="flex-1 h-12 rounded-xl border-black/5 font-black text-[10px] uppercase tracking-widest"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={!form.name || !form.type || !form.hub || !form.email || !form.phone}
+                                className="flex-1 h-12 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-xl px-2"
+                            >
+                                {editingIndex !== null ? "Save Changes" : "Register Partner"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+
