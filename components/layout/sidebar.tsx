@@ -35,10 +35,22 @@ const sidebarItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const [role, setRole] = useState<string | null>(null);
+    const [adminName, setAdminName] = useState("Alex Rivera");
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
+        const storedAdminName = localStorage.getItem('isdn_admin_name');
+        const storedCustomerName = localStorage.getItem('isdn_customer_name');
+        const storedDriverName = localStorage.getItem('isdn_driver_name');
+
+        let initialName = "Alex Rivera";
+        if (storedRole === 'customer') initialName = storedCustomerName || "Guest Customer";
+        else if (storedRole === 'driver') initialName = storedDriverName || "Sam Perera";
+        else if (storedAdminName) initialName = storedAdminName;
+
+        setAdminName(initialName);
+
         const timer = setTimeout(() => {
             setRole(storedRole);
             setIsLoaded(true);
@@ -53,7 +65,7 @@ export function Sidebar() {
     const filteredItems = sidebarItems.filter(item => {
         if (!isLoaded) return false;
         if (role === 'customer') {
-            return ['Dashboard', 'Products', 'Orders', 'Settings'].includes(item.title);
+            return ['Dashboard', 'Products', 'Orders', 'Billing', 'Settings'].includes(item.title);
         }
         if (role === 'driver') {
             return ['Dashboard', 'Logistics', 'Settings'].includes(item.title);
@@ -69,9 +81,11 @@ export function Sidebar() {
                         <LayoutDashboard className="h-6 w-6" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
+                        <span className="text-lg font-bold tracking-tight leading-none text-foreground">
+                            {role === 'admin' ? adminName : 'IslandLink'}
+                        </span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Head Office Admin'))}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Global Admin'))}
                         </span>
                     </div>
                 </Link>
@@ -94,7 +108,9 @@ export function Sidebar() {
                                 )}
                             >
                                 <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                                <span className="flex-1">{item.title}</span>
+                                <span className="flex-1">
+                                    {role === 'customer' && item.title === 'Billing' ? 'Payment Method' : item.title}
+                                </span>
                             </Link>
                         );
                     })}

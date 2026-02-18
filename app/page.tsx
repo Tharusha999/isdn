@@ -73,7 +73,7 @@ export default function Home() {
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              { id: 'admin', label: 'Global Admin', icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { id: 'customer', label: 'Customer', icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
 
               { id: 'driver', label: 'Driver', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50' }
