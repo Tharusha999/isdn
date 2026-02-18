@@ -35,7 +35,9 @@ export default function DashboardLayout({
         if (pathname === "/dashboard/orders") return "Orders Hub";
         if (pathname === "/dashboard/inventory") return "Inventory";
         if (pathname === "/dashboard/logistics") return "RDC Management Portal";
-        if (pathname === "/dashboard/finance") return "Finance Hub";
+        if (pathname === "/dashboard/finance") {
+            return role === 'customer' ? "Payment Method" : "Finance Hub";
+        }
         if (pathname === "/dashboard/reports") return "Intelligence Hub";
         if (pathname === "/dashboard/staff") return "Retailer Portal";
         if (pathname === "/dashboard/management/staff") return "Staff Directory";

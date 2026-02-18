@@ -65,7 +65,7 @@ export function Sidebar() {
     const filteredItems = sidebarItems.filter(item => {
         if (!isLoaded) return false;
         if (role === 'customer') {
-            return ['Dashboard', 'Products', 'Orders', 'Settings'].includes(item.title);
+            return ['Dashboard', 'Products', 'Orders', 'Billing', 'Settings'].includes(item.title);
         }
         if (role === 'driver') {
             return ['Dashboard', 'Logistics', 'Settings'].includes(item.title);
@@ -108,7 +108,9 @@ export function Sidebar() {
                                 )}
                             >
                                 <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                                <span className="flex-1">{item.title}</span>
+                                <span className="flex-1">
+                                    {role === 'customer' && item.title === 'Billing' ? 'Payment Method' : item.title}
+                                </span>
                             </Link>
                         );
                     })}
