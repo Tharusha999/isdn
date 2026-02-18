@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'customer' | 'driver'>('admin');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'customer' |'sales'| 'driver'>('admin');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -75,6 +75,7 @@ export default function Home() {
             {[
               { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { id: 'customer', label: 'Customer', icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { id: 'sales', label: 'Sales', icon: User, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               { id: 'driver', label: 'Driver', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50' }
             ].map((role) => (
               <button
