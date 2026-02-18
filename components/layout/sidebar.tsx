@@ -25,7 +25,7 @@ const sidebarItems = [
     { title: "Delivery", href: "/dashboard/logistics", icon: Truck },
     { title: "Billing", href: "/dashboard/finance", icon: CreditCard },
     { title: "Reporting", href: "/dashboard/reports", icon: BarChart3 },
-    { title: "Customer Portal", href: "/dashboard/staff", icon: Users },
+    { title: "Staff", href: "/dashboard/management/staff", icon: Users },
     { title: "RDC Partners", href: "/dashboard/management/partners", icon: Truck },
     { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
