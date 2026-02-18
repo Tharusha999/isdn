@@ -16,24 +16,30 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
 
+    const [globalSearch, setGlobalSearch] = useState("");
+    const [role, setRole] = useState<string | null>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
+
     const getTitle = () => {
         if (pathname === "/dashboard") {
             if (role === 'customer') return "My Orders";
             if (role === 'driver') return "Driver Dispatch";
             return "Management Dashboard";
         }
-        if (pathname === "/dashboard/staff") return "Retailer Portal";
+        if (pathname === "/dashboard/products") return "Products";
+        if (pathname === "/dashboard/orders") return "Orders Hub";
+        if (pathname === "/dashboard/inventory") return "Inventory";
         if (pathname === "/dashboard/logistics") return "RDC Management Portal";
+        if (pathname === "/dashboard/finance") return "Finance Hub";
+        if (pathname === "/dashboard/reports") return "Intelligence Hub";
+        if (pathname === "/dashboard/staff") return "Retailer Portal";
         if (pathname === "/dashboard/management/staff") return "Staff Directory";
+        if (pathname === "/dashboard/management/partners") return "RDC Partners Directory";
         if (pathname === "/dashboard/activity") return "System Activity Feed";
         if (pathname === "/dashboard/notifications") return "Alert Center";
-        if (pathname === "/dashboard/management/partners") return "RDC Partners Directory";
+        if (pathname === "/dashboard/settings") return "Settings";
         return "ISDN Dashboard";
     };
-
-    const [globalSearch, setGlobalSearch] = useState("");
-    const [role, setRole] = useState<string | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');

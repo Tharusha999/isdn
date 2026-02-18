@@ -34,9 +34,9 @@ export default function DashboardPage() {
 
     if (role === 'customer') {
         const activeOrders = [
-            { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2024', amount: 'Rs. 14,500' },
-            { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2024', amount: 'Rs. 21,200' },
-            { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2024', amount: 'Rs. 8,500' },
+            { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2025', amount: 'Rs. 14,500' },
+            { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2025', amount: 'Rs. 21,200' },
+            { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2025', amount: 'Rs. 8,500' },
         ];
 
         return (
@@ -259,8 +259,8 @@ export default function DashboardPage() {
                     </Card>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]">
+                <div className="flex justify-center">
+                    <Card className="w-full max-w-2xl border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]">
                         <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -300,33 +300,10 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-6">
-                        <Card className="border-none shadow-2xl bg-white rounded-[3.5rem] p-10 relative overflow-hidden h-full border border-black/[0.05]">
-                            <div className="relative z-10 flex flex-col h-full justify-between gap-12">
-                                <div className="space-y-8">
-                                    <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl">
-                                        <Zap className="h-8 w-8 text-white fill-current" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h3 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900">Grid Optimizer</h3>
-                                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">AI is rerouting your next vector based on real-time traffic flux in Colombo 07.</p>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="p-6 bg-slate-50 rounded-2xl border border-black/5">
-                                        <p className="text-[8px] font-black uppercase text-slate-400 mb-2">Current Latency</p>
-                                        <p className="text-xl font-black italic tracking-tighter text-slate-900">12ms <span className="text-[10px] text-emerald-500 ml-2">LOW</span></p>
-                                    </div>
-                                    <Button className="w-full h-16 bg-slate-900 text-white hover:bg-black font-black uppercase text-[10px] tracking-widest shadow-2xl transition-all hover:scale-[1.02]">
-                                        Accept New Vector <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                            <Globe className="absolute -right-20 -top-20 h-64 w-64 text-slate-50" />
-                        </Card>
-                    </div>
+
                 </div>
             </div>
+
         );
     }
 

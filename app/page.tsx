@@ -43,7 +43,7 @@ export default function Home() {
 
           <div className="space-y-8">
             <div className="space-y-4">
-              <Badge variant="outline" className="text-slate-900 border-black/10 bg-white font-black uppercase tracking-widest px-4 py-1 shadow-sm">Enterprise v4.0</Badge>
+
               <h1 className="text-6xl font-black text-slate-900 leading-[0.9] tracking-tighter uppercase italic">
                 Centralised <br />
                 <span className="text-primary italic">Distribution</span> <br />
@@ -51,26 +51,11 @@ export default function Home() {
               </h1>
             </div>
 
-            <div className="grid grid-cols-2 gap-8 pt-8">
-              <div className="p-8 rounded-[2.5rem] bg-white border border-black/[0.03] shadow-2xl shadow-black/5">
-                <Globe className="h-8 w-8 text-indigo-600 mb-6" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Regional Nodes</p>
-                <p className="text-3xl font-black text-slate-900 italic tracking-tighter">05 RDCs</p>
-              </div>
-              <div className="p-8 rounded-[2.5rem] bg-white border border-black/[0.03] shadow-2xl shadow-black/5">
-                <Zap className="h-8 w-8 text-amber-500 fill-current mb-6" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Throughput</p>
-                <p className="text-3xl font-black text-slate-900 italic tracking-tighter">Rs. 8.2M</p>
-              </div>
-            </div>
+
           </div>
 
           <div className="flex items-center justify-between text-slate-400 border-t border-black/5 pt-8">
             <p className="text-[10px] font-black uppercase tracking-widest italic tracking-tight">© 2026 IslandLink Distribution Network</p>
-            <div className="flex gap-6">
-              <Anchor className="h-4 w-4" />
-              <ShieldCheck className="h-4 w-4" />
-            </div>
           </div>
         </div>
 
@@ -138,7 +123,7 @@ export default function Home() {
                 <span className="flex items-center gap-3">Synchronising...</span>
               ) : (
                 <>
-                  Establish Secure Connection <ArrowRight className="ml-3 h-4 w-4 group-hover:translate-x-2 transition-transform" />
+                  Log In <ArrowRight className="ml-3 h-4 w-4 group-hover:translate-x-2 transition-transform" />
                 </>
               )}
             </Button>
@@ -153,12 +138,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="ghost" className="h-16 rounded-2xl border border-black/5 bg-slate-50/50 hover:bg-slate-900 hover:text-white transition-all font-black uppercase text-[10px] tracking-widest group">
-              <ShieldCheck className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" /> System Status
-            </Button>
-            <Button variant="ghost" className="h-16 rounded-2xl border border-black/5 bg-slate-50/50 hover:bg-slate-900 hover:text-white transition-all font-black uppercase text-[10px] tracking-widest">
-              Direct RDC Link
+          <div className="flex justify-center">
+            <Button variant="ghost" className="h-16 w-full rounded-2xl border border-black/5 bg-slate-50/50 hover:bg-slate-900 hover:text-white transition-all font-black uppercase text-[10px] tracking-widest">
+              Contact Us
             </Button>
           </div>
         </div>
