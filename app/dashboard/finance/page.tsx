@@ -1,88 +1,83 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-    ArrowDownRight,
-    ArrowUpRight,
-    DollarSign,
-    Wallet,
-    Download,
-    FileText,
-    CheckCircle2,
-    Zap,
-    ExternalLink,
-    Shield,
-    Plus,
-    ArrowRight
-} from "lucide-react";
+    INITIAL_TRANSACTIONS,
+    INITIAL_PRODUCTS,
+    INITIAL_ORDERS,
+    Transaction,
+    Product,
+    Order
+} from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
     Sheet,
     SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
+    SheetTrigger
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-
-const TRANSACTIONS = [
-    {
-        id: "INV-2024-101",
-        customer: "Singer Mega - Colombo 03",
-        amount: 145000.00,
-        date: "Today, 2:30 PM",
-        status: "PAID",
-        method: "Credit Card",
-        items: [
-            { name: "Premium Ceylon Tea", qty: 40, price: 2450 },
-            { name: "Organic Coconut Oil", qty: 20, price: 1800 }
-        ]
-    },
-    {
-        id: "INV-2024-102",
-        customer: "Softlogic Retail - Galle",
-        amount: 82400.00,
-        date: "Today, 11:15 AM",
-        status: "PENDING",
-        method: "Bank Transfer",
-        items: [
-            { name: "Basmati Rice 5kg", qty: 5, price: 12500 },
-            { name: "Natural Honey", qty: 5, price: 3800 }
-        ]
-    },
-    {
-        id: "INV-2024-103",
-        customer: "Abans PLC - Kandy",
-        amount: 212500.00,
-        date: "Yesterday, 4:45 PM",
-        status: "PAID",
-        method: "Online Banking",
-        items: [
-            { name: "Gourmet Spices Box", qty: 20, price: 4500 },
-            { name: "Whole Wheat Pasta", qty: 30, price: 3200 }
-        ]
-    }
-];
+import {
+    DollarSign,
+    Wallet,
+    Zap,
+    ArrowUpRight,
+    CheckCircle2,
+    FileText,
+    Download,
+    Plus,
+    RefreshCw,
+    ExternalLink,
+    ArrowRight
+} from "lucide-react";
 
 export default function FinancePage() {
-    const [selectedInvoice, setSelectedInvoice] = useState<typeof TRANSACTIONS[0] | null>(null);
+    const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+    const [selectedInvoice, setSelectedInvoice] = useState<Transaction | null>(null);
     const [isPaying, setIsPaying] = useState(false);
     const [paySuccess, setPaySuccess] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const handlePayment = () => {
         setIsPaying(true);
         setTimeout(() => {
             setIsPaying(false);
             setPaySuccess(true);
-            // Updating local state would normally happen here
             setTimeout(() => {
                 setPaySuccess(false);
-                setSelectedInvoice(prev => prev ? { ...prev, status: 'PAID' } : null);
+                const updatedStatus: "PAID" = "PAID";
+                setTransactions(prev => prev.map(t =>
+                    t.id === selectedInvoice?.id ? { ...t, status: updatedStatus } : t
+                ));
+                setSelectedInvoice(prev => prev ? { ...prev, status: updatedStatus } : null);
             }, 2000);
         }, 2000);
     };
+
+    const handleExport = () => {
+        setIsExporting(true);
+        setTimeout(() => setIsExporting(false), 3000);
+    };
+
+    const getOrderDetails = (orderId?: string) => {
+        if (!orderId) return null;
+        const order = INITIAL_ORDERS.find(o => o.id === orderId);
+        if (!order) return null;
+
+        const items = order.items.map(item => {
+            const product = INITIAL_PRODUCTS.find(p => p.id === item.productId);
+            return {
+                name: product?.name || "Unknown Product",
+                qty: item.quantity,
+                price: product?.price || 0
+            };
+        });
+
+        return { ...order, items };
+    };
+
+    const totalReceivables = transactions.reduce((acc, t) => t.status === "PENDING" ? acc + t.amount : acc, 0);
+    const totalRevenue = transactions.reduce((acc, t) => t.status === "PAID" ? acc + t.amount : acc, 0);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -95,8 +90,14 @@ export default function FinancePage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" className="rounded-2xl border-black/5 bg-white shadow-sm font-black uppercase text-[10px] tracking-widest h-14 px-8">
-                        <Download className="mr-2 h-4 w-4" /> Export Ledger
+                    <Button
+                        variant="outline"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="rounded-2xl border-black/5 bg-white shadow-sm font-black uppercase text-[10px] tracking-widest h-14 px-8"
+                    >
+                        {isExporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        {isExporting ? "Compiling Ledger..." : "Export Ledger"}
                     </Button>
                     <Button className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 group transition-all">
                         <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
@@ -107,61 +108,68 @@ export default function FinancePage() {
 
             {/* Smart KPI Cards */}
             <div className="grid gap-8 md:grid-cols-3">
-                <Card className="border-none shadow-sm bg-black text-white rounded-[2.5rem] p-8 overflow-hidden group">
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-10 overflow-hidden group relative border border-slate-200">
                     <div className="absolute top-0 right-0 p-8">
-                        <DollarSign className="h-12 w-12 text-white/10 group-hover:scale-110 transition-transform" />
+                        <DollarSign className="h-12 w-12 text-slate-100 group-hover:scale-110 transition-transform" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Total Receivables</p>
-                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none">Rs. 8.2M</div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-400">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total Receivables</p>
+                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        Rs. {(totalReceivables / 1000).toFixed(1)}K
+                    </div>
+                    <div className="flex items-center gap-1 mt-6 text-amber-500">
                         <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase">+20.1% Growth</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Active Billing</span>
                     </div>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
+                <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-10 overflow-hidden group border border-black/5">
                     <div className="absolute top-0 right-0 p-8">
-                        <Wallet className="h-12 w-12 text-rose-500/10 group-hover:scale-110 transition-transform" />
+                        <Wallet className="h-12 w-12 text-rose-500/5 group-hover:scale-110 transition-transform" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Operating Expenses</p>
-                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-rose-500">Rs. 1.2M</div>
-                    <div className="flex items-center gap-1 mt-6 text-rose-500">
-                        <ArrowDownRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Optimized: -4.5%</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Settled Tokens</p>
+                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-emerald-600">
+                        Rs. {(totalRevenue / 1000).toFixed(1)}K
+                    </div>
+                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
+                        <ArrowUpRight className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">+12.5% vs Prev</span>
                     </div>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-primary rounded-[2rem] p-8 overflow-hidden group">
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-10 overflow-hidden group relative border border-black/5">
                     <div className="absolute top-0 right-0 p-8">
-                        <Zap className="h-12 w-12 text-white/10 group-hover:scale-110 transition-transform" />
+                        <Zap className="h-12 w-12 text-indigo-500/10 group-hover:scale-110 transition-transform" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Net Cash Flow</p>
-                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-white">Rs. 7.0M</div>
-                    <div className="flex items-center gap-1 mt-6 text-white/60">
-                        <span className="text-[10px] font-black uppercase tracking-widest">Payout Ready</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Net Cash Flow</p>
+                    <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        Rs. {((totalRevenue - 120000) / 1000).toFixed(1)}K
+                    </div>
+                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Treasury Optimal</span>
                     </div>
                 </Card>
             </div>
 
             {/* Invoices and Ledger */}
             <div className="grid gap-8 lg:grid-cols-3">
-                <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] overflow-hidden">
-                    <CardHeader className="p-10 border-b border-black/5 bg-black/[0.02]">
+                <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden border border-black/5">
+                    <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-black">Merchant Ledger</CardTitle>
-                                <CardDescription className="font-bold text-muted-foreground/60 text-[10px] uppercase tracking-widest mt-1">
+                                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Merchant Ledger</CardTitle>
+                                <CardDescription className="font-bold text-slate-400 text-[10px] uppercase tracking-widest mt-1">
                                     Automated billing and payment settlement records.
                                 </CardDescription>
                             </div>
-                            <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all rounded-xl h-10">
+                            <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all rounded-xl h-10 border border-black/5 px-6">
                                 View Full History
                             </Button>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-black text-white">
+                            <thead className="bg-slate-950 text-white">
                                 <tr>
                                     <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest">Invoice / Customer</th>
                                     <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest">Value</th>
@@ -170,21 +178,21 @@ export default function FinancePage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/5">
-                                {TRANSACTIONS.map((inv) => (
-                                    <tr key={inv.id} className="group hover:bg-black/[0.02] transition-colors">
+                                {transactions.map((inv) => (
+                                    <tr key={inv.id} className="group hover:bg-slate-50 transition-colors">
                                         <td className="px-10 py-6">
                                             <div className="space-y-1">
-                                                <p className="font-black text-xs uppercase text-primary">{inv.id}</p>
-                                                <p className="font-bold text-sm tracking-tight">{inv.customer}</p>
-                                                <p className="text-[10px] font-bold text-muted-foreground/60">{inv.date}</p>
+                                                <p className="font-black text-xs uppercase text-slate-900">{inv.id}</p>
+                                                <p className="font-bold text-sm tracking-tight text-slate-600">{inv.customer}</p>
+                                                <p className="text-[10px] font-bold text-slate-400">{inv.date}</p>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-6 font-black italic text-lg">
+                                        <td className="px-10 py-6 font-black italic text-lg text-slate-900">
                                             Rs. {inv.amount.toLocaleString()}
                                         </td>
                                         <td className="px-10 py-6">
                                             <div className="flex justify-center">
-                                                <Badge className={`rounded-full px-4 py-1 font-black text-[8px] uppercase tracking-widest border-none ${inv.status === "PAID" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                                                <Badge className={`rounded-full px-4 py-1 font-black text-[8px] uppercase tracking-widest border-none ${inv.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
                                                     }`}>
                                                     {inv.status}
                                                 </Badge>
@@ -196,95 +204,131 @@ export default function FinancePage() {
                                                     <Button
                                                         onClick={() => setSelectedInvoice(inv)}
                                                         variant="ghost"
-                                                        className="h-10 w-10 p-0 rounded-xl hover:bg-black hover:text-white transition-transform active:scale-95 shadow-sm"
+                                                        className="h-12 w-12 p-0 rounded-2xl border border-black/5 hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
                                                     >
                                                         <FileText className="h-4 w-4" />
                                                     </Button>
                                                 </SheetTrigger>
-                                                <SheetContent side="right" className="w-full sm:max-w-md border-none p-0">
-                                                    {selectedInvoice && (
-                                                        <div className="flex flex-col h-full bg-white">
-                                                            <SheetHeader className="p-8 border-b border-black/5 bg-black/[0.02]">
-                                                                <div className="flex justify-between items-start mb-6">
-                                                                    <div className="h-12 w-12 bg-black rounded-2xl flex items-center justify-center">
-                                                                        <Zap className="h-6 w-6 text-white italic" />
+                                                <SheetContent side="right" className="w-full sm:max-w-xl border-none p-0 overflow-y-auto bg-white">
+                                                    {selectedInvoice && (() => {
+                                                        const details = getOrderDetails(selectedInvoice.orderId);
+                                                        return (
+                                                            <div className="flex flex-col h-full">
+                                                                {/* Digital Receipt Design */}
+                                                                <div className="p-12 space-y-12">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div className="h-20 w-20 bg-slate-900 rounded-[2rem] flex items-center justify-center shadow-2xl">
+                                                                            <Zap className="h-10 w-10 text-white fill-current" />
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">ISDN</h3>
+                                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Institutional Ledger</p>
+                                                                        </div>
                                                                     </div>
-                                                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black text-[8px] uppercase px-3 h-6">Verified Invoice</Badge>
-                                                                </div>
-                                                                <SheetTitle className="text-3xl font-black uppercase tracking-tighter italic">Invoice Summary</SheetTitle>
-                                                                <SheetDescription className="font-bold text-muted-foreground/60 text-[10px] uppercase tracking-widest">
-                                                                    ID: {selectedInvoice.id} • Generated {selectedInvoice.date}
-                                                                </SheetDescription>
-                                                            </SheetHeader>
 
-                                                            <div className="p-8 space-y-8 flex-1 overflow-y-auto">
-                                                                <div className="space-y-4">
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Billed To</p>
-                                                                    <div className="p-6 rounded-[2rem] bg-black/[0.03] border border-black/5">
-                                                                        <p className="font-black text-lg italic tracking-tight">{selectedInvoice.customer}</p>
-                                                                        <p className="text-xs font-bold text-muted-foreground mt-1">Registered Merchant #ISDN-88{selectedInvoice.id.slice(-2)}</p>
+                                                                    <div className="space-y-2 pb-8 border-b border-black/5">
+                                                                        <div className="flex justify-between items-baseline">
+                                                                            <h2 className="text-2xl font-black uppercase tracking-tighter italic">Digital Invoice</h2>
+                                                                            <Badge className={`rounded-full px-4 py-1 font-black text-[8px] uppercase tracking-widest border-none ${selectedInvoice.status === "PAID" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                                                                {selectedInvoice.status === "PAID" ? "Settled" : "Awaiting Payout"}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                                            <span># {selectedInvoice.id}</span>
+                                                                            <span>ISSUED {selectedInvoice.date}</span>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
 
-                                                                <div className="space-y-4">
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Breakdown</p>
-                                                                    <div className="space-y-3">
-                                                                        {selectedInvoice.items.map((item, idx) => (
-                                                                            <div key={idx} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-black/5">
-                                                                                <div>
-                                                                                    <p className="font-bold text-sm tracking-tight">{item.name}</p>
-                                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Qty: {item.qty} units</p>
-                                                                                </div>
-                                                                                <p className="font-black italic text-xs">Rs. {(item.qty * item.price).toLocaleString()}</p>
+                                                                    <div className="grid grid-cols-2 gap-12">
+                                                                        <div className="space-y-4">
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recipient Node</p>
+                                                                            <div>
+                                                                                <p className="font-black text-lg text-slate-900 uppercase italic">{selectedInvoice.customer}</p>
+                                                                                <p className="text-xs font-bold text-slate-500 mt-1 leading-relaxed">Verification ID: CUST-88029<br />Assigned RDC: West (Colombo)</p>
                                                                             </div>
-                                                                        ))}
+                                                                        </div>
+                                                                        <div className="space-y-4 bg-slate-50 p-6 rounded-3xl border border-black/[0.03]">
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Vector</p>
+                                                                            <div>
+                                                                                <p className="font-black text-sm text-slate-900">{selectedInvoice.method}</p>
+                                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Auth Code: 99x-1022</p>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
 
-                                                                <div className="space-y-4">
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payment Details</p>
-                                                                    <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Shield className="h-4 w-4 text-emerald-500" /> Secure {selectedInvoice.method}
+                                                                    <div className="space-y-6">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consignment Breakdown</p>
+                                                                        <div className="space-y-4">
+                                                                            {details ? details.items.map((item, idx) => (
+                                                                                <div key={idx} className="flex justify-between items-center py-4 border-b border-black/5 last:border-0 group">
+                                                                                    <div>
+                                                                                        <p className="font-black text-xs text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">{item.name}</p>
+                                                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{item.qty} units @ Rs. {item.price.toLocaleString()}</p>
+                                                                                    </div>
+                                                                                    <p className="font-black italic text-sm text-slate-900">Rs. {(item.qty * item.price).toLocaleString()}</p>
+                                                                                </div>
+                                                                            )) : (
+                                                                                <div className="py-8 bg-slate-50 rounded-2xl text-center border border-dashed border-black/10">
+                                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legacy Record / Direct Credit</p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl space-y-8 relative overflow-hidden">
+                                                                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                                                                            <Zap className="h-16 w-16 rotate-12" />
+                                                                        </div>
+                                                                        <div className="space-y-4 relative z-10">
+                                                                            <div className="flex justify-between items-baseline opacity-40">
+                                                                                <span className="text-[10px] font-black uppercase tracking-widest">Transactional Gross</span>
+                                                                                <span className="font-bold text-sm">Rs. {(selectedInvoice.amount * 0.95).toLocaleString()}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-baseline opacity-40">
+                                                                                <span className="text-[10px] font-black uppercase tracking-widest">Processing (5%)</span>
+                                                                                <span className="font-bold text-sm">Rs. {(selectedInvoice.amount * 0.05).toLocaleString()}</span>
+                                                                            </div>
+                                                                            <div className="h-px bg-white/10" />
+                                                                            <div className="flex justify-between items-center pt-2">
+                                                                                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Total Settlement</span>
+                                                                                <span className="text-4xl font-black italic tracking-tighter">Rs. {selectedInvoice.amount.toLocaleString()}</span>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
 
-                                                            <div className="p-8 border-t border-black/5 bg-black/[0.02] space-y-4">
-                                                                <div className="flex justify-between items-baseline mb-4">
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Payable</span>
-                                                                    <span className="text-4xl font-black italic tracking-tighter">Rs. {selectedInvoice.amount.toLocaleString()}</span>
+                                                                <div className="p-10 bg-slate-50 border-t border-black/5 mt-auto sticky bottom-0 backdrop-blur-md bg-white/80">
+                                                                    {selectedInvoice.status === "PENDING" ? (
+                                                                        <div className="space-y-4">
+                                                                            {paySuccess ? (
+                                                                                <Button className="w-full h-20 rounded-[2.5rem] bg-emerald-500 text-white font-black uppercase tracking-widest pointer-events-none shadow-2xl scale-105 transition-all">
+                                                                                    <CheckCircle2 className="mr-3 h-6 w-6" /> Node Synchronisation Active
+                                                                                </Button>
+                                                                            ) : (
+                                                                                <Button
+                                                                                    onClick={handlePayment}
+                                                                                    disabled={isPaying}
+                                                                                    className="w-full h-20 rounded-[2rem] bg-slate-900 text-white hover:bg-black font-black uppercase tracking-widest shadow-2xl transition-all hover:scale-[1.02] group"
+                                                                                >
+                                                                                    {isPaying ? "Verifying..." : "Authorise Digital Payout"}
+                                                                                    {!isPaying && <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />}
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex gap-4">
+                                                                            <Button className="flex-1 h-18 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest shadow-xl group">
+                                                                                <Download className="mr-2 h-4 w-4 group-hover:-translate-y-1 transition-transform" /> Save Receipt
+                                                                            </Button>
+                                                                            <Button variant="outline" className="flex-1 h-18 rounded-2xl border-black/5 bg-white font-black uppercase tracking-widest shadow-sm">
+                                                                                <ExternalLink className="mr-2 h-4 w-4" /> Proof of Payment
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-
-                                                                {selectedInvoice.status === "PENDING" ? (
-                                                                    <div className="space-y-3">
-                                                                        {paySuccess ? (
-                                                                            <Button className="w-full h-16 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest pointer-events-none">
-                                                                                <CheckCircle2 className="mr-2 h-5 w-5" /> Transaction Success
-                                                                            </Button>
-                                                                        ) : (
-                                                                            <Button
-                                                                                onClick={handlePayment}
-                                                                                disabled={isPaying}
-                                                                                className="w-full h-16 rounded-2xl bg-black text-white hover:bg-black/90 font-black uppercase tracking-widest shadow-xl group"
-                                                                            >
-                                                                                {isPaying ? "Processing Gateway..." : "Pay Now (Safe Checkout)"}
-                                                                                {!isPaying && <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
-                                                                            </Button>
-                                                                        )}
-                                                                        <Button variant="outline" className="w-full h-14 rounded-2xl border-black/5 bg-white font-black uppercase text-[10px] tracking-widest">
-                                                                            <Download className="mr-2 h-4 w-4" /> Download PDF Invoice
-                                                                        </Button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <Button disabled className="w-full h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 font-black uppercase tracking-widest border-none pointer-events-none">
-                                                                        <CheckCircle2 className="mr-2 h-5 w-5" /> Invoice Settled
-                                                                    </Button>
-                                                                )}
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        );
+                                                    })()}
                                                 </SheetContent>
                                             </Sheet>
                                         </td>
@@ -296,47 +340,47 @@ export default function FinancePage() {
                 </Card>
 
                 <div className="space-y-8">
-                    <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] p-8 overflow-hidden">
-                        <CardHeader className="p-0 mb-6">
-                            <CardTitle className="text-lg font-black uppercase tracking-tighter italic">Payout Velocity</CardTitle>
+                    <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 overflow-hidden border border-black/5">
+                        <CardHeader className="p-0 mb-8">
+                            <CardTitle className="text-xl font-black uppercase tracking-tighter italic text-slate-900">Payout Velocity</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-0 space-y-6">
+                        <CardContent className="p-0 space-y-8">
                             <div className="space-y-4">
-                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <span>Target Compliance</span>
-                                    <span className="text-black italic">94%</span>
+                                    <span className="text-slate-900 italic">94%</span>
                                 </div>
-                                <div className="h-2 bg-black/5 rounded-full overflow-hidden">
+                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden border border-black/5">
                                     <div className="h-full bg-primary rounded-full w-[94%]" />
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <span>Settlement Delay</span>
                                     <span className="text-emerald-500 italic">Optimal (1.2 days)</span>
                                 </div>
-                                <div className="h-2 bg-black/5 rounded-full overflow-hidden">
+                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden border border-black/5">
                                     <div className="h-full bg-emerald-500 rounded-full w-[20%]" />
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-sm bg-black text-white rounded-[2.5rem] p-8 overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
-                        <CardHeader className="p-0 mb-8 relative z-10">
-                            <CardTitle className="text-lg font-black uppercase tracking-tighter italic">Quick Settlement</CardTitle>
+                    <Card className="border-none shadow-2xl bg-slate-50 rounded-[3rem] p-10 overflow-hidden relative border border-black/5 group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent" />
+                        <CardHeader className="p-0 mb-10 relative z-10">
+                            <CardTitle className="text-xl font-black uppercase tracking-tighter italic text-slate-900">Quick Settlement</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-0 relative z-10 space-y-6">
-                            <div className="flex justify-center -space-x-2">
+                        <CardContent className="p-0 relative z-10 space-y-8">
+                            <div className="flex justify-center -space-x-4">
                                 {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-12 w-12 rounded-full ring-4 ring-black bg-white/10 flex items-center justify-center font-black italic text-xs">M{i}</div>
+                                    <div key={i} className="h-14 w-14 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center font-black italic text-[10px] text-slate-400 transition-transform group-hover:scale-110 group-hover:rotate-6 shadow-sm">M{i}</div>
                                 ))}
-                                <div className="h-12 w-12 rounded-full ring-4 ring-black bg-primary flex items-center justify-center font-black text-xs text-white shadow-xl">+</div>
+                                <div className="h-14 w-14 rounded-full border-4 border-white bg-slate-900 flex items-center justify-center font-black text-xs text-white shadow-xl hover:scale-110 transition-transform cursor-pointer">+</div>
                             </div>
-                            <p className="text-center text-[10px] font-bold text-white/40 uppercase tracking-widest">Rapid transfer to verified partners</p>
-                            <Button className="w-full h-14 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase text-[10px] tracking-widest shadow-2xl transition-all active:scale-95">
-                                Initialise Payout <ArrowRight className="ml-2 h-3 w-3" />
+                            <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Secure rapid-transfer to verified RDC partners and vendors.</p>
+                            <Button className="w-full h-18 rounded-[2rem] bg-slate-900 text-white hover:bg-black font-black uppercase text-[10px] tracking-widest shadow-2xl transition-all hover:scale-[1.02]">
+                                Initialise Bulk Payout <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </CardContent>
                     </Card>

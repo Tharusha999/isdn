@@ -1,247 +1,275 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
     TrendingUp,
-    Download,
-    ShoppingCart,
+    Box,
     Users,
-    Zap,
+    Shield,
+    BarChart2,
+    PieChart,
+    Truck,
+    BrainCircuit,
     ArrowUpRight,
-    Target,
-    Activity,
-    RefreshCw,
     CheckCircle2,
+    Zap,
     FileText
 } from "lucide-react";
-
+import {
+    INITIAL_PRODUCTS,
+    INITIAL_ORDERS,
+    INITIAL_TRANSACTIONS,
+    RDCS
+} from "@/lib/data";
 
 export default function ReportsPage() {
     const [isGenerating, setIsGenerating] = useState(false);
-    const [genSuccess, setGenSuccess] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const handleGenerate = () => {
         setIsGenerating(true);
-        setTimeout(() => {
-            setIsGenerating(false);
-            setGenSuccess(true);
-            setTimeout(() => setGenSuccess(false), 3000);
-        }, 2500);
+        setProgress(0);
+        const interval = setInterval(() => {
+            setProgress(prev => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    setIsGenerating(false);
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 3000);
+                    return 100;
+                }
+                return prev + 5;
+            });
+        }, 100);
     };
 
+    // Calculate dynamic stats
+    const totalSales = INITIAL_TRANSACTIONS.reduce((acc, t) => t.status === "PAID" ? acc + t.amount : acc, 0);
+    const orderVolume = INITIAL_ORDERS.length;
+
+    const rdcSales = RDCS.map(rdc => {
+        const orders = INITIAL_ORDERS.filter(o => o.rdc === rdc);
+        const total = orders.reduce((acc, o) => acc + o.total, 0);
+        return { name: rdc.split(" ")[0], value: total };
+    });
+
+    const maxRdcValue = Math.max(...rdcSales.map(r => r.value), 1);
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-2">Intelligence Hub</h2>
                     <p className="text-muted-foreground font-bold text-sm">
-                        Advanced predictive analytics and system-wide KPI orchestration.
+                        Executive analytics and real-time network performance monitoring.
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <div className="flex p-1 bg-black/5 rounded-2xl">
-                        {["Day", "Week", "Month", "Year"].map((t) => (
-                            <button
-                                key={t}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${t === "Month" ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-black"}`}
-                            >
-                                {t}
-                            </button>
+                <Button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 transition-all hover:scale-105 active:scale-95"
+                >
+                    {isGenerating ? <div className="flex items-center gap-2"><div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Compiling Q3...</div> : "Generate Q3 Report"}
+                </Button>
+            </div>
+
+            {/* Main KPIs */}
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
+                    <div className="flex justify-between items-start mb-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gross Sales</p>
+                        <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        Rs. {(totalSales / 1000).toFixed(1)}K
+                    </div>
+                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
+                        <ArrowUpRight className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">+12.5% Month</span>
+                    </div>
+                </Card>
+
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
+                    <div className="flex justify-between items-start mb-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order Volume</p>
+                        <div className="h-10 w-10 rounded-xl bg-slate-950 flex items-center justify-center">
+                            <Box className="h-5 w-5 text-white" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">{orderVolume} Nodes</div>
+                    <div className="flex items-center gap-1 mt-6 text-slate-400">
+                        <ArrowUpRight className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Target: 250</span>
+                    </div>
+                </Card>
+
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
+                    <div className="flex justify-between items-start mb-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Partner Ret.</p>
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-indigo-500" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">98.2%</div>
+                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
+                        <ArrowUpRight className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Strong Affinity</span>
+                    </div>
+                </Card>
+
+                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
+                    <div className="flex justify-between items-start mb-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">System Uptime</p>
+                        <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center animate-pulse">
+                            <Shield className="h-5 w-5 text-rose-500" />
+                        </div>
+                    </div>
+                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">99.98%</div>
+                    <div className="flex items-center gap-1 mt-6 text-rose-500">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Mission Critical</span>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Reports and Charts */}
+            <div className="grid gap-8 lg:grid-cols-2">
+                <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 overflow-hidden border border-black/5 relative active:scale-[0.99] transition-transform cursor-crosshair group">
+                    <div className="absolute top-0 right-0 p-8">
+                        <BarChart2 className="h-6 w-6 text-slate-100 group-hover:text-primary transition-colors" />
+                    </div>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter mb-10 text-slate-950">Regional Performance</h3>
+                    <div className="h-64 flex items-end justify-between gap-6 px-4">
+                        {rdcSales.map((item, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar">
+                                <div
+                                    className="w-full bg-slate-900 rounded-2xl relative transition-all duration-1000 group-hover/bar:bg-primary group-hover/bar:scale-x-110"
+                                    style={{ height: `${(item.value / maxRdcValue) * 100}%` }}
+                                >
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-black text-white text-[8px] font-black px-2 py-1 rounded-full whitespace-nowrap">
+                                        Rs. {(item.value / 1000).toFixed(1)}K
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/bar:text-slate-900">{item.name}</span>
+                            </div>
                         ))}
                     </div>
-                    <Button
-                        onClick={handleGenerate}
-                        disabled={isGenerating}
-                        className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 group transition-all"
-                    >
-                        {isGenerating ? (
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        ) : genSuccess ? (
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-400" />
-                        ) : (
-                            <Download className="mr-2 h-4 w-4 group-hover:-translate-y-1 transition-transform" />
-                        )}
-                        {isGenerating ? "Compiling Data..." : genSuccess ? "Report Ready" : "Generate Q3 Report"}
-                    </Button>
-                </div>
-            </div>
-
-            {/* Top KPI Row */}
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gross Sales</p>
-                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-                            <TrendingUp className="h-4 w-4 text-emerald-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none">Rs. 12.4M</div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase">+12.5% Month</span>
-                    </div>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Order Volume</p>
-                        <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <ShoppingCart className="h-4 w-4 text-primary" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none">1,284</div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase">+5.2% Velocity</span>
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Partner Ret.</p>
-                        <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-amber-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none">94.2%</div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase">Above Target</span>
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-black text-white rounded-[2rem] p-8 overflow-hidden group relative">
+                <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 overflow-hidden border border-black/5 relative group">
                     <div className="absolute top-0 right-0 p-8">
-                        <Zap className="h-12 w-12 text-white/5" />
+                        <PieChart className="h-6 w-6 text-slate-100 group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4">System Uptime</p>
-                            <div className="text-3xl font-black italic tracking-tighter uppercase leading-none">99.99%</div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-6">
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase text-white/60 tracking-widest">Nodes Operational</span>
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Visual Analytics Section */}
-            <div className="grid gap-8 lg:grid-cols-3">
-                <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] p-10 overflow-hidden">
-                    <CardHeader className="p-0 mb-10">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Regional Performance</CardTitle>
-                                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Cross-RDC sales and payload efficiency.</CardDescription>
-                            </div>
-                            <Button variant="ghost" size="icon" className="rounded-xl border border-black/5 transition-transform hover:scale-110 active:scale-95">
-                                <Maximize2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="flex items-end justify-between h-64 gap-4 px-4">
-                            {[
-                                { label: "North", val: 65, color: "bg-primary" },
-                                { label: "South", val: 82, color: "bg-emerald-500" },
-                                { label: "East", val: 45, color: "bg-amber-500" },
-                                { label: "West", val: 95, color: "bg-black" },
-                                { label: "Central", val: 78, color: "bg-indigo-500" }
-                            ].map((bar, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
-                                    <div className="w-full relative">
-                                        <div
-                                            className={`w-full ${bar.color} rounded-2xl transition-all duration-1000 group-hover:brightness-110 shadow-lg`}
-                                            style={{ height: `${bar.val}%` }}
-                                        />
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-[8px] font-black px-2 py-1 rounded-lg">
-                                            {bar.val}%
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{bar.label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2.5rem] p-10 flex flex-col">
-                    <CardHeader className="p-0 mb-10">
-                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Category Mix</CardTitle>
-                        <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Order value distribution.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 flex flex-col justify-center">
-                        <div className="relative w-48 h-48 mx-auto mb-10">
-                            <div className="absolute inset-0 rounded-full border-[20px] border-primary/10" />
-                            <div className="absolute inset-0 rounded-full border-[20px] border-primary border-t-transparent border-r-transparent -rotate-45" />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                <p className="text-3xl font-black italic tracking-tighter underline decoration-primary decoration-4">74%</p>
-                                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Pantry Hub</p>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter mb-10 text-slate-950">Category Mix</h3>
+                    <div className="flex items-center justify-center h-64 gap-12">
+                        <div className="relative h-48 w-48 rounded-full border-[20px] border-slate-900 border-t-indigo-500 border-l-rose-500 border-r-emerald-500 rotate-45 animate-[spin_20s_linear_infinite] group-hover:animate-none group-hover:scale-110 transition-transform">
+                            <div className="absolute inset-0 flex items-center justify-center -rotate-45">
+                                <span className="text-2xl font-black text-slate-950 italic">74%</span>
                             </div>
                         </div>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary" /> Pantry</span>
-                                <span>74%</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Beverages</span>
-                                <span>18%</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest opacity-40">
-                                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-300" /> Other</span>
-                                <span>8%</span>
-                            </div>
+                            {[
+                                { label: "Packaged Food", color: "bg-slate-900", val: "45%" },
+                                { label: "Beverages", color: "bg-indigo-500", val: "22%" },
+                                { label: "Personal Care", color: "bg-emerald-500", val: "18%" },
+                                { label: "Home Cleaning", color: "bg-rose-500", val: "15%" }
+                            ].map((cat, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className={`h-3 w-3 rounded-full ${cat.color}`} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat.label}</span>
+                                    <span className="text-[10px] font-black text-slate-900 ml-auto italic">{cat.val}</span>
+                                </div>
+                            ))}
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
             </div>
 
-            {/* Bottom Insight Row */}
-            <div className="grid gap-8 lg:grid-cols-3">
-                <Card className="border-none shadow-sm bg-emerald-500 text-white rounded-[2rem] p-8 group overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-8">
-                        <Target className="h-12 w-12 text-white/20 group-hover:scale-110 transition-transform" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Inventory Efficiency</p>
-                        <div className="text-4xl font-black italic tracking-tighter uppercase leading-none">Optimum</div>
-                        <p className="text-[10px] font-black uppercase mt-6 tracking-widest bg-white/20 w-fit px-3 py-1 rounded-full">AI Recommended</p>
-                    </div>
-                </Card>
+            {/* Insight Rows */}
+            <div className="grid gap-8 md:grid-cols-3">
+                {[
+                    {
+                        title: "Inventory Efficiency",
+                        val: "1.2x",
+                        desc: "Stock turnover velocity above average.",
+                        icon: Zap,
+                        color: "text-amber-500",
+                        bg: "bg-amber-50"
+                    },
+                    {
+                        title: "Fleet Readiness",
+                        val: "94%",
+                        desc: "Optimal vehicle utilization in Western RDC.",
+                        icon: Truck,
+                        color: "text-indigo-500",
+                        bg: "bg-indigo-50"
+                    },
+                    {
+                        title: "Advanced Forecasting",
+                        val: "+4.1%",
+                        desc: "AI predicted demand spike for Q4 beverages.",
+                        icon: BrainCircuit,
+                        color: "text-rose-500",
+                        bg: "bg-rose-50"
+                    }
+                ].map((insight, i) => (
+                    <Card key={i} className="border-none shadow-2xl bg-white rounded-[2.5rem] p-10 overflow-hidden border border-black/5 group hover:bg-slate-950 hover:text-white transition-all duration-500 translate-y-0 hover:-translate-y-2">
+                        <div className={`h-12 w-12 rounded-2xl ${insight.bg} flex items-center justify-center mb-8 group-hover:bg-white/10`}>
+                            <insight.icon className={`h-6 w-6 ${insight.color} group-hover:text-white`} />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{insight.title}</p>
+                        <div className="text-3xl font-black italic tracking-tighter uppercase mb-2">{insight.val}</div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] leading-relaxed group-hover:text-white/40">{insight.desc}</p>
+                    </Card>
+                ))}
+            </div>
 
-                <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm rounded-[2rem] p-8 flex flex-col justify-between group">
-                    <div className="flex justify-between items-start">
+            {/* Generation Overlay */}
+            {isGenerating && (
+                <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-2xl flex items-center justify-center p-8">
+                    <div className="max-w-md w-full space-y-8 text-center animate-in zoom-in duration-500">
+                        <div className="relative h-48 w-48 mx-auto">
+                            <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
+                            <div
+                                className="absolute inset-0 rounded-full border-4 border-black border-t-transparent animate-[spin_1s_linear_infinite]"
+                                style={{ transform: `rotate(${progress * 3.6}deg)` }}
+                            />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-black italic text-slate-950">{progress}%</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Analyzing</span>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="text-2xl font-black uppercase tracking-tighter italic">Compiling Executive Q3</h3>
+                            <div className="flex flex-col gap-2">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Integrating Ledger Entries...</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Simulating Market Trends...</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimizing Logistics Matrices...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showSuccess && (
+                <div className="fixed bottom-12 right-12 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
+                    <Card className="bg-slate-900 text-white rounded-3xl p-8 shadow-2xl flex items-center gap-6 border-none ring-8 ring-white">
+                        <div className="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 animate-bounce">
+                            <CheckCircle2 className="h-6 w-6 text-white" />
+                        </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Fleet Readiness</p>
-                            <div className="text-3xl font-black italic tracking-tighter uppercase leading-none">92%</div>
+                            <p className="font-black uppercase tracking-tighter text-xl italic leading-none">Intelligence Compiled</p>
+                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Automated PDF available in HQ Portal</p>
                         </div>
-                        <Activity className="h-5 w-5 text-primary/20" />
-                    </div>
-                    <div className="h-1.5 bg-black/5 rounded-full overflow-hidden mt-6">
-                        <div className="h-full bg-primary rounded-full w-[92%]" />
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-black text-white rounded-[2rem] p-8 flex items-center gap-6 group hover:bg-primary transition-colors cursor-pointer">
-                    <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                        <FileText className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Latest Insight</p>
-                        <p className="font-bold text-sm tracking-tight group-hover:underline underline-offset-4">Annual Growth Projection Q4 →</p>
-                    </div>
-                </Card>
-            </div>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
-
-const Maximize2 = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
-);
