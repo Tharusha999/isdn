@@ -85,6 +85,15 @@ export default function DispatchManagementPage() {
         setNewTask({ time: "", label: "", location: "", done: false });
     };
 
+    const handleUpdateLocation = (missionId: string, location: string) => {
+        setMissions(prev => prev.map(m => {
+            if (m.id === missionId) {
+                return { ...m, currentLocation: location };
+            }
+            return m;
+        }));
+    };
+
     const handleSaveMission = () => {
         // In a real app, this would be an API call
         alert("Mission configuration saved to cloud sync.");
@@ -112,30 +121,21 @@ export default function DispatchManagementPage() {
                 </div>
                 {missions.length > 0 && (
                     <div className="space-y-8">
-                        <OperationsCockpit activeRoute={currentSelectedMission || missions[0]} />
-                        <div className="grid gap-8 lg:grid-cols-2">
-                            <MissionTimeline activeRoute={currentSelectedMission || missions[0]} fullWidth={true} />
-                            <Card className="border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/5">
-                                <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
-                                    <CardTitle className="text-2x font-black italic tracking-tighter uppercase text-slate-900">Grid Status Feed</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 space-y-6">
-                                    <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-100">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                                            <p className="text-[11px] font-black uppercase tracking-tight text-emerald-900">System Integrity: High</p>
-                                        </div>
-                                        <p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest">All nodes report successful sync. Protocol SIGMA-9 active.</p>
-                                    </div>
-                                    <div className="p-6 rounded-3xl bg-indigo-50 border border-indigo-100">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <Navigation className="h-5 w-5 text-indigo-600" />
-                                            <p className="text-[11px] font-black uppercase tracking-tight text-indigo-900">Route Efficiency: 94%</p>
-                                        </div>
-                                        <p className="text-[10px] font-bold text-indigo-600/70 uppercase tracking-widest">Automated route optimization has reduced traversal time by 12m.</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                        <OperationsCockpit
+                            activeRoute={currentSelectedMission || missions[0]}
+                            onUpdateLocation={(loc) => handleUpdateLocation((currentSelectedMission || missions[0]).id, loc)}
+                        />
+                        <div className="grid gap-10 lg:grid-cols-3">
+                            <div className="lg:col-span-2">
+                                <MissionTimeline
+                                    activeRoute={currentSelectedMission || missions[0]}
+                                    fullWidth={true}
+                                    onToggleTask={(idx, done) => handleUpdateTask((currentSelectedMission || missions[0]).id, idx, done)}
+                                />
+                            </div>
+                            <div>
+                                <GridStatusFeed />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -315,56 +315,91 @@ export default function DispatchManagementPage() {
     );
 }
 
-const OperationsCockpit = ({ activeRoute }: { activeRoute: Mission }) => (
-    <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 group relative overflow-hidden border border-black/[0.03]">
-            <Truck className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-100 -rotate-12 group-hover:scale-110 transition-transform" />
-            <div className="relative z-10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Active Asset</p>
-                <div className="text-2xl font-black tracking-tight uppercase italic mb-4 text-slate-900">{activeRoute.vehicle}</div>
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                    <ShieldCheck className="h-3 w-3" /> System Secure
-                </div>
-            </div>
-        </Card>
+const OperationsCockpit = ({ activeRoute, onUpdateLocation }: { activeRoute: Mission, onUpdateLocation?: (loc: string) => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [val, setVal] = useState(activeRoute.currentLocation);
 
-        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
-                <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.currentLocation}</div>
-            </div>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
-                <MapPin className="h-3 w-3" /> Sector S-02
-            </div>
-        </Card>
+    useEffect(() => {
+        setVal(activeRoute.currentLocation);
+    }, [activeRoute.currentLocation]);
 
-        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Telemetry Index</p>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
-                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
-                    </div>
-                    <div>
-                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
-                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
+    const handleSave = () => {
+        if (onUpdateLocation && val !== activeRoute.currentLocation) {
+            onUpdateLocation(val);
+        }
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="grid gap-6 md:grid-cols-4">
+            <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 group relative overflow-hidden border border-black/[0.03]">
+                <Truck className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-100 -rotate-12 group-hover:scale-110 transition-transform" />
+                <div className="relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Active Asset</p>
+                    <div className="text-2xl font-black tracking-tight uppercase italic mb-4 text-slate-900">{activeRoute.vehicle}</div>
+                    <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
+                        <ShieldCheck className="h-3 w-3" /> System Secure
                     </div>
                 </div>
-            </div>
-        </Card>
+            </Card>
 
-        <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
-                <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
-            </div>
-            <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
-        </Card>
-    </div>
-);
+            <Card
+                className={`border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03] transition-all ${onUpdateLocation ? 'hover:bg-slate-50' : ''}`}
+            >
+                <div className="relative group/edit">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
+                    {isEditing ? (
+                        <input
+                            autoFocus
+                            value={val}
+                            onChange={(e) => setVal(e.target.value)}
+                            onBlur={handleSave}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                            className="text-xl font-black tracking-tighter uppercase italic text-slate-900 bg-transparent border-b-2 border-indigo-500 outline-none w-full"
+                        />
+                    ) : (
+                        <div
+                            onClick={() => onUpdateLocation && setIsEditing(true)}
+                            className="flex items-baseline gap-2 cursor-pointer"
+                        >
+                            <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900 group-hover/edit:text-indigo-600 transition-colors">{activeRoute.currentLocation}</div>
+                            {onUpdateLocation && <Plus className="h-3 w-3 text-indigo-500 opacity-0 group-hover/edit:opacity-100 transition-opacity" />}
+                        </div>
+                    )}
+                </div>
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
+                    <MapPin className="h-3 w-3" /> Sector S-02
+                </div>
+            </Card>
 
-const MissionTimeline = ({ activeRoute, fullWidth }: { activeRoute: Mission, fullWidth?: boolean }) => (
+            <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Telemetry Index</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
+                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
+                        </div>
+                        <div>
+                            <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
+                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
+                    <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
+                </div>
+                <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+            </Card>
+        </div>
+    );
+};
+
+const MissionTimeline = ({ activeRoute, fullWidth, onToggleTask }: { activeRoute: Mission, fullWidth?: boolean, onToggleTask?: (idx: number, done: boolean) => void }) => (
     <Card className={`${fullWidth ? 'w-full' : 'w-full max-w-2xl'} border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]`}>
         <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
             <div className="flex items-center justify-between">
@@ -382,9 +417,13 @@ const MissionTimeline = ({ activeRoute, fullWidth }: { activeRoute: Mission, ful
                 <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
                 {activeRoute.tasks.map((task, idx) => (
                     <div key={idx} className="flex gap-8 relative items-start group">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg transition-all group-hover:scale-110 ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
+                        <button
+                            disabled={!onToggleTask}
+                            onClick={() => onToggleTask?.(idx, !task.done)}
+                            className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg transition-all ${onToggleTask ? 'hover:scale-110 active:scale-95' : ''} ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}
+                        >
                             {task.done ? <ShieldCheck className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-                        </div>
+                        </button>
                         <div className="flex-1">
                             <div className="flex justify-between items-start mb-2">
                                 <div>
@@ -405,3 +444,67 @@ const MissionTimeline = ({ activeRoute, fullWidth }: { activeRoute: Mission, ful
         </CardContent>
     </Card>
 );
+
+const GridStatusFeed = () => {
+    const [statuses, setStatuses] = useState([
+        { id: 1, title: "System Integrity: High", desc: "ALL NODES REPORT SUCCESSFUL SYNC. PROTOCOL SIGMA-9 ACTIVE.", type: "emerald" },
+        { id: 2, title: "Route Efficiency: 94%", desc: "AUTOMATED ROUTE OPTIMIZATION HAS REDUCED TRAVERSAL TIME BY 12M.", type: "indigo" }
+    ]);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editVal, setEditVal] = useState({ title: "", desc: "" });
+
+    const handleStartEdit = (s: any) => {
+        setEditingId(s.id);
+        setEditVal({ title: s.title, desc: s.desc });
+    };
+
+    const handleSave = () => {
+        if (editingId !== null) {
+            setStatuses(prev => prev.map(s => s.id === editingId ? { ...s, ...editVal } : s));
+            setEditingId(null);
+        }
+    };
+
+    return (
+        <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 h-full border border-black/[0.03]">
+            <h3 className="text-xl font-black uppercase italic tracking-tighter mb-8">Grid Status Feed</h3>
+            <div className="space-y-6">
+                {statuses.map(s => (
+                    <div
+                        key={s.id}
+                        className={`p-6 rounded-2xl border transition-all ${editingId === s.id ? 'ring-2 ring-indigo-500' : 'cursor-pointer hover:scale-[1.02] active:scale-95'} ${s.type === 'emerald' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}
+                        onClick={() => editingId !== s.id && handleStartEdit(s)}
+                    >
+                        {editingId === s.id ? (
+                            <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                    autoFocus
+                                    value={editVal.title}
+                                    onChange={(e) => setEditVal({ ...editVal, title: e.target.value })}
+                                    className="w-full bg-white/50 rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest border-none outline-none ring-1 ring-black/5"
+                                />
+                                <textarea
+                                    value={editVal.desc}
+                                    onChange={(e) => setEditVal({ ...editVal, desc: e.target.value })}
+                                    className="w-full bg-white/50 rounded-lg px-3 py-2 text-[10px] font-bold leading-relaxed border-none outline-none ring-1 ring-black/5 min-h-[60px]"
+                                />
+                                <div className="flex gap-2">
+                                    <Button onClick={handleSave} size="sm" className="h-8 rounded-lg bg-slate-900 text-white text-[9px] font-black uppercase">Save</Button>
+                                    <Button onClick={() => setEditingId(null)} variant="ghost" size="sm" className="h-8 rounded-lg text-[9px] font-black uppercase">Cancel</Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3 mb-2">
+                                    {s.type === 'emerald' ? <ShieldCheck className="h-4 w-4" /> : <Navigation className="h-4 w-4" />}
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{s.title}</span>
+                                </div>
+                                <p className={`text-[10px] font-bold leading-relaxed ${s.type === 'emerald' ? 'text-emerald-600/70' : 'text-indigo-600/70'}`}>{s.desc}</p>
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </Card>
+    );
+}

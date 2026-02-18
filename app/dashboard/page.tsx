@@ -68,6 +68,30 @@ export default function DashboardPage() {
         }));
     };
 
+    const handleUpdateTask = (missionId: string, taskIndex: number, done: boolean) => {
+        const updatedMissions = missions.map(m => {
+            if (m.id === missionId) {
+                const updatedTasks = [...m.tasks];
+                updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], done };
+                return { ...m, tasks: updatedTasks };
+            }
+            return m;
+        });
+        setMissions(updatedMissions);
+        localStorage.setItem('isdn_missions', JSON.stringify(updatedMissions));
+    };
+
+    const handleUpdateLocation = (missionId: string, location: string) => {
+        const updatedMissions = missions.map(m => {
+            if (m.id === missionId) {
+                return { ...m, currentLocation: location };
+            }
+            return m;
+        });
+        setMissions(updatedMissions);
+        localStorage.setItem('isdn_missions', JSON.stringify(updatedMissions));
+    };
+
     if (role === 'customer') {
         const activeOrders = [
             { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2025', amount: 'Rs. 14,500' },
@@ -295,7 +319,7 @@ export default function DashboardPage() {
                                 <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
                                 {activeRoute.tasks.map((task, idx) => (
                                     <div key={idx} className="flex gap-8 relative items-start group">
-                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg transition-all group-hover:scale-110 ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
                                             {task.done ? <ShieldCheck className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                                         </div>
                                         <div className="flex-1">
