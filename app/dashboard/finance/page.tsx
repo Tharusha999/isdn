@@ -41,6 +41,7 @@ export default function FinancePage() {
     const [isPaying, setIsPaying] = useState(false);
     const [paySuccess, setPaySuccess] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
 
     useState(() => {
@@ -67,7 +68,29 @@ export default function FinancePage() {
 
     const handleExport = () => {
         setIsExporting(true);
+        alert("Exporting Ledger... \nYour transaction history is being compiled into a secure PDF.");
         setTimeout(() => setIsExporting(false), 3000);
+    };
+
+    const handleMethodSelect = (methodName: string) => {
+        setSelectedMethod(methodName);
+        alert(`Payment method selected: ${methodName}\nThis will be set as your preferred settlement vector.`);
+    };
+
+    const handleDownloadReceipt = (invoiceId: string) => {
+        alert(`Generating Receipt for ${invoiceId}...\nYour digital transcript is being prepared for download.`);
+    };
+
+    const handleTopUp = () => {
+        alert("Wallet Top-Up Initiated\nSynchronizing with secure payment gateway...");
+    };
+
+    const handleManualTransaction = () => {
+        alert("Manual Transaction Protocol\nOpening secure entry interface...");
+    };
+
+    const handleBulkPayout = () => {
+        alert("Bulk Payout Protocol\nSystem checking node status and account balances...");
     };
 
     const getOrderDetails = (orderId?: string) => {
@@ -114,7 +137,7 @@ export default function FinancePage() {
                         {isExporting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         {isExporting ? "Compiling Ledger..." : "Export Ledger"}
                     </Button>
-                    <Button className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 group transition-all">
+                    <Button className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 group transition-all" onClick={handleManualTransaction}>
                         <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
                         Manual Transaction
                     </Button>
@@ -142,7 +165,11 @@ export default function FinancePage() {
                                         { name: "Online Banking", desc: "Instantly via payment gateway", icon: Smartphone, color: "bg-amber-50", text: "text-amber-600" },
                                         { name: "Cash on Delivery", desc: "Settlement upon arrival", icon: HandCoins, color: "bg-rose-50", text: "text-rose-600" }
                                     ].map((method) => (
-                                        <div key={method.name} className="flex items-center gap-6 p-6 rounded-3xl bg-slate-50 border border-black/[0.03] hover:shadow-xl transition-all cursor-pointer group">
+                                        <div
+                                            key={method.name}
+                                            onClick={() => handleMethodSelect(method.name)}
+                                            className={`flex items-center gap-6 p-6 rounded-3xl bg-slate-50 border transition-all cursor-pointer group hover:shadow-xl ${selectedMethod === method.name ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-black/[0.03]'}`}
+                                        >
                                             <div className={`h-14 w-14 rounded-2xl ${method.color} flex items-center justify-center transition-all group-hover:scale-110`}>
                                                 <method.icon className={`h-7 w-7 ${method.text}`} />
                                             </div>
@@ -192,7 +219,11 @@ export default function FinancePage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-10 py-6 text-right">
-                                                    <Button variant="ghost" className="h-10 w-10 p-0 rounded-xl border border-black/5">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-10 w-10 p-0 rounded-xl border border-black/5 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                                        onClick={() => handleDownloadReceipt(inv.id)}
+                                                    >
                                                         <Download className="h-4 w-4" />
                                                     </Button>
                                                 </td>
@@ -216,7 +247,7 @@ export default function FinancePage() {
                                     <div className="text-4xl font-black italic tracking-tighter uppercase">Rs. 0.00</div>
                                 </div>
                                 <div className="space-y-4">
-                                    <Button className="w-full h-16 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl">
+                                    <Button className="w-full h-16 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl" onClick={handleTopUp}>
                                         Top Up Wallet
                                     </Button>
                                     <p className="text-center text-[10px] font-bold text-white/40 uppercase tracking-widest">Secure node synchronization enabled.</p>
@@ -454,10 +485,11 @@ export default function FinancePage() {
                                                                                 </div>
                                                                             ) : (
                                                                                 <div className="flex gap-4">
-                                                                                    <Button className="flex-1 h-18 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest shadow-xl group">
+                                                                                    <Button className="flex-1 h-18 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest shadow-xl group" onClick={() => handleDownloadReceipt(selectedInvoice.id)}>
                                                                                         <Download className="mr-2 h-4 w-4 group-hover:-translate-y-1 transition-transform" /> Save Receipt
                                                                                     </Button>
-                                                                                    <Button variant="outline" className="flex-1 h-18 rounded-2xl border-black/5 bg-white font-black uppercase tracking-widest shadow-sm">
+                                                                                    <Button variant="outline" className="flex-1 h-18 rounded-2xl border-black/5 bg-white font-black uppercase tracking-widest shadow-sm"
+                                                                                        onClick={() => alert("Verification Proof Protocol\nFetching blockchain transaction confirmation...")}>
                                                                                         <ExternalLink className="mr-2 h-4 w-4" /> Proof of Payment
                                                                                     </Button>
                                                                                 </div>
@@ -516,7 +548,7 @@ export default function FinancePage() {
                                         <div className="h-14 w-14 rounded-full border-4 border-white bg-slate-900 flex items-center justify-center font-black text-xs text-white shadow-xl hover:scale-110 transition-transform cursor-pointer">+</div>
                                     </div>
                                     <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Secure rapid-transfer to verified RDC partners and vendors.</p>
-                                    <Button className="w-full h-18 rounded-[2rem] bg-slate-900 text-white hover:bg-black font-black uppercase text-[10px] tracking-widest shadow-2xl transition-all hover:scale-[1.02]">
+                                    <Button className="w-full h-18 rounded-[2rem] bg-slate-900 text-white hover:bg-black font-black uppercase text-[10px] tracking-widest shadow-2xl transition-all hover:scale-[1.02]" onClick={handleBulkPayout}>
                                         Initialise Bulk Payout <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </CardContent>
