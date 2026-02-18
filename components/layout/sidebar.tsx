@@ -35,10 +35,22 @@ const sidebarItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const [role, setRole] = useState<string | null>(null);
+    const [adminName, setAdminName] = useState("Alex Rivera");
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
+        const storedAdminName = localStorage.getItem('isdn_admin_name');
+        const storedCustomerName = localStorage.getItem('isdn_customer_name');
+        const storedDriverName = localStorage.getItem('isdn_driver_name');
+
+        let initialName = "Alex Rivera";
+        if (storedRole === 'customer') initialName = storedCustomerName || "Guest Customer";
+        else if (storedRole === 'driver') initialName = storedDriverName || "Sam Perera";
+        else if (storedAdminName) initialName = storedAdminName;
+
+        setAdminName(initialName);
+
         const timer = setTimeout(() => {
             setRole(storedRole);
             setIsLoaded(true);
@@ -69,9 +81,11 @@ export function Sidebar() {
                         <LayoutDashboard className="h-6 w-6" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-lg font-bold tracking-tight leading-none text-foreground">IslandLink</span>
+                        <span className="text-lg font-bold tracking-tight leading-none text-foreground">
+                            {role === 'admin' ? adminName : 'IslandLink'}
+                        </span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Head Office Admin'))}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Global Admin'))}
                         </span>
                     </div>
                 </Link>

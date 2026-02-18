@@ -2,7 +2,7 @@
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,6 +18,11 @@ export default function DashboardLayout({
 
     const [globalSearch, setGlobalSearch] = useState("");
     const [role, setRole] = useState<string | null>(null);
+    const [adminName, setAdminName] = useState("Alex Rivera");
+    const [customerName, setCustomerName] = useState("Guest Customer");
+    const [driverName, setDriverName] = useState("Sam Perera");
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [tempName, setTempName] = useState("");
     const [isLoaded, setIsLoaded] = useState(false);
 
     const getTitle = () => {
@@ -44,6 +49,14 @@ export default function DashboardLayout({
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
+        const storedAdminName = localStorage.getItem('isdn_admin_name');
+        const storedCustomerName = localStorage.getItem('isdn_customer_name');
+        const storedDriverName = localStorage.getItem('isdn_driver_name');
+
+        if (storedAdminName) setAdminName(storedAdminName);
+        if (storedCustomerName) setCustomerName(storedCustomerName);
+        if (storedDriverName) setDriverName(storedDriverName);
+
         if (!isLoaded) {
             const timer = setTimeout(() => {
                 setRole(storedRole);
@@ -57,19 +70,40 @@ export default function DashboardLayout({
         }
     }, [pathname, router, isLoaded]);
 
+    const handleSaveProfile = () => {
+        if (tempName.trim()) {
+            if (role === 'admin') {
+                setAdminName(tempName);
+                localStorage.setItem('isdn_admin_name', tempName);
+            } else if (role === 'customer') {
+                setCustomerName(tempName);
+                localStorage.setItem('isdn_customer_name', tempName);
+            } else if (role === 'driver') {
+                setDriverName(tempName);
+                localStorage.setItem('isdn_driver_name', tempName);
+            }
+        }
+        setIsEditingProfile(false);
+    };
+
+    const handleStartEdit = () => {
+        setTempName(role === 'admin' ? adminName : (role === 'customer' ? customerName : driverName));
+        setIsEditingProfile(true);
+    };
+
     const roleInfo = {
         admin: {
-            name: "Alex Rivera",
+            name: adminName,
             label: "Global Admin",
             avatar: "Alex"
         },
         customer: {
-            name: "Guest Customer",
+            name: customerName,
             label: "Customer",
             avatar: "Guest"
         },
         driver: {
-            name: "Sam Perera",
+            name: driverName,
             label: "Logistics Driver",
             avatar: "Sam"
         },
@@ -145,8 +179,30 @@ export default function DashboardLayout({
 
                         <div className="flex items-center gap-3 pl-2 border-l border-black/5">
                             <div className="hidden sm:block text-right">
-                                <p className="text-sm font-semibold leading-none">{currentInfo.name}</p>
-                                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">{currentInfo.label}</p>
+                                {isEditingProfile ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                        <input
+                                            autoFocus
+                                            value={tempName}
+                                            onChange={(e) => setTempName(e.target.value)}
+                                            onBlur={handleSaveProfile}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSaveProfile()}
+                                            className="text-sm font-semibold leading-none text-right bg-slate-50 border-b border-primary outline-none w-32"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Editing Persona...</p>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={handleStartEdit}
+                                        className="cursor-pointer group/profile hover:opacity-70"
+                                    >
+                                        <p className="text-sm font-semibold leading-none flex items-center gap-2 justify-end">
+                                            {currentInfo.name}
+                                            <Plus className="h-2 w-2 text-primary opacity-0 group-hover/profile:opacity-100 transition-opacity" />
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">{currentInfo.label}</p>
+                                    </div>
+                                )}
                             </div>
                             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center text-xs font-semibold text-primary shadow-sm border border-primary/10 overflow-hidden">
                                 <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentInfo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />

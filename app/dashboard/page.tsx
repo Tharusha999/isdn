@@ -26,6 +26,7 @@ import { INITIAL_MISSIONS, INITIAL_PRODUCTS, Mission } from "@/lib/data";
 export default function DashboardPage() {
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
+    const [adminName, setAdminName] = useState("Alex Rivera");
     const [missions, setMissions] = useState<Mission[]>(INITIAL_MISSIONS);
 
     useEffect(() => {
@@ -36,8 +37,18 @@ export default function DashboardPage() {
         }
     }, [role]);
 
-    // Load missions from localStorage on mount
+    // Load names and missions from localStorage on mount
     useEffect(() => {
+        const storedRole = localStorage.getItem('userRole');
+        let storedName = null;
+        if (storedRole === 'admin') storedName = localStorage.getItem('isdn_admin_name');
+        else if (storedRole === 'customer') storedName = localStorage.getItem('isdn_customer_name');
+        else if (storedRole === 'driver') storedName = localStorage.getItem('isdn_driver_name');
+
+        if (storedName) {
+            setAdminName(storedName);
+        }
+
         const savedMissions = localStorage.getItem('isdn_missions');
         if (savedMissions) {
             try {
@@ -104,7 +115,9 @@ export default function DashboardPage() {
                 {/* Executive Welcome */}
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">My Supply Network</h2>
+                        <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
+                            {adminName}
+                        </h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">
                             Real-time oversight of your procurement and logistics operations.
                         </p>
@@ -355,7 +368,9 @@ export default function DashboardPage() {
             {/* Executive Welcome */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">Network Commander</h2>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
+                        {role === 'admin' ? `${adminName}` : 'Network Commander'}
+                    </h2>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">
                         Unified executive oversight of regional distribution, inventory, and fleet missions.
                     </p>
