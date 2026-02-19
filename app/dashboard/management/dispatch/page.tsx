@@ -33,23 +33,29 @@ export default function DispatchManagementPage() {
     // Role check
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
-        setRole(storedRole);
-        setIsLoaded(true);
+        const timer = setTimeout(() => {
+            setRole(storedRole);
+            setIsLoaded(true);
+        }, 0);
 
         if (storedRole !== 'admin') {
             router.push('/dashboard');
         }
+        return () => clearTimeout(timer);
     }, [router]);
 
     // Load missions from localStorage on mount
     useEffect(() => {
         const savedMissions = localStorage.getItem('isdn_missions');
         if (savedMissions) {
-            try {
-                setMissions(JSON.parse(savedMissions));
-            } catch (e) {
-                console.error("Failed to parse missions", e);
-            }
+            const timer = setTimeout(() => {
+                try {
+                    setMissions(JSON.parse(savedMissions));
+                } catch (e) {
+                    console.error("Failed to parse missions", e);
+                }
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, []);
 
@@ -320,7 +326,10 @@ const OperationsCockpit = ({ activeRoute, onUpdateLocation }: { activeRoute: Mis
     const [val, setVal] = useState(activeRoute.currentLocation);
 
     useEffect(() => {
-        setVal(activeRoute.currentLocation);
+        const timer = setTimeout(() => {
+            setVal(activeRoute.currentLocation);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [activeRoute.currentLocation]);
 
     const handleSave = () => {
@@ -453,7 +462,14 @@ const GridStatusFeed = () => {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editVal, setEditVal] = useState({ title: "", desc: "" });
 
-    const handleStartEdit = (s: any) => {
+    interface GridStatus {
+        id: number;
+        title: string;
+        desc: string;
+        type: string;
+    }
+
+    const handleStartEdit = (s: GridStatus) => {
         setEditingId(s.id);
         setEditVal({ title: s.title, desc: s.desc });
     };

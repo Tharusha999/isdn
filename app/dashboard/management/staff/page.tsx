@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Phone, Plus, Search, MoreHorizontal, X } from "lucide-react";
+import { Mail, Phone, Plus, Search, MoreHorizontal, X, Loader2 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,22 +14,23 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { staff as initialStaff } from "../../staff/data";
-
-type StaffMember = {
-    name: string;
-    role: string;
-    status: string;
-    email: string;
-    phone: string;
-};
+import { fetchStaff, createStaffMember } from "@/public/src/supabaseClient";
+import type { StaffMember } from "@/app/dashboard/staff/data";
 
 export default function StaffPage() {
-    const [staffList, setStaffList] = useState<StaffMember[]>(initialStaff);
+    const [staffList, setStaffList] = useState<StaffMember[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [search, setSearch] = useState("");
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<{
+        name: string;
+        role: string;
+        status: StaffMember['status'];
+        email: string;
+        phone: string;
+    }>({
         name: "",
         role: "",
         status: "Active",
@@ -37,22 +38,56 @@ export default function StaffPage() {
         phone: "",
     });
 
-    const handleAdd = () => {
+    useEffect(() => {
+        loadStaff();
+    }, []);
+
+    const loadStaff = async () => {
+        try {
+            setLoading(true);
+            const data = await fetchStaff();
+            setStaffList(data || []);
+            setError(null);
+        } catch (err: unknown) {
+            console.error("Error fetching staff:", err);
+            setError("Failed to load staff directory. Please try again later.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAdd = async () => {
         if (!form.name || !form.role || !form.email || !form.phone) return;
 
-        if (editIndex !== null) {
-            // Update existing member
-            const updatedList = [...staffList];
-            updatedList[editIndex] = form;
-            setStaffList(updatedList);
-        } else {
-            // Add new member
-            setStaffList([...staffList, form]);
-        }
+        try {
+            if (editIndex !== null) {
+                // For now, only handle creation via Supabase helper as requested
+                // Update logic would follow similar pattern
+                const updatedList = [...staffList];
+                updatedList[editIndex] = { ...updatedList[editIndex], ...form };
+                setStaffList(updatedList);
+            } else {
+                // Add new member to Supabase
+                const newId = `STF-${Math.floor(Math.random() * 9000) + 1000}`;
+                const staffData = {
+                    id: newId,
+                    ...form,
+                    join_date: new Date().toISOString().split('T')[0],
+                    department: "General", // Default for now
+                    location: "Main Branch", // Default for now
+                };
 
-        setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
-        setEditIndex(null);
-        setShowModal(false);
+                await createStaffMember(staffData);
+                await loadStaff(); // Reload to get full details including performance/activity
+            }
+
+            setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
+            setEditIndex(null);
+            setShowModal(false);
+        } catch (err) {
+            console.error("Error saving staff member:", err);
+            alert("Failed to save staff member. Please try again.");
+        }
     };
 
     const handleEdit = (member: StaffMember, index: number) => {
@@ -99,69 +134,103 @@ export default function StaffPage() {
                 />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 border-t border-black/5 pt-6">
-                {filtered.map((member, index) => (
-                    <Card key={index} className="group border-none shadow-sm bg-white/50 hover:bg-white hover:scale-[1.02] transition-all duration-300 rounded-2xl overflow-hidden">
-                        <CardContent className="pt-6 relative">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                    <DropdownMenuItem onClick={() => handleEdit(member, index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Details</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Remove</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-
-                            <div className="flex flex-col items-center text-center">
-                                <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-xl font-black text-primary mb-4 shadow-sm border border-primary/5">
-                                    {member.name.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <h3 className="font-black text-base uppercase tracking-tight">{member.name}</h3>
-                                <p className="text-[10px] text-muted-foreground mb-3 font-bold uppercase tracking-widest">{member.role}</p>
-                                <Badge className={`rounded-lg border-none px-3 py-1 text-[9px] font-black uppercase tracking-widest
-                                    ${member.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' : ''}
-                                    ${member.status === 'Away' ? 'bg-amber-500/10 text-amber-600' : ''}
-                                    ${member.status === 'On Route' ? 'bg-indigo-500/10 text-indigo-600' : ''}
-                                    ${member.status === 'Offline' ? 'bg-slate-500/10 text-slate-600' : ''}
-                                `}>
-                                    {member.status}
-                                </Badge>
-                            </div>
-
-                            <div className="mt-6 space-y-3 pt-4 border-t border-black/5">
-                                <div className="flex items-center text-[11px] font-bold text-muted-foreground">
-                                    <Mail className="mr-3 h-3.5 w-3.5 text-primary/40" />
-                                    {member.email}
-                                </div>
-                                <div className="flex items-center text-[11px] font-bold text-muted-foreground">
-                                    <Phone className="mr-3 h-3.5 w-3.5 text-primary/40" />
-                                    {member.phone}
-                                </div>
-                            </div>
-
-                            <div className="mt-4">
-                                <Link href={`/dashboard/staff/${member.name}`}>
-                                    <Button variant="outline" className="w-full rounded-xl border-black/5 hover:bg-primary hover:text-white hover:border-transparent transition-all font-black text-[10px] uppercase tracking-widest h-10 shadow-sm active:scale-95">
-                                        View Profile
-                                    </Button>
-                                </Link>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-
-                <button
-                    onClick={openAddModal}
-                    className="flex flex-col items-center justify-center h-full min-h-[340px] border-2 border-dashed border-black/5 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group"
-                >
-                    <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center group-hover:scale-110 transition-all shadow-sm border border-black/5">
-                        <Plus className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="mt-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary">Add New Member</p>
-                </button>
+            <div className="bg-white/50 backdrop-blur-sm rounded-3xl border border-black/5 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-black/5 bg-slate-50/50">
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">ID</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Name</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Role</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/[0.03]">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center justify-center animate-pulse">
+                                            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+                                            <p className="font-bold text-[10px] text-muted-foreground uppercase tracking-widest">Synchronizing personnel node...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                        <p className="font-bold text-red-600 text-sm mb-4">{error}</p>
+                                        <Button onClick={loadStaff} variant="outline" className="rounded-xl font-bold h-9">Retry Sync</Button>
+                                    </td>
+                                </tr>
+                            ) : filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                        <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No matching personnel identified.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtered.map((member, index) => (
+                                    <tr key={index} className="group hover:bg-black/[0.01] transition-colors">
+                                        <td className="px-6 py-4">
+                                            <span className="font-mono text-[10px] font-black text-slate-400">{member.id}</span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                    {member.name.split(' ').map(n => n[0]).join('')}
+                                                </div>
+                                                <span className="font-bold text-sm text-slate-900">{member.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="text-xs font-medium text-slate-600">{member.role}</span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <Badge className={`rounded-lg border-none px-3 py-1 text-[9px] font-black uppercase tracking-widest
+                                                ${member.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' : ''}
+                                                ${member.status === 'Away' ? 'bg-amber-500/10 text-amber-600' : ''}
+                                                ${member.status === 'On Route' ? 'bg-indigo-500/10 text-indigo-600' : ''}
+                                                ${member.status === 'Offline' ? 'bg-slate-500/10 text-slate-600' : ''}
+                                            `}>
+                                                {member.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center text-[10px] font-bold text-slate-500">
+                                                    <Mail className="mr-2 h-3 w-3 opacity-40" /> {member.email}
+                                                </div>
+                                                <div className="flex items-center text-[10px] font-bold text-slate-400">
+                                                    <Phone className="mr-2 h-3 w-3 opacity-40" /> {member.phone}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Link href={`/dashboard/staff/${member.name}`}>
+                                                    <Button variant="ghost" className="h-8 px-3 rounded-lg text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-all">Profile</Button>
+                                                </Link>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                                                            <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
+                                                        <DropdownMenuItem onClick={() => handleEdit(member, index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Terminate Sync</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Add/Edit Staff Modal */}
@@ -205,7 +274,7 @@ export default function StaffPage() {
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</Label>
                                 <select
                                     value={form.status}
-                                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                                    onChange={(e) => setForm({ ...form, status: e.target.value as "Active" | "Away" | "On Route" | "Offline" })}
                                     className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5"
                                 >
                                     <option value="Active">Active</option>

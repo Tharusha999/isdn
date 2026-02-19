@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
     DollarSign,
-    BarChart3,
     ArrowUpRight,
     Package,
     Truck,
@@ -12,134 +11,103 @@ import {
     Zap,
     ArrowRight,
     ShieldCheck,
-    MapPin,
     Navigation,
-    Clock
+    Clock,
+    Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { INITIAL_MISSIONS, INITIAL_PRODUCTS, Mission } from "@/lib/data";
+import { MissionWithTasks, OrderWithDetails, Transaction, Product, MissionTask } from "@/lib/database-types";
+import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts } from "@/public/src/supabaseClient";
+
+// Custom Globe Icon
+const Globe = ({ className }: { className?: string }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+);
 
 export default function DashboardPage() {
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
-    const [adminName, setAdminName] = useState("Alex Rivera");
-    const [missions, setMissions] = useState<Mission[]>(INITIAL_MISSIONS);
+    const [profileName, setProfileName] = useState("User");
+    const [missions, setMissions] = useState<MissionWithTasks[]>([]);
+    const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
-        if (role !== storedRole) {
-            const timer = setTimeout(() => setRole(storedRole), 0);
-            return () => clearTimeout(timer);
-        }
-    }, [role]);
+        setRole(storedRole);
 
-    // Load names and missions from localStorage on mount
-    useEffect(() => {
-        const storedRole = localStorage.getItem('userRole');
-        let storedName = null;
-        if (storedRole === 'admin') storedName = localStorage.getItem('isdn_admin_name');
-        else if (storedRole === 'customer') storedName = localStorage.getItem('isdn_customer_name');
-        else if (storedRole === 'driver') storedName = localStorage.getItem('isdn_driver_name');
-
-        if (storedName) {
-            setAdminName(storedName);
-        }
-
-        const savedMissions = localStorage.getItem('isdn_missions');
-        if (savedMissions) {
+        const loadDashboardData = async () => {
             try {
-                setMissions(JSON.parse(savedMissions));
-            } catch (e) {
-                console.error("Failed to parse missions", e);
+                setLoading(true);
+                const [missionsData, ordersData, transactionsData, productsData] = await Promise.all([
+                    fetchMissions(),
+                    fetchOrders(),
+                    fetchTransactions(),
+                    fetchProducts()
+                ]);
+
+                setMissions(missionsData as MissionWithTasks[] || []);
+                setOrders(ordersData as OrderWithDetails[] || []);
+                setTransactions(transactionsData as Transaction[] || []);
+                setProducts(productsData as Product[] || []);
+
+                // Profile Name resolution
+                let storedName = null;
+                if (storedRole === 'admin') storedName = localStorage.getItem('isdn_admin_name');
+                else if (storedRole === 'customer') storedName = localStorage.getItem('isdn_customer_name');
+                else if (storedRole === 'driver') storedName = localStorage.getItem('isdn_driver_name');
+
+                setProfileName(storedName || (storedRole === 'admin' ? "Alex Rivera" : storedRole === 'driver' ? "Sam Perera" : "Partner Store"));
+            } catch (err) {
+                console.error("Dashboard data load error:", err);
+            } finally {
+                setLoading(false);
             }
-        }
+        };
+
+        loadDashboardData();
     }, []);
 
-    // Save missions to localStorage on change
-    useEffect(() => {
-        localStorage.setItem('isdn_missions', JSON.stringify(missions));
-    }, [missions]);
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                <p className="font-bold text-muted-foreground uppercase tracking-widest text-xs">Synchronizing Operations...</p>
+            </div>
+        );
+    }
 
-    const handleUpdateMission = (missionId: string, updates: Partial<Mission>) => {
-        setMissions(prev => prev.map(m => m.id === missionId ? { ...m, ...updates } : m));
-    };
-
-    const handleToggleTask = (missionId: string, taskIdx: number) => {
-        setMissions(prev => prev.map(m => {
-            if (m.id === missionId) {
-                const tasks = [...m.tasks];
-                tasks[taskIdx] = { ...tasks[taskIdx], done: !tasks[taskIdx].done };
-                return { ...m, tasks };
-            }
-            return m;
-        }));
-    };
-
-    const handleUpdateTask = (missionId: string, taskIndex: number, done: boolean) => {
-        const updatedMissions = missions.map(m => {
-            if (m.id === missionId) {
-                const updatedTasks = [...m.tasks];
-                updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], done };
-                return { ...m, tasks: updatedTasks };
-            }
-            return m;
-        });
-        setMissions(updatedMissions);
-        localStorage.setItem('isdn_missions', JSON.stringify(updatedMissions));
-    };
-
-    const handleUpdateLocation = (missionId: string, location: string) => {
-        const updatedMissions = missions.map(m => {
-            if (m.id === missionId) {
-                return { ...m, currentLocation: location };
-            }
-            return m;
-        });
-        setMissions(updatedMissions);
-        localStorage.setItem('isdn_missions', JSON.stringify(updatedMissions));
-    };
-
+    // --- CUSTOMER VIEW ---
     if (role === 'customer') {
-        const activeOrders = [
-            { id: '#ORD-9921', status: 'Delivered', date: 'Feb 15, 2025', amount: 'Rs. 14,500' },
-            { id: '#ORD-9945', status: 'In Transit', date: 'Feb 17, 2025', amount: 'Rs. 21,200' },
-            { id: '#ORD-9952', status: 'Processing', date: 'Feb 18, 2025', amount: 'Rs. 8,500' },
-        ];
-
+        const activeOrders = orders.slice(0, 3);
         return (
             <div className="space-y-8 animate-in fade-in duration-500">
-                {/* Executive Welcome */}
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
-                            {adminName}
-                        </h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">
-                            Real-time oversight of your procurement and logistics operations.
-                        </p>
+                        <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">{profileName}</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">Real-time oversight of your procurement and logistics operations.</p>
                     </div>
-                    <Button variant="ghost" className="h-12 border border-black/5 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">
+                    <Button variant="ghost" className="h-12 border border-black/5 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest px-6">
                         Download Q1 Statement
                     </Button>
                 </div>
 
-                {/* Hub Quick-Links */}
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                     {[
                         { label: "New Order", path: "/dashboard/products", color: "bg-indigo-50", icon: Package, val: "Catalog", text: "text-indigo-600" },
-                        { label: "Active Orders", path: "/dashboard/orders", color: "bg-emerald-50", icon: Truck, val: "3 Active", text: "text-emerald-600" },
+                        { label: "Active Orders", path: "/dashboard/orders", color: "bg-emerald-50", icon: Truck, val: `${activeOrders.length} Active`, text: "text-emerald-600" },
                         { label: "Payment Due", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: "Rs. 0.00", text: "text-amber-600" },
                         { label: "Priority Help", path: "/dashboard/settings", color: "bg-slate-50", icon: ShieldCheck, val: "24/7 Desk", text: "text-slate-900" }
                     ].map((hub) => (
-                        <Card
-                            key={hub.label}
-                            onClick={() => router.push(hub.path)}
-                            className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 cursor-pointer group border border-black/[0.03] transition-all hover:scale-[1.02] hover:shadow-black/10"
-                        >
+                        <Card key={hub.label} onClick={() => router.push(hub.path)} className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 cursor-pointer group border border-black/[0.03] transition-all hover:scale-[1.02] hover:shadow-black/10">
                             <div className="flex justify-between items-start mb-6">
                                 <div className={`h-14 w-14 rounded-2xl ${hub.color} flex items-center justify-center transition-all group-hover:scale-110`}>
                                     <hub.icon className={`h-7 w-7 ${hub.text}`} />
@@ -154,7 +122,6 @@ export default function DashboardPage() {
                     ))}
                 </div>
 
-                {/* Active Transit Matrix */}
                 <div className="grid gap-8 lg:grid-cols-3">
                     <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden border border-black/5">
                         <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
@@ -171,40 +138,22 @@ export default function DashboardPage() {
                         <CardContent className="p-8">
                             <div className="space-y-6">
                                 {activeOrders.map((order, i) => (
-                                    <div
-                                        key={i}
-                                        className="p-6 rounded-[2.5rem] bg-slate-50 border border-black/[0.03] hover:shadow-2xl hover:shadow-black/5 transition-all group cursor-pointer relative overflow-hidden"
-                                        onClick={() => router.push('/dashboard/logistics/track')}
-                                    >
+                                    <div key={i} className="p-6 rounded-[2.5rem] bg-slate-50 border border-black/[0.03] hover:shadow-2xl hover:shadow-black/5 transition-all group cursor-pointer relative overflow-hidden" onClick={() => router.push('/dashboard/orders')}>
                                         <div className="flex items-center gap-6">
-                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center font-black text-sm text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                                {i + 1}
-                                            </div>
+                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center font-black text-sm text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all">{i + 1}</div>
                                             <div className="flex-1 space-y-4">
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-4">
-                                                        <span className="font-black italic text-lg tracking-tighter text-slate-900 underline decoration-slate-200 decoration-2 underline-offset-4">{order.id}</span>
-                                                        <Badge className={`font-black text-[9px] uppercase tracking-widest border-none px-4 py-1 rounded-full ${order.status === 'Delivered' ? 'bg-emerald-100 text-emerald-700' :
-                                                            order.status === 'In Transit' ? 'bg-indigo-100 text-indigo-700' :
-                                                                'bg-amber-100 text-amber-700'
-                                                            }`}>
+                                                        <span className="font-black italic text-lg tracking-tighter text-slate-900">{order.id}</span>
+                                                        <Badge className={`font-black text-[9px] uppercase tracking-widest border-none px-4 py-1 rounded-full ${order.status === 'Delivered' ? 'bg-emerald-100 text-emerald-700' : order.status === 'In Transit' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
                                                             {order.status}
                                                         </Badge>
                                                     </div>
-                                                    <span className="text-lg font-black italic tracking-tighter text-slate-900">{order.amount}</span>
+                                                    <span className="text-lg font-black italic tracking-tighter text-slate-900">Rs. {order.total || '0'}</span>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <div className="h-1.5 w-full bg-white rounded-full overflow-hidden p-0.5">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-1000 ${order.status === 'Delivered' ? 'bg-emerald-500 w-full' :
-                                                                order.status === 'In Transit' ? 'bg-indigo-500 w-[65%]' :
-                                                                    'bg-amber-500 w-[15%]'
-                                                                }`}
-                                                        />
-                                                    </div>
-                                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                                        <span>Arrival: {order.date}</span>
-                                                        <span className="text-slate-900">{order.status === 'Delivered' ? 'Completed' : 'On Vector'}</span>
+                                                    <div className="h-1.5 w-full bg-white rounded-full overflow-hidden">
+                                                        <div className={`h-full rounded-full transition-all duration-1000 ${order.status === 'Delivered' ? 'bg-emerald-500 w-full' : order.status === 'In Transit' ? 'bg-indigo-500 w-[65%]' : 'bg-amber-500 w-[15%]'}`} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -215,34 +164,25 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Personal Activity Feed */}
                     <Card className="border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/5">
                         <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
                             <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Activity Feed</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-8 flex-1 overflow-y-auto">
-                            {[
-                                { title: "Order Delivered", desc: "Order #ORD-9921 arrived at location", color: "bg-emerald-50", iconColor: "text-emerald-600", time: "2h ago" },
-                                { title: "Payment Confirmed", desc: "Invoice paid for #ORD-9921", color: "bg-indigo-50", iconColor: "text-indigo-600", time: "5h ago" },
-                                { title: "New Promotion", desc: "Summer Bash Sale is live!", color: "bg-amber-50", iconColor: "text-amber-600", time: "1d ago" },
-                            ].map((log, i) => (
+                            {transactions.slice(0, 4).map((tx, i) => (
                                 <div key={i} className="flex gap-6 group hover:-translate-y-1 transition-all cursor-pointer">
-                                    <div className={`h-12 w-12 rounded-2xl ${log.color} flex items-center justify-center shrink-0 shadow-sm text-white transition-all group-hover:scale-110`}>
-                                        <Zap className={`h-6 w-6 ${log.iconColor} fill-current`} />
+                                    <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:scale-110">
+                                        <Zap className="h-6 w-6 text-indigo-600" />
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[13px] font-black uppercase italic tracking-tight text-slate-900 leading-none">{log.title}</p>
-                                        <p className="text-[10px] font-bold text-slate-400 leading-tight uppercase tracking-widest mt-1">{log.desc}</p>
-                                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest pt-2">{log.time}</p>
+                                        <p className="text-[13px] font-black uppercase italic tracking-tight text-slate-900 leading-none">{tx.status === 'PAID' ? 'Payment Verified' : 'Transaction Pending'}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Invoice {tx.id.slice(-6)} processed.</p>
                                     </div>
                                 </div>
                             ))}
                         </CardContent>
                         <div className="p-10 bg-slate-50 border-t border-black/5">
-                            <Button
-                                onClick={() => router.push('/dashboard/products')}
-                                className="w-full h-16 rounded-2xl bg-slate-900 text-white hover:bg-black font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-black/20 group"
-                            >
+                            <Button onClick={() => router.push('/dashboard/products')} className="w-full h-16 rounded-2xl bg-slate-900 text-white hover:bg-black font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-black/20 group">
                                 Place New Order <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
                             </Button>
                         </div>
@@ -252,102 +192,75 @@ export default function DashboardPage() {
         );
     }
 
+    // --- DRIVER VIEW ---
     if (role === 'driver') {
-        const activeRoute = missions.find(m => m.driverName === 'Sam Perera') || missions[0];
+        const activeRoute = missions.find(m => m.driver_name === profileName) || missions[0];
+
+        if (!activeRoute) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                    <Truck className="h-12 w-12 text-slate-300 mb-4" />
+                    <p className="font-bold text-muted-foreground uppercase tracking-widest text-xs">No Active Missions Assigned</p>
+                </div>
+            );
+        }
 
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic leading-none">Operations Cockpit</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Active Duty: Alpha-7 Logistics Team | Node Sync: 99.8%</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Active Duty: {profileName} | Asset: {activeRoute.vehicle}</p>
                     </div>
                     <Badge variant="outline" className="h-10 px-6 rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-black uppercase tracking-widest text-[9px]">
                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" /> Live Grid Connection
                     </Badge>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-4">
-                    <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 group relative overflow-hidden border border-black/[0.03]">
-                        <Truck className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-100 -rotate-12 group-hover:scale-110 transition-transform" />
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Active Asset</p>
-                            <div className="text-2xl font-black tracking-tight uppercase italic mb-4 text-slate-900">{activeRoute.vehicle}</div>
-                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                                <ShieldCheck className="h-3 w-3" /> System Secure
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
-                            <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.currentLocation}</div>
-                        </div>
-                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
-                            <MapPin className="h-3 w-3" /> Sector S-02
-                        </div>
-                    </Card>
-
-                    <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Telemetry Index</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
-                                    <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    {[
+                        { label: 'Route Progress', value: `${activeRoute.progress}%`, sub: 'Estimated ETA 45m', icon: Navigation, color: 'text-blue-600', bg: 'bg-blue-600/10' },
+                        { label: 'Fuel Matrix', value: activeRoute.fuel_level || activeRoute.telemetry?.fuel || '85%', sub: 'Level Optimal', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-600/10' },
+                        { label: 'Cold-Chain', value: activeRoute.temperature || activeRoute.telemetry?.temp || '4°C', sub: 'Critical Monitor', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-600/10' },
+                        { label: 'Active Weight', value: activeRoute.load_weight || activeRoute.telemetry?.load || '1,240kg', sub: 'Load Balanced', icon: Package, color: 'text-purple-600', bg: 'bg-purple-600/10' },
+                    ].map((stat, i) => (
+                        <Card key={i} className="border-none shadow-sm bg-white/50 group hover:bg-white transition-colors">
+                            <CardContent className="p-4 flex items-center gap-4">
+                                <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
+                                    <stat.icon className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
-                                    <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                                    <p className="text-lg font-black tracking-tighter">{stat.value}</p>
+                                    <p className="text-[10px] text-muted-foreground font-bold">{stat.sub}</p>
                                 </div>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
-                            <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
-                        </div>
-                        <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
 
-                <div className="flex justify-center">
-                    <Card className="w-full max-w-2xl border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]">
-                        <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Mission Timeline</CardTitle>
-                                    <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route Sync: {activeRoute.id} | Priority High</CardDescription>
-                                </div>
-                                <div className="h-10 w-10 bg-white shadow-md rounded-xl flex items-center justify-center border border-black/5">
-                                    <Clock className="h-5 w-5 text-slate-400" />
-                                </div>
-                            </div>
+                <div className="grid gap-6 lg:grid-cols-3">
+                    <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 rounded-[2rem] overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 p-6">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-primary" />
+                                Mission Timeline
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-10">
-                            <div className="space-y-10 relative">
-                                <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
-                                {activeRoute.tasks.map((task, idx) => (
-                                    <div key={idx} className="flex gap-8 relative items-start group">
-                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
-                                            {task.done ? <ShieldCheck className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                        <CardContent className="p-6">
+                            <div className="space-y-6 relative ml-2">
+                                <div className="absolute top-0 bottom-0 left-0 w-px bg-slate-200 ml-[11px]" />
+                                {(activeRoute.mission_tasks || []).map((task: MissionTask, i: number) => (
+                                    <div key={i} className="relative flex items-center gap-6 group">
+                                        <div className={`h-6 w-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center relative z-10 transition-colors ${task.completed || task.done ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                                            {(task.completed || task.done) && <ArrowRight className="h-2 w-2 text-white" />}
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <p className={`font-black text-sm uppercase tracking-tight italic ${task.done ? 'text-slate-900' : 'text-slate-400'}`}>{task.label}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">{task.location}</p>
-                                                </div>
-                                                <span className="text-[10px] font-black tabular-nums text-slate-900 bg-slate-100 px-3 py-1 rounded-full">{task.time}</span>
+                                        <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-transparent group-hover:border-primary/20 transition-all">
+                                            <div className="flex items-center justify-between font-black uppercase tracking-tight text-[10px]">
+                                                <h4 className={task.completed || task.done ? 'text-slate-400 line-through' : 'text-slate-900'}>{task.task_label || task.label}</h4>
+                                                <span className="text-muted-foreground">{task.task_time || task.time}</span>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 border-none ${task.done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                                                    {task.done ? 'Operations Complete' : 'Awaiting Arrival'}
-                                                </Badge>
-                                            </div>
+                                            <p className="text-[9px] text-muted-foreground font-medium mt-0.5">{task.location}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -355,239 +268,115 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-
+                    <Card className="border-none shadow-xl bg-slate-900 text-white rounded-[2rem] p-8 flex flex-col justify-between group">
+                        <div className="space-y-8">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
+                                <div className="text-2xl font-black tracking-tighter uppercase italic text-white line-clamp-2 leading-tight">{activeRoute.currentLocation}</div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex justify-between text-[10px] font-black uppercase">
+                                    <span className="text-slate-400">Next Node</span>
+                                    <span className="text-emerald-400">Sector West-09</span>
+                                </div>
+                                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-emerald-500 w-[72%] rounded-full animate-pulse" />
+                                </div>
+                            </div>
+                        </div>
+                        <Button className="w-full mt-8 h-14 rounded-xl bg-white text-slate-900 font-black uppercase tracking-widest text-[10px] hover:bg-emerald-500 hover:text-white transition-all">Update Status</Button>
+                    </Card>
                 </div>
             </div>
-
         );
     }
 
+    // --- ADMIN VIEW (DEFAULT) ---
+    const totalRev = transactions.filter(t => t.status === 'PAID').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
+    const activeFleet = missions.filter(m => m.status === 'In Transit').length;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Executive Welcome */}
+        <div className="space-y-8 animate-in fade-in duration-500 pb-16">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
-                        {role === 'admin' ? `${adminName}` : 'Network Commander'}
-                    </h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">
-                        Unified executive oversight of regional distribution, inventory, and fleet missions.
-                    </p>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">{profileName}</h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">Unified executive oversight of regional distribution and fleet missions.</p>
                 </div>
                 <div className="flex gap-4">
                     <Button variant="ghost" className="h-12 border border-black/5 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest px-6">
-                        <Calendar className="mr-3 h-4 w-4" /> Network Schedule
+                        <Calendar className="mr-3 h-4 w-4" /> Schedule
                     </Button>
                     <Button className="h-12 bg-slate-900 text-white rounded-xl shadow-2xl shadow-black/20 font-black uppercase text-[10px] tracking-widest px-6 hover:bg-black transition-all">
-                        <Globe className="mr-3 h-4 w-4" /> System Health: 99.9%
+                        <Globe className="mr-3 h-4 w-4" /> System: 99.9%
                     </Button>
                 </div>
             </div>
 
-            {/* Hub Quick-Links */}
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[
-                    {
-                        label: "Global Consignment",
-                        path: "/dashboard/inventory",
-                        color: "bg-indigo-50",
-                        icon: Package,
-                        val: INITIAL_PRODUCTS.reduce((acc, p) => acc + Object.values(p.stock).reduce((a, b) => a + b, 0), 0).toLocaleString(),
-                        text: "text-indigo-600"
-                    },
-                    { label: "Dispatch Management", path: "/dashboard/management/dispatch", color: "bg-emerald-50", icon: Navigation, val: "Command Center", text: "text-emerald-600" },
-                    { label: "Finance Ledger", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: "Rs. 8.2M", text: "text-amber-600" },
-                    { label: "Intelligence", path: "/dashboard/reports", color: "bg-slate-900", icon: BarChart3, val: "+12.5% Growth", text: "text-white" }
-                ].map((hub) => (
-                    <Card
-                        key={hub.label}
-                        onClick={() => router.push(hub.path)}
-                        className={`border-none shadow-2xl rounded-[2.5rem] p-8 cursor-pointer group border border-black/[0.03] transition-all hover:scale-[1.02] ${hub.label === 'Intelligence' ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
-                    >
-                        <div className="flex justify-between items-start mb-6">
-                            <div className={`h-14 w-14 rounded-2xl ${hub.color} flex items-center justify-center transition-all group-hover:scale-110`}>
-                                <hub.icon className={`h-7 w-7 ${hub.text}`} />
+                    { label: "Pulse Revenue", val: `Rs. ${totalRev.toLocaleString()}`, color: "bg-emerald-500/10", icon: DollarSign, iconColor: "text-emerald-600", sub: "+12.5% vs LW" },
+                    { label: "Active Units", val: `${activeFleet} Units`, color: "bg-blue-500/10", icon: Truck, iconColor: "text-blue-600", sub: "Fleet Nominal" },
+                    { label: "Active Orders", val: `${activeOrders} Pending`, color: "bg-amber-500/10", icon: Package, iconColor: "text-amber-600", sub: "Requires Sync" },
+                    { label: "Compliance", val: "98.4%", color: "bg-purple-500/10", icon: ShieldCheck, iconColor: "text-purple-600", sub: "High Grade" }
+                ].map((stat) => (
+                    <Card key={stat.label} className="border-none shadow-sm bg-white/50 backdrop-blur-sm group hover:bg-black/5 transition-all duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{stat.label}</CardTitle>
+                            <div className={`p-2 ${stat.color} rounded-lg group-hover:scale-110 transition-transform`}>
+                                <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
                             </div>
-                            <ArrowUpRight className={`h-4 w-4 transition-colors ${hub.label === 'Intelligence' ? 'text-white/40 group-hover:text-white' : 'text-slate-300 group-hover:text-slate-900'}`} />
-                        </div>
-                        <div>
-                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${hub.label === 'Intelligence' ? 'text-white/40' : 'text-slate-400'}`}>{hub.label}</p>
-                            <p className="text-2xl font-black italic tracking-tighter">{hub.val}</p>
-                        </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-black tracking-tighter">{stat.val}</div>
+                            <p className="text-[10px] text-muted-foreground font-bold mt-1">{stat.sub}</p>
+                        </CardContent>
                     </Card>
                 ))}
             </div>
 
-            {/* Network Health & Activity Matrix */}
             <div className="grid gap-8 lg:grid-cols-3">
-                <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden group relative border border-black/5">
-                    <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Network Health Matrix</CardTitle>
-                                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Live synchronisation of regional distribution nodes.</CardDescription>
-                            </div>
-                            <div className="h-12 w-12 bg-white shadow-md rounded-2xl flex items-center justify-center border border-black/5">
-                                <ShieldCheck className="h-6 w-6 text-emerald-500" />
-                            </div>
-                        </div>
+                <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden border border-black/5">
+                    <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
+                        <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Inventory Cockpit</CardTitle>
                     </CardHeader>
-
-                    <CardContent className="p-10 relative z-10 h-[350px] flex items-center justify-center">
-                        <div className="absolute inset-0 bg-[radial-gradient(#00000005_1px,transparent_1px)] [background-size:32px_32px] pointer-events-none" />
-                        <div className="relative w-full max-w-sm h-full flex items-center justify-center">
-                            <div className="relative flex gap-8 items-end h-40">
-                                {[65, 82, 45, 95, 78].map((h, i) => (
-                                    <div key={i} className="flex flex-col items-center gap-6">
-                                        <div className="w-8 h-40 bg-slate-50 rounded-full relative flex items-end p-1 border border-black/[0.02]">
-                                            <div
-                                                className={`w-full rounded-full transition-all duration-2000 shadow-lg ${h > 80 ? 'bg-indigo-500 shadow-indigo-500/20' : h > 50 ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-rose-500 shadow-rose-500/20'}`}
-                                                style={{ height: `${h}%` }}
-                                            />
-                                            {h > 80 && <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-black text-indigo-600">{h}%</div>}
-                                        </div>
-                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Node {i + 1}</span>
+                    <CardContent className="p-10 h-[350px] flex items-center justify-center relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(#00000005_1px,transparent_1px)] [background-size:32px_32px]" />
+                        <div className="relative flex gap-12 items-end h-40">
+                            {products.slice(0, 5).map((p, i) => (
+                                <div key={i} className="flex flex-col items-center gap-4">
+                                    <div className="w-10 bg-slate-50 rounded-full relative flex items-end p-1 border border-black/[0.02]" style={{ height: '140px' }}>
+                                        <div className={`w-full rounded-full transition-all duration-1000 ${(p.stock ?? 0) < 50 ? 'bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-emerald-500'}`} style={{ height: `${Math.min(p.stock ?? 0, 100)}%` }} />
                                     </div>
-                                ))}
-                            </div>
+                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest w-12 text-center truncate">{p.name}</span>
+                                </div>
+                            ))}
                         </div>
                     </CardContent>
-
-                    <div className="p-8 border-t border-black/5 flex justify-between items-center bg-slate-50/30">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End-to-End Encryption Active</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-900 tabular-nums">Protocol: ISDN-SIGMA-9</p>
-                    </div>
                 </Card>
 
                 <Card className="border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/5">
                     <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
-                        <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Live System Feed</CardTitle>
+                        <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Live Pulse</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-8 flex-1 overflow-y-auto">
-                        {[
-                            { title: "Stock Authorized", desc: "450 Units moved Central → North", color: "bg-emerald-50", iconColor: "text-emerald-600", time: "2m" },
-                            { title: "Dispatch Active", desc: "Truck #RT-2280 is now in transit", color: "bg-slate-100", iconColor: "text-slate-900", time: "14m" },
-                            { title: "Payment Verified", desc: "Invoice #INV-201-B settled", color: "bg-amber-50", iconColor: "text-amber-600", time: "32m" },
-                            { title: "Alert Clearance", desc: "Low stock alert resolved at West RDC", color: "bg-indigo-50", iconColor: "text-indigo-600", time: "1h" },
-                            { title: "System Sync", desc: "Manual node reconciliation complete", color: "bg-slate-50", iconColor: "text-slate-400", time: "3h" }
-                        ].map((log, i) => (
-                            <div key={i} className="flex gap-6 group cursor-pointer">
-                                <div className={`h-10 w-10 rounded-xl ${log.color} flex items-center justify-center shrink-0 transition-all group-hover:scale-110`}>
-                                    <Zap className={`h-5 w-5 ${log.iconColor} fill-current`} />
+                    <CardContent className="p-8 space-y-6 flex-1 overflow-y-auto">
+                        {transactions.slice(0, 6).map((log, i) => (
+                            <div key={i} className="flex gap-4 group cursor-pointer items-center">
+                                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 transition-all group-hover:scale-110">
+                                    <Zap className="h-5 w-5 text-slate-900" />
                                 </div>
-                                <div className="space-y-1 flex-1">
-                                    <div className="flex justify-between items-baseline gap-4">
-                                        <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{log.title}</p>
-                                        <span className="text-[9px] font-black text-slate-300 tabular-nums">{log.time}</span>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-baseline">
+                                        <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{log.customer || "System"}</p>
+                                        <span className="text-[9px] font-black text-slate-300">{log.status}</span>
                                     </div>
-                                    <p className="text-[10px] font-bold text-slate-400 leading-tight uppercase tracking-widest">{log.desc}</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rs. {log.amount.toLocaleString()}</p>
                                 </div>
                             </div>
                         ))}
                     </CardContent>
-                    <div className="p-10 border-t border-black/5 bg-slate-50">
-                        <Button variant="ghost" className="w-full h-14 rounded-xl border border-black/5 bg-white text-slate-900 font-black uppercase tracking-widest text-[9px] hover:bg-slate-900 hover:text-white transition-all">
-                            View Comprehensive Logs
-                        </Button>
-                    </div>
                 </Card>
             </div>
         </div>
     );
 }
-
-const OperationsCockpit = ({ activeRoute }: { activeRoute: Mission }) => (
-    <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 group relative overflow-hidden border border-black/[0.03]">
-            <Truck className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-100 -rotate-12 group-hover:scale-110 transition-transform" />
-            <div className="relative z-10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Active Asset</p>
-                <div className="text-2xl font-black tracking-tight uppercase italic mb-4 text-slate-900">{activeRoute.vehicle}</div>
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                    <ShieldCheck className="h-3 w-3" /> System Secure
-                </div>
-            </div>
-        </Card>
-
-        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
-                <div className="text-xl font-black tracking-tighter uppercase mb-1 leading-tight line-clamp-1 italic text-slate-900">{activeRoute.currentLocation}</div>
-            </div>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-indigo-500">
-                <MapPin className="h-3 w-3" /> Sector S-02
-            </div>
-        </Card>
-
-        <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 flex flex-col justify-between border border-black/[0.03]">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Telemetry Index</p>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
-                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
-                    </div>
-                    <div>
-                        <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
-                        <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
-                    </div>
-                </div>
-            </div>
-        </Card>
-
-        <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
-                <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
-            </div>
-            <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
-        </Card>
-    </div>
-);
-
-const MissionTimeline = ({ activeRoute, fullWidth }: { activeRoute: Mission, fullWidth?: boolean }) => (
-    <Card className={`${fullWidth ? 'w-full' : 'w-full max-w-2xl'} border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden flex flex-col border border-black/[0.03]`}>
-        <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
-            <div className="flex items-center justify-between">
-                <div>
-                    <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Mission Timeline</CardTitle>
-                    <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route Sync: {activeRoute.id} | Priority High</CardDescription>
-                </div>
-                <div className="h-10 w-10 bg-white shadow-md rounded-xl flex items-center justify-center border border-black/5">
-                    <Clock className="h-5 w-5 text-slate-400" />
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent className="p-10">
-            <div className="space-y-10 relative">
-                <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
-                {activeRoute.tasks.map((task, idx) => (
-                    <div key={idx} className="flex gap-8 relative items-start group">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center relative z-10 shadow-lg transition-all group-hover:scale-110 ${task.done ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-300'}`}>
-                            {task.done ? <ShieldCheck className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-                        </div>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <p className={`font-black text-sm uppercase tracking-tight italic ${task.done ? 'text-slate-900' : 'text-slate-400'}`}>{task.label}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">{task.location}</p>
-                                </div>
-                                <span className="text-[10px] font-black tabular-nums text-slate-900 bg-slate-100 px-3 py-1 rounded-full">{task.time}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 border-none ${task.done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                                    {task.done ? 'Operations Complete' : 'Awaiting Arrival'}
-                                </Badge>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </CardContent>
-    </Card>
-);
-
-const Globe = ({ className }: { className?: string }) => (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-);

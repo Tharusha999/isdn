@@ -20,8 +20,13 @@ export interface Product {
   name: string
   category: ProductCategory
   price: number
+  original_price?: number
   image: string | null
   description: string | null
+  stock?: number
+  tag?: string
+  tag_color?: string
+  in_cart?: boolean
   created_at: string
   updated_at: string
 }
@@ -64,6 +69,8 @@ export interface Order {
   eta: string | null
   created_at: string
   updated_at: string
+  // Compatibility fields
+  items?: number | string
 }
 
 export interface OrderItem {
@@ -161,6 +168,12 @@ export interface RDCPartner {
   bio: string | null
   created_at: string
   updated_at: string
+  // Compatibility fields
+  agreementType?: string
+  contractStart?: string
+  contractEnd?: string
+  complianceScore?: number
+  recentAudits?: PartnerAudit[]
 }
 
 export interface PartnerAudit {
@@ -194,6 +207,13 @@ export interface Mission {
   load_weight: string
   created_at: string
   updated_at: string
+  // Compatibility fields
+  currentLocation?: string
+  telemetry?: {
+    fuel: string
+    temp: string
+    load: string
+  }
 }
 
 export interface MissionTask {
@@ -204,6 +224,10 @@ export interface MissionTask {
   location: string
   completed: boolean
   created_at: string
+  // Compatibility fields
+  time?: string
+  label?: string
+  done?: boolean
 }
 
 export interface MissionWithTasks extends Mission {

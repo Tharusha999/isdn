@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,46 +24,60 @@ import {
     ShieldAlert,
     TrendingUp,
     MapPin,
-    Zap
+    Zap,
+    Loader2
 } from "lucide-react";
-import { INITIAL_PRODUCTS, RDCS, RDC } from "@/lib/data";
+import { fetchProducts } from "@/public/src/supabaseClient";
+import type { Product } from "@/lib/database-types";
+
+const RDCS = ["West (Colombo)", "Central (Kandy)", "South (Galle)", "North (Jaffna)", "East (Batticaloa)"];
 
 export default function InventoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedRDC, setSelectedRDC] = useState<RDC | "All">("All");
+    const [selectedRDC, setSelectedRDC] = useState<string | "All">("All");
     const [isSyncing, setIsSyncing] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            if (!isSyncing) setLoading(true);
+            const data = await fetchProducts();
+            setProducts(data || []);
+            setError(null);
+        } catch (err: unknown) {
+            console.error("Error fetching inventory:", err);
+            setError("Failed to synchronize with central inventory node.");
+        } finally {
+            setLoading(false);
+            setIsSyncing(false);
+        }
+    };
 
     const handleSync = () => {
         setIsSyncing(true);
-        setTimeout(() => setIsSyncing(false), 2000);
+        loadData();
     };
 
-    const filteredInventory = INITIAL_PRODUCTS.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-        const hasStockInRDC = selectedRDC === "All" || p.stock[selectedRDC] > 0;
-        return matchesSearch && hasStockInRDC;
+    const filteredInventory = products.filter(p => {
+        const matchesSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesSearch;
     });
 
-    const totalStock = INITIAL_PRODUCTS.reduce((acc, p) => {
-        if (selectedRDC === "All") {
-            return acc + Object.values(p.stock).reduce((a, b) => a + b, 0);
-        }
-        return acc + p.stock[selectedRDC];
-    }, 0);
-
-    const lowStockCount = INITIAL_PRODUCTS.filter(p => {
-        if (selectedRDC === "All") {
-            return Object.values(p.stock).some(s => s < 500);
-        }
-        return p.stock[selectedRDC] < 500;
-    }).length;
+    const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0);
+    const lowStockCount = products.filter(p => (p.stock || 0) < 500).length;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             {/* Intelligent Oversight Headers */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-md">
+                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
                     <CardContent className="p-8">
                         <div className="flex items-center justify-between mb-4">
                             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -72,11 +86,13 @@ export default function InventoryPage() {
                             <ArrowUpRight className="h-4 w-4 text-slate-300" />
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Consignment</p>
-                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">{totalStock.toLocaleString()}</h3>
+                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
+                            {loading ? "..." : totalStock.toLocaleString()}
+                        </h3>
                     </CardContent>
                 </Card>
 
-                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-md">
+                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
                     <CardContent className="p-8">
                         <div className="flex items-center justify-between mb-4">
                             <div className="h-12 w-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-600">
@@ -85,7 +101,9 @@ export default function InventoryPage() {
                             <span className="text-[10px] font-black text-rose-600">CRITICAL</span>
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Low Stock Alerts</p>
-                        <h3 className="text-3xl font-black italic tracking-tighter text-rose-600">{lowStockCount}</h3>
+                        <h3 className="text-3xl font-black italic tracking-tighter text-rose-600">
+                            {loading ? "..." : lowStockCount}
+                        </h3>
                     </CardContent>
                 </Card>
 
@@ -115,8 +133,8 @@ export default function InventoryPage() {
                             ))}
                         </div>
                         <div className="mt-6 flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                            <span>Latency: 12ms</span>
-                            <span className="text-emerald-500">All Nodes Operational</span>
+                            <span>Latency: 8ms</span>
+                            <span className="text-emerald-500">Live Database Link Established</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -165,96 +183,94 @@ export default function InventoryPage() {
             <Card className="rounded-[2.5rem] border-black/5 shadow-2xl overflow-hidden bg-white">
                 <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Regional Stock Allocation</CardTitle>
-                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Real-time oversight across the 5 distribution hubs.</CardDescription>
+                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Consignment Matrix</CardTitle>
+                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">Professional oversight for regional node stock distribution.</CardDescription>
                     </div>
                     {selectedRDC !== "All" && (
-                        <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-2 rounded-xl">
-                            {selectedRDC.toUpperCase()} ACTIVE
+                        <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-2 rounded-xl uppercase tracking-widest">
+                            {selectedRDC} NODE ACTIVE
                         </Badge>
                     )}
                 </CardHeader>
                 <CardContent className="p-10">
                     <div className="rounded-3xl border border-black/5 overflow-hidden">
                         <Table>
-                            <TableHeader className="bg-slate-50">
-                                <TableRow className="hover:bg-slate-50 border-black/5">
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 h-auto">Consignment Identity</TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 h-auto">Category</TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 h-auto">
-                                        {selectedRDC === "All" ? "RDC Allocation Matrix" : "Available Stock"}
-                                    </TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 h-auto">Synchronicity</TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 h-auto text-right">Actions</TableHead>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow className="hover:bg-transparent border-black/5">
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Consignment Identity</th>
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Department</th>
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Global Vol.</th>
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Integrity</th>
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredInventory.map(product => (
-                                    <TableRow key={product.id} className="hover:bg-slate-50/50 transition-colors group border-black/5">
-                                        <TableCell className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                                                    <img src={product.image} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold tracking-tight text-slate-900 leading-none mb-1">{product.name}</p>
-                                                    <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku}</p>
-                                                </div>
+                                {loading && !isSyncing ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="py-20 text-center">
+                                            <div className="flex flex-col items-center justify-center animate-pulse">
+                                                <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+                                                <p className="font-black text-[10px] text-muted-foreground uppercase tracking-widest">Accessing central ledger...</p>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="px-8 py-6">
-                                            <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3">
-                                                {product.category}
-                                            </Badge>
+                                    </TableRow>
+                                ) : filteredInventory.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="py-20 text-center">
+                                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No consignment records detected.</p>
                                         </TableCell>
-                                        <TableCell className="px-8 py-6">
-                                            {selectedRDC === "All" ? (
-                                                <div className="flex gap-1.5 h-8 items-end">
-                                                    {RDCS.map(rdc => {
-                                                        const stock = product.stock[rdc];
-                                                        const height = Math.max(10, (stock / 2000) * 100);
-                                                        return (
-                                                            <div
-                                                                key={rdc}
-                                                                className={`w-4 rounded-t-sm transition-all duration-500 hover:opacity-100 opacity-60 ${stock < 500 ? "bg-rose-500" : "bg-primary group-hover:opacity-80"}`}
-                                                                style={{ height: `${height}%` }}
-                                                                title={`${rdc}: ${stock} units`}
-                                                            />
-                                                        );
-                                                    })}
+                                    </TableRow>
+                                ) : (
+                                    filteredInventory.map(product => (
+                                        <TableRow key={product.id} className="hover:bg-slate-50/30 transition-colors group border-black/5">
+                                            <TableCell className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                                        <img src={product.image || ""} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
+                                                        <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku || product.id}</p>
+                                                    </div>
                                                 </div>
-                                            ) : (
+                                            </TableCell>
+                                            <TableCell className="px-8 py-6">
+                                                <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3 py-1 bg-white text-slate-600">
+                                                    {product.category}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="px-8 py-6">
                                                 <div className="space-y-1.5">
-                                                    <p className="text-xl font-black tabular-nums tracking-tighter italic text-slate-900">
-                                                        {product.stock[selectedRDC].toLocaleString()}
+                                                    <p className="text-lg font-black tabular-nums tracking-tighter italic text-slate-900 leading-none">
+                                                        {(product.stock || 0).toLocaleString()}
                                                     </p>
                                                     <div className="h-1 w-24 bg-black/5 rounded-full overflow-hidden">
                                                         <div
-                                                            className={`h-full ${product.stock[selectedRDC] < 500 ? "bg-rose-500" : "bg-emerald-500"}`}
-                                                            style={{ width: `${Math.min(100, (product.stock[selectedRDC] / 2000) * 100)}%` }}
+                                                            className={`h-full ${(product.stock || 0) < 500 ? "bg-rose-500" : "bg-emerald-500"}`}
+                                                            style={{ width: `${Math.min(100, ((product.stock || 0) / 2000) * 100)}%` }}
                                                         />
                                                     </div>
                                                 </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="px-8 py-6">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">LIVE NODE</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-8 py-6 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5"
-                                            >
-                                                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                                Transfer
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                            </TableCell>
+                                            <TableCell className="px-8 py-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sync Active</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="px-8 py-6 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5 transition-all text-slate-600"
+                                                >
+                                                    <ArrowRightLeft className="mr-2 h-4 w-4 opacity-40" />
+                                                    Transfer
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -266,7 +282,7 @@ export default function InventoryPage() {
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Inter-Branch Bridge</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Inter-Node Requisition</span>
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-slate-50 border border-black/5 rounded-xl text-slate-900">
                                     <Building2 className="h-5 w-5" />
@@ -279,12 +295,12 @@ export default function InventoryPage() {
                         </div>
                         <div className="h-12 w-px bg-black/5 hidden md:block" />
                         <div className="hidden md:block">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Stock Rebalancing Active</p>
-                            <p className="font-bold text-slate-600 text-sm italic tracking-tight">Enterprise-grade cross-node inventory movement enabled.</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Allocation Active</p>
+                            <p className="font-bold text-slate-600 text-sm italic tracking-tight">Direct database link for cross-regional inventory movement.</p>
                         </div>
                     </div>
                     <Button className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-black/20 group">
-                        Authorize Global Adjustment <Zap className="ml-2 h-4 w-4 text-primary fill-current group-hover:scale-125 transition-transform" />
+                        Authorize Stock Realignment <Zap className="ml-2 h-4 w-4 text-primary fill-current group-hover:scale-125 transition-transform" />
                     </Button>
                 </div>
             </div>

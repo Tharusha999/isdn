@@ -41,6 +41,23 @@ export const fetchProductsByCategory = async (category) => {
   return data;
 };
 
+export const createProduct = async (productData) => {
+  const { data, error } = await supabase
+    .from("products")
+    .insert([productData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteProduct = async (id) => {
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+};
+
 // Product Stock
 export const fetchProductStock = async (productId, rdc) => {
   const { data, error } = await supabase

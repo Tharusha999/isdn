@@ -49,9 +49,8 @@ export function Sidebar() {
         else if (storedRole === 'driver') initialName = storedDriverName || "Sam Perera";
         else if (storedAdminName) initialName = storedAdminName;
 
-        setAdminName(initialName);
-
         const timer = setTimeout(() => {
+            setAdminName(initialName);
             setRole(storedRole);
             setIsLoaded(true);
         }, 0);

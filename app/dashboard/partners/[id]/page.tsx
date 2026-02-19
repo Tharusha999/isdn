@@ -51,7 +51,10 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
     useEffect(() => {
         const savedData = localStorage.getItem(`partner_${decodedName}`);
         if (savedData) {
-            setPartner(JSON.parse(savedData));
+            const timer = setTimeout(() => {
+                setPartner(JSON.parse(savedData));
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [decodedName]);
 

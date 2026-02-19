@@ -55,21 +55,22 @@ export default function DashboardLayout({
         const storedCustomerName = localStorage.getItem('isdn_customer_name');
         const storedDriverName = localStorage.getItem('isdn_driver_name');
 
-        if (storedAdminName) setAdminName(storedAdminName);
-        if (storedCustomerName) setCustomerName(storedCustomerName);
-        if (storedDriverName) setDriverName(storedDriverName);
+        const timer = setTimeout(() => {
+            if (storedAdminName) setAdminName(storedAdminName);
+            if (storedCustomerName) setCustomerName(storedCustomerName);
+            if (storedDriverName) setDriverName(storedDriverName);
 
-        if (!isLoaded) {
-            const timer = setTimeout(() => {
+            if (!isLoaded) {
                 setRole(storedRole);
                 setIsLoaded(true);
-            }, 0);
-            return () => clearTimeout(timer);
-        }
+            }
+        }, 0);
 
         if (!storedRole && pathname !== '/') {
             router.push('/');
         }
+
+        return () => clearTimeout(timer);
     }, [pathname, router, isLoaded]);
 
     const handleSaveProfile = () => {

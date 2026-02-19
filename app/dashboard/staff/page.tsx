@@ -1,7 +1,10 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import type { Product } from "@/lib/database-types";
 import {
     Search,
     ShoppingCart,
@@ -12,67 +15,68 @@ import {
     Truck,
     Star,
     ArrowRight,
-    SearchIcon,
     Filter,
-    Store
+    Store,
+    Loader2,
+    AlertCircle
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const products = [
-    {
-        id: "ISDN-CK-9022",
-        name: "Crispy Salted Potato Chips - Case of 24",
-        category: "PACKAGED FOODS",
-        price: 39.99,
-        originalPrice: 48.00,
-        image: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&q=80&w=200",
-        tag: "HOT DEAL",
-        tagColor: "bg-rose-500",
-        stock: 24,
-        inCart: 1
-    },
-    {
-        id: "ISDN-BV-1044",
-        name: "Tropical Mango Juice - Case of 12",
-        category: "BEVERAGES",
-        price: 24.50,
-        image: "https://images.unsplash.com/photo-1621506289937-4c72ba5dd973?auto=format&fit=crop&q=80&w=200",
-        stock: 45
-    },
-    {
-        id: "ISDN-CL-5500",
-        name: "Glass Surface Cleaner - Case of 6",
-        category: "HOME CLEANING",
-        price: 18.90,
-        image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=200",
-        stock: 12
-    },
-    {
-        id: "ISDN-PC-2121",
-        name: "Antibacterial Hand Soap - Case of 12",
-        category: "PERSONAL CARE",
-        price: 32.00,
-        image: "https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&q=80&w=200",
-        tag: "LIMITED",
-        tagColor: "bg-amber-500",
-        stock: 8
-    },
-    {
-        id: "ISDN-FD-7711",
-        name: "Premium Jasmine Rice - 10kg Bag",
-        category: "PACKAGED FOODS",
-        price: 55.00,
-        image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=200",
-        outOfStock: true
-    }
-];
-
-const quickReorder = [
-    { name: "Alpine Spring Water (24pk)", lastOrdered: "2 days ago", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&q=80&w=100" },
-    { name: "Ultra Clean Detergent (5L)", lastOrdered: "1 week ago", image: "https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&q=80&w=100" }
-];
+import { fetchProducts } from "@/public/src/supabaseClient";
 
 export default function RetailerPortal() {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState("all");
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const data = await fetchProducts();
+            setProducts(data || []);
+            setError(null);
+        } catch (err: unknown) {
+            console.error("Error loading products:", err);
+            setError("Failed to load product catalog.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const quickReorder = [
+        { name: "Alpine Spring Water (24pk)", lastOrdered: "2 days ago", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&q=80&w=100" },
+        { name: "Ultra Clean Detergent (5L)", lastOrdered: "1 week ago", image: "https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&q=80&w=100" }
+    ];
+
+    // Filter products based on category enum
+    const filteredProducts = activeTab === "all"
+        ? products
+        : products.filter(p => p.category?.toLowerCase() === activeTab.replace('-', ' '));
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                <p className="font-bold text-muted-foreground uppercase tracking-widest text-xs">Accessing Inventory...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                <AlertCircle className="h-12 w-12 text-rose-500 mb-4" />
+                <h3 className="text-xl font-black uppercase italic tracking-tighter">Inventory Sync Failed</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-md">{error}</p>
+                <Button onClick={loadData} className="mt-6 rounded-xl bg-slate-900 text-white font-bold h-10 px-8">Retry Connection</Button>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             {/* Promo Banner */}
@@ -180,9 +184,9 @@ export default function RetailerPortal() {
             {/* Product Catalog Section */}
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <Tabs defaultValue="all" className="w-full md:w-auto">
+                    <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full md:w-auto">
                         <TabsList className="bg-secondary/50 p-1 rounded-xl h-auto flex flex-wrap gap-1">
-                            {["All Products", "Packaged Foods", "Beverages", "Home Cleaning", "Personal Care"].map((tab) => (
+                            {["All Products", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"].map((tab) => (
                                 <TabsTrigger
                                     key={tab}
                                     value={tab.toLowerCase().replace(' ', '-')}
@@ -205,20 +209,20 @@ export default function RetailerPortal() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    {products.map((product) => (
-                        <Card key={product.id} className={`group border-none shadow-sm hover:shadow-xl transition-all duration-300 rounded-3xl overflow-hidden flex flex-col ${product.outOfStock ? 'opacity-60 grayscale' : 'bg-white'}`}>
+                    {filteredProducts.map((product) => (
+                        <Card key={product.id} className={`group border-none shadow-sm hover:shadow-xl transition-all duration-300 rounded-3xl overflow-hidden flex flex-col ${(product.stock ?? 0) <= 0 ? 'opacity-60 grayscale' : 'bg-white'}`}>
                             <div className="relative aspect-square overflow-hidden bg-secondary/20">
                                 <img
-                                    src={product.image}
+                                    src={product.image || ""}
                                     alt={product.name}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
                                 {product.tag && (
-                                    <div className={`absolute top-4 left-4 ${product.tagColor} text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg`}>
+                                    <div className={`absolute top-4 left-4 ${product.tag_color || 'bg-amber-500'} text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg`}>
                                         {product.tag}
                                     </div>
                                 )}
-                                {product.outOfStock && (
+                                {(product.stock ?? 0) <= 0 && (
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                         <Badge className="bg-white text-black border-none font-black text-[10px] px-4 py-1.5 uppercase tracking-widest">Out of Stock</Badge>
                                     </div>
@@ -232,29 +236,32 @@ export default function RetailerPortal() {
                             <CardContent className="p-5 flex-1 flex flex-col">
                                 <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest mb-2">{product.category}</p>
                                 <h4 className="font-bold text-sm mb-1 line-clamp-2 leading-snug group-hover:text-primary transition-colors">{product.name}</h4>
-                                <p className="text-[10px] text-muted-foreground font-medium mb-4">SKU: {product.id}</p>
+                                <p className="text-[10px] text-muted-foreground font-medium mb-4">SKU: {product.sku || product.id}</p>
 
                                 <div className="mt-auto flex items-center justify-between">
                                     <div>
                                         <p className="text-lg font-black tracking-tight text-foreground flex items-baseline gap-1">
-                                            ${product.price.toFixed(2)}
+                                            ${Number(product.price).toFixed(2)}
                                             <span className="text-[10px] text-muted-foreground font-medium">/case</span>
                                         </p>
-                                        {product.originalPrice && (
-                                            <p className="text-xs text-muted-foreground line-through decoration-rose-500/50">${product.originalPrice.toFixed(2)}</p>
+                                        {product.original_price && (
+                                            <p className="text-xs text-muted-foreground line-through decoration-rose-500/50">${Number(product.original_price).toFixed(2)}</p>
                                         )}
                                     </div>
 
-                                    {product.outOfStock ? (
-                                        <Button className="rounded-xl px-4 text-xs font-black uppercase tracking-widest bg-secondary text-muted-foreground hover:bg-secondary/80">
-                                            Notify Me
-                                        </Button>
-                                    ) : product.inCart ? (
+                                    {(product.stock ?? 0) <= 0 ? (
+                                        <div className="flex flex-col items-end">
+                                            <p className="text-xs font-bold text-rose-500 mb-1">SOLD OUT</p>
+                                            <Button className="rounded-xl px-4 text-xs font-black uppercase tracking-widest bg-secondary text-muted-foreground hover:bg-secondary/80">
+                                                Notify Me
+                                            </Button>
+                                        </div>
+                                    ) : product.in_cart ? (
                                         <div className="flex items-center bg-secondary/50 rounded-xl overflow-hidden">
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-primary">
                                                 <Minus className="h-3 w-3" />
                                             </Button>
-                                            <span className="w-8 text-center text-xs font-black">{product.inCart}</span>
+                                            <span className="w-8 text-center text-xs font-black">{product.in_cart}</span>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-primary">
                                                 <Plus className="h-3 w-3" />
                                             </Button>

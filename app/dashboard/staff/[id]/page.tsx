@@ -1,7 +1,8 @@
 "use client";
 
-import { use } from "react";
-import { staff } from "../data";
+import { use, useState, useEffect } from "react";
+import { supabase } from "@/public/src/supabaseClient";
+import type { StaffWithDetails, StaffActivity } from "@/lib/database-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,21 +16,57 @@ import {
     Clock,
     CheckCircle2,
     TrendingUp,
-    Star
+    Star,
+    Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-// Since we are in a 'use client' component, we can unwrap params with React.use()
-// per Next.js 15+ docs for Client Components.
-// However, the page receives params as a Promise.
-
 export default function StaffProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const decodedName = decodeURIComponent(id);
-    const member = staff.find(s => s.name === decodedName);
+    const [member, setMember] = useState<StaffWithDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    if (!member) {
+    useEffect(() => {
+        const loadMember = async () => {
+            try {
+                setLoading(true);
+                const decodedName = decodeURIComponent(id);
+
+                const { data, error: staffError } = await supabase
+                    .from("staff")
+                    .select(`
+                            *,
+                            staff_performance (*),
+                            staff_activity (*)
+                        `)
+                    .eq("name", decodedName)
+                    .single();
+
+                if (staffError) throw staffError;
+                setMember(data as StaffWithDetails);
+            } catch (err: unknown) {
+                console.error("Error fetching staff member:", err);
+                setError("Member not found");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadMember();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                <p className="font-bold text-muted-foreground uppercase tracking-widest">Loading Profile...</p>
+            </div>
+        );
+    }
+
+    if (!member || error) {
         notFound();
     }
 
@@ -37,7 +74,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
         <div className="space-y-6">
             {/* Header / Navigation */}
             <div className="flex items-center gap-4">
-                <Link href="/dashboard/staff">
+                <Link href="/dashboard/management/staff">
                     <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
@@ -127,7 +164,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
                                     </div>
                                     <div className="mt-3">
                                         <p className="text-xs text-muted-foreground">Joined Date</p>
-                                        <p className="font-medium">{member.joinDate}</p>
+                                        <p className="font-medium">{member.join_date}</p>
                                     </div>
                                 </div>
                             </div>
@@ -138,28 +175,28 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
                                 <Card className="bg-gray-50 border-gray-200 shadow-sm">
                                     <CardContent className="p-4 flex flex-col items-center text-center">
                                         <CheckCircle2 className="h-6 w-6 text-gray-900 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{member.performance.deliveriesCompleted}</p>
+                                        <p className="text-2xl font-bold text-gray-900">{member.staff_performance?.deliveries_completed || 0}</p>
                                         <p className="text-xs font-medium text-gray-600">Tasks Done</p>
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-gray-50 border-gray-200 shadow-sm">
                                     <CardContent className="p-4 flex flex-col items-center text-center">
                                         <TrendingUp className="h-6 w-6 text-gray-900 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{member.performance.onTimeRate}</p>
+                                        <p className="text-2xl font-bold text-gray-900">{member.staff_performance?.on_time_rate || 'N/A'}</p>
                                         <p className="text-xs font-medium text-gray-600">On-Time Rate</p>
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-gray-50 border-gray-200 shadow-sm">
                                     <CardContent className="p-4 flex flex-col items-center text-center">
                                         <Clock className="h-6 w-6 text-gray-900 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{member.performance.hoursWorked}</p>
+                                        <p className="text-2xl font-bold text-gray-900">{member.staff_performance?.hours_worked || 0}</p>
                                         <p className="text-xs font-medium text-gray-600">Hours (Mo)</p>
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-gray-50 border-gray-200 shadow-sm">
                                     <CardContent className="p-4 flex flex-col items-center text-center">
                                         <Star className="h-6 w-6 text-gray-900 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{member.performance.rating}</p>
+                                        <p className="text-2xl font-bold text-gray-900">{member.staff_performance?.rating || 0}</p>
                                         <p className="text-xs font-medium text-gray-600">Rating</p>
                                     </CardContent>
                                 </Card>
@@ -173,18 +210,20 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
                                 </CardHeader>
                                 <CardContent className="pt-4">
                                     <div className="space-y-0">
-                                        {member.recentActivity.map((activity, i) => (
+                                        {member.staff_activity && member.staff_activity.length > 0 ? member.staff_activity.map((activity: StaffActivity, i: number) => (
                                             <div key={i} className="flex gap-4 pb-6 last:pb-0 relative">
-                                                {i !== member.recentActivity.length - 1 && (
+                                                {i !== member.staff_activity.length - 1 && (
                                                     <div className="absolute left-[7px] top-7 bottom-0 w-[2px] bg-gray-100"></div>
                                                 )}
                                                 <div className="h-4 w-4 rounded-full bg-black border-[3px] border-white ring-1 ring-gray-200 mt-1.5 z-10 flex-shrink-0"></div>
                                                 <div className="flex-1">
                                                     <p className="font-medium text-sm">{activity.action}</p>
-                                                    <p className="text-xs text-muted-foreground">{activity.date} at {activity.time}</p>
+                                                    <p className="text-xs text-muted-foreground">{activity.activity_date} at {activity.activity_time}</p>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )) : (
+                                            <p className="text-xs text-muted-foreground italic py-4">No recent activity recorded.</p>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -192,7 +231,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
                             <div className="bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
                                 <h4 className="font-medium text-sm mb-2">About</h4>
                                 <p className="text-sm text-muted-foreground leading-relaxed">
-                                    {member.bio}
+                                    {member.bio || "No biography available."}
                                 </p>
                             </div>
                         </div>

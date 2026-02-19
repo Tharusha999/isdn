@@ -80,7 +80,7 @@ export default function Home() {
             ].map((role) => (
               <button
                 key={role.id}
-                onClick={() => setSelectedRole(role.id as any)}
+                onClick={() => setSelectedRole(role.id as 'admin' | 'customer' | 'driver')}
                 className={`flex flex-col items-center gap-4 p-8 rounded-[2.5rem] border-2 transition-all duration-500 group relative overflow-hidden ${selectedRole === role.id
                   ? 'border-slate-900 bg-slate-50 text-slate-900 shadow-2xl scale-105 z-10'
                   : 'border-black/[0.03] hover:border-black/10 text-slate-400 hover:bg-slate-50/50'
@@ -150,8 +150,3 @@ export default function Home() {
   );
 }
 
-const Badge = ({ children, className }: { children: React.ReactNode, variant?: string, className?: string }) => (
-  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${className}`}>
-    {children}
-  </span>
-);

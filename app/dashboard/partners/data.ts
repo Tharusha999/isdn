@@ -1,4 +1,5 @@
 export interface RDCPartner {
+    id: string;
     name: string;
     type: string;
     hub: string;
@@ -21,6 +22,7 @@ export interface RDCPartner {
 
 export const partners: RDCPartner[] = [
     {
+        id: "RDC-101",
         name: "Lanka Logistics & Co.",
         type: "Prime Logistics",
         hub: "Central Hub",
@@ -40,6 +42,7 @@ export const partners: RDCPartner[] = [
         ]
     },
     {
+        id: "RDC-102",
         name: "Island Wide Distributors",
         type: "Regional Distributor",
         hub: "North (Jaffna)",
@@ -58,6 +61,7 @@ export const partners: RDCPartner[] = [
         ]
     },
     {
+        id: "RDC-103",
         name: "Eco-Fleet Express",
         type: "Eco Delivery Partner",
         hub: "West (Colombo)",
@@ -76,6 +80,7 @@ export const partners: RDCPartner[] = [
         ]
     },
     {
+        id: "RDC-104",
         name: "Southern Speed Logistics",
         type: "Prime Logistics",
         hub: "South (Galle)",

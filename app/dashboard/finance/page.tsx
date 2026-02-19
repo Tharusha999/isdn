@@ -5,9 +5,7 @@ import {
     INITIAL_TRANSACTIONS,
     INITIAL_PRODUCTS,
     INITIAL_ORDERS,
-    Transaction,
-    Product,
-    Order
+    Transaction
 } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,7 +55,7 @@ export default function FinancePage() {
             setPaySuccess(true);
             setTimeout(() => {
                 setPaySuccess(false);
-                const updatedStatus: "PAID" = "PAID";
+                const updatedStatus = "PAID" as const;
                 setTransactions(prev => prev.map(t =>
                     t.id === selectedInvoice?.id ? { ...t, status: updatedStatus } : t
                 ));
