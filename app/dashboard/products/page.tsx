@@ -60,6 +60,10 @@ export default function ProductsPage() {
     const [allStocks, setAllStocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // First RDC name from the database — used as default when creating stock entries
+    const defaultRdc: string | null = allStocks.length > 0
+        ? Array.from(new Set(allStocks.map((s: any) => s.rdc))).sort()[0] as string
+        : null;
 
     // Admin state
     const [role, setRole] = useState<string | null>(null);
@@ -121,9 +125,9 @@ export default function ProductsPage() {
 
             await createProduct(productData);
 
-            // Also Initialize stock in West (Colombo) RDC node for tracking
-            if (form.stock && parseInt(form.stock) > 0) {
-                await createProductStock(newId, 'West (Colombo)', parseInt(form.stock));
+            // Initialize stock in the first available RDC (sourced from database)
+            if (form.stock && parseInt(form.stock) > 0 && defaultRdc) {
+                await createProductStock(newId, defaultRdc, parseInt(form.stock));
             }
 
             await loadProducts();
@@ -171,7 +175,7 @@ export default function ProductsPage() {
                 customer_id: customerId,
                 total: cartTotal,
                 status: 'Pending',
-                rdc: 'West (Colombo)', // Default for frontend orders
+                rdc: defaultRdc || '', // First RDC from database
                 date: new Date().toISOString().split('T')[0],
                 eta: estimatedDelivery.toISOString().split('T')[0]
             };

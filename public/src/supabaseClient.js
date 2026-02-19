@@ -87,11 +87,13 @@ export const fetchProductStock = async (productId, rdc) => {
 };
 
 export const updateProductStock = async (productId, rdc, quantity) => {
+  // Use upsert so it creates the row if it doesn't exist yet (e.g. new RDC target during transfer)
   const { data, error } = await supabase
     .from("product_stock")
-    .update({ quantity: quantity })
-    .eq("product_id", productId)
-    .eq("rdc", rdc)
+    .upsert(
+      { product_id: productId, rdc, quantity },
+      { onConflict: "product_id,rdc" }
+    )
     .select();
   if (error) throw error;
   return data;

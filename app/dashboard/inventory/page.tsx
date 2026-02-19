@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,38 +17,66 @@ import {
     Search,
     RefreshCw,
     ArrowRightLeft,
-    AlertTriangle,
     Package,
     ArrowUpRight,
     Building2,
-    ShieldAlert,
-    TrendingUp,
-    MapPin,
     Zap,
-    Loader2
+    Loader2,
+    AlertCircle,
+    RotateCcw,
+    Edit2,
+    Check,
+    X,
+    TrendingDown
 } from "lucide-react";
-import { fetchProducts, fetchAllProductStocks, updateProduct } from "@/public/src/supabaseClient";
+import { fetchProducts, fetchAllProductStocks, updateProduct, updateProductStock, createProductStock } from "@/public/src/supabaseClient";
 import type { Product } from "@/lib/database-types";
-import { AlertCircle, RotateCcw } from "lucide-react";
 
-const RDCS = ["West (Colombo)", "Central (Kandy)", "South (Galle)", "North (Jaffna)", "East (Trincomalee)"];
+
+interface StockEntry {
+    id: number;
+    product_id: string;
+    rdc: string;
+    quantity: number;
+}
+
+interface InventoryProduct extends Product {
+    totalStock: number;
+    rdcStocks: Record<string, number>;
+    hasRdcData: boolean;
+}
+
+interface TransferState {
+    productId: string;
+    productName: string;
+    fromRdc: string;
+    toRdc: string;
+    quantity: number;
+}
 
 export default function InventoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedRDC, setSelectedRDC] = useState<string | "All">("All");
     const [isSyncing, setIsSyncing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
-    const [allStocks, setAllStocks] = useState<any[]>([]);
+    const [allStocks, setAllStocks] = useState<StockEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [editingStock, setEditingStock] = useState<{ productId: string; rdc: string } | null>(null);
+    const [editValue, setEditValue] = useState<string>("");
+    const [savingStock, setSavingStock] = useState(false);
+    const [showTransferModal, setShowTransferModal] = useState(false);
+    const [transfer, setTransfer] = useState<TransferState>({
+        productId: "", productName: "", fromRdc: "", toRdc: "", quantity: 0
+    });
+    const [transferring, setTransferring] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    // Derive RDC list dynamically from the database (distinct rdc values from product_stock)
+    const rdcs: string[] = Array.from(new Set(allStocks.map(s => s.rdc))).sort();
 
-    const loadData = async () => {
+    const loadData = useCallback(async (showLoader = true) => {
         try {
-            if (!isSyncing) setLoading(true);
+            if (showLoader) setLoading(true);
             const [productsData, stocksData] = await Promise.all([
                 fetchProducts(),
                 fetchAllProductStocks()
@@ -63,14 +91,18 @@ export default function InventoryPage() {
             setLoading(false);
             setIsSyncing(false);
         }
-    };
+    }, []);
+
+    useEffect(() => { loadData(); }, [loadData]);
 
     const handleSync = async () => {
         setIsSyncing(true);
-        await loadData();
+        await loadData(false);
     };
 
     const resyncLedger = async () => {
+        if (!confirm("This will:\n1. Create missing RDC stock entries for unallocated products\n2. Recalculate all master stock totals\n\nContinue?")) return;
+
         try {
             setIsSyncing(true);
             const [productsData, stocksData] = await Promise.all([
@@ -78,49 +110,133 @@ export default function InventoryPage() {
                 fetchAllProductStocks()
             ]);
 
-            for (const product of (productsData || [])) {
-                const totalStock = (stocksData || [])
+            // Derive available RDCs from the database (not hardcoded)
+            const availableRdcs = Array.from(new Set((stocksData || []).map(s => s.rdc))).sort();
+            const defaultRdc = availableRdcs[0]; // Use the first RDC that exists in the DB
+
+            let created = 0;
+            if (defaultRdc) {
+                // For every product with NO product_stock rows, seed using the first RDC from DB
+                for (const product of (productsData || [])) {
+                    const existingStocks = (stocksData || []).filter(s => s.product_id === product.id);
+                    if (existingStocks.length === 0 && (product.stock || 0) > 0) {
+                        await createProductStock(product.id, defaultRdc, product.stock);
+                        created++;
+                    }
+                }
+            }
+
+            // Re-fetch after creating new stock rows
+            const [freshProducts, freshStocks] = await Promise.all([
+                fetchProducts(),
+                fetchAllProductStocks()
+            ]);
+
+            // Sync master stock totals from per-RDC rows
+            for (const product of (freshProducts || [])) {
+                const totalStock = (freshStocks || [])
                     .filter(s => s.product_id === product.id)
                     .reduce((acc, s) => acc + (s.quantity || 0), 0);
-
                 if (product.stock !== totalStock) {
-                    console.log(`Resyncing ${product.name}: ${product.stock} -> ${totalStock}`);
                     await updateProduct(product.id, { stock: totalStock });
                 }
             }
-            await loadData();
-            alert("Ledger synchronisation complete. Master records aligned with regional nodes.");
+
+            await loadData(false);
+            alert(`Sync complete!\n${created > 0 ? `• ${created} unallocated product(s) added to ${defaultRdc}\n` : ''}• All master stock totals recalculated from regional nodes.`);
         } catch (err) {
             console.error("Resync failed:", err);
-            alert("Failed to resync ledger.");
+            alert("Resync failed. Check the console for details.");
         } finally {
             setIsSyncing(false);
         }
     };
 
-    const inventoryWithStock = products.map(p => {
-        const stocksForProduct = allStocks.filter(s => s.product_id === p.id);
-        const totalStock = stocksForProduct.reduce((acc, s) => acc + (s.quantity || 0), 0);
 
-        // Per-RDC stock mapping - using split(0) to match RDCS component logic
-        const rdcStocks: Record<string, number> = {};
-        stocksForProduct.forEach(s => {
-            const key = s.rdc.split(" ")[0];
-            rdcStocks[key] = (rdcStocks[key] || 0) + (s.quantity || 0);
+    const startEditStock = (productId: string, rdc: string, currentValue: number) => {
+        setEditingStock({ productId, rdc });
+        setEditValue(String(currentValue));
+    };
+
+    const saveStockEdit = async () => {
+        if (!editingStock) return;
+        setSavingStock(true);
+        try {
+            const newQty = parseInt(editValue, 10);
+            if (isNaN(newQty) || newQty < 0) { alert("Please enter a valid quantity."); return; }
+            await updateProductStock(editingStock.productId, editingStock.rdc, newQty);
+            // Also update master stock in products table
+            const relatedStocks = allStocks.filter(s => s.product_id === editingStock.productId);
+            const otherStocksTotal = relatedStocks
+                .filter(s => s.rdc !== editingStock.rdc)
+                .reduce((a, s) => a + s.quantity, 0);
+            await updateProduct(editingStock.productId, { stock: otherStocksTotal + newQty });
+            setEditingStock(null);
+            await loadData(false);
+        } catch (err) {
+            alert("Failed to update stock.");
+            console.error(err);
+        } finally {
+            setSavingStock(false);
+        }
+    };
+
+    const openTransferModal = (product: InventoryProduct) => {
+        setTransfer({
+            productId: product.id,
+            productName: product.name,
+            fromRdc: rdcs[0],
+            toRdc: rdcs[1],
+            quantity: 1
         });
+        setShowTransferModal(true);
+    };
 
-        return { ...p, totalStock, rdcStocks };
+    const executeTransfer = async () => {
+        if (transfer.fromRdc === transfer.toRdc) { alert("From and To RDC must be different."); return; }
+        if (transfer.quantity <= 0) { alert("Transfer quantity must be positive."); return; }
+
+        const fromStock = allStocks.find(s => s.product_id === transfer.productId && s.rdc === transfer.fromRdc);
+        if (!fromStock || fromStock.quantity < transfer.quantity) {
+            alert(`Insufficient stock at ${transfer.fromRdc}. Available: ${fromStock?.quantity || 0}`);
+            return;
+        }
+
+        setTransferring(true);
+        try {
+            const toStock = allStocks.find(s => s.product_id === transfer.productId && s.rdc === transfer.toRdc);
+            await updateProductStock(transfer.productId, transfer.fromRdc, fromStock.quantity - transfer.quantity);
+            const newToQty = (toStock?.quantity || 0) + transfer.quantity;
+            await updateProductStock(transfer.productId, transfer.toRdc, newToQty);
+            setShowTransferModal(false);
+            await loadData(false);
+            alert(`Transfer complete: ${transfer.quantity} units moved from ${transfer.fromRdc} to ${transfer.toRdc}.`);
+        } catch (err) {
+            alert("Transfer failed.");
+            console.error(err);
+        } finally {
+            setTransferring(false);
+        }
+    };
+
+    const inventoryWithStock: InventoryProduct[] = products.map(p => {
+        const stocksForProduct = allStocks.filter(s => s.product_id === p.id);
+        // If no per-RDC rows exist, fall back to the master stock column
+        const totalStock = stocksForProduct.length > 0
+            ? stocksForProduct.reduce((acc, s) => acc + (s.quantity || 0), 0)
+            : (p.stock || 0);
+        const rdcStocks: Record<string, number> = {};
+        stocksForProduct.forEach(s => { rdcStocks[s.rdc] = (rdcStocks[s.rdc] || 0) + (s.quantity || 0); });
+        return { ...p, totalStock, rdcStocks, hasRdcData: stocksForProduct.length > 0 };
     });
 
     const filteredInventory = inventoryWithStock.filter(p => {
         const matchesSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (p.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
-
+            (p.sku || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.id || "").toLowerCase().includes(searchQuery.toLowerCase());
         if (selectedRDC !== "All") {
-            const rdcKey = selectedRDC.split(" ")[0];
-            return matchesSearch && (p.rdcStocks[rdcKey] !== undefined);
+            return matchesSearch && (p.rdcStocks[selectedRDC] !== undefined);
         }
-
         return matchesSearch;
     });
 
@@ -128,8 +244,8 @@ export default function InventoryPage() {
     const lowStockCount = inventoryWithStock.filter(p => p.totalStock < 500).length;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-            {/* Intelligent Oversight Headers */}
+        <div className="space-y-8 animate-in fade-in duration-500 pb-24">
+            {/* Top Stats */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
                     <CardContent className="p-8">
@@ -143,6 +259,36 @@ export default function InventoryPage() {
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
                             {loading ? "..." : totalGlobalStock.toLocaleString()}
                         </h3>
+                        <p className="text-[9px] text-slate-400 mt-1 font-medium">Units across all rdcs</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
+                    <CardContent className="p-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+                                <TrendingDown className="h-6 w-6" />
+                            </div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 px-2 py-1 rounded-lg">Alert</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Low Stock Items</p>
+                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
+                            {loading ? "..." : lowStockCount}
+                        </h3>
+                        <p className="text-[9px] text-slate-400 mt-1 font-medium">Products below 500 units</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
+                    <CardContent className="p-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                <Building2 className="h-6 w-6" />
+                            </div>
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active RDC Nodes</p>
+                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">{rdcs.length}</h3>
+                        <p className="text-[9px] text-slate-400 mt-1 font-medium">All nodes operational</p>
                     </CardContent>
                 </Card>
 
@@ -163,66 +309,26 @@ export default function InventoryPage() {
                                 Resync Ledger
                             </Button>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Stock Discrepancies</p>
-                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
-                            {loading ? "..." : lowStockCount} Nodes
-                        </h3>
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-[2rem] border-none shadow-2xl bg-white col-span-2 border border-black/5 overflow-hidden group">
-                    <CardHeader className="p-8 border-b border-black/5 bg-slate-50/50">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xl font-black italic tracking-tighter uppercase leading-tight text-slate-900">Node Synchronization Status</h3>
-                                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-2">{RDCS.length} ACTIVE DISTRIBUTION CORES</p>
-                            </div>
-                            <Button
-                                onClick={handleSync}
-                                disabled={isSyncing}
-                                className="bg-slate-900 hover:bg-black text-white rounded-xl h-12 px-6 font-black uppercase text-[10px] shadow-lg shadow-black/10"
-                            >
-                                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-                                {isSyncing ? "Syncing..." : "Sync Network"}
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-8">
-                        <div className="flex gap-3">
-                            {RDCS.map(rdc => (
-                                <div key={rdc} className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden border border-black/[0.03]">
-                                    <div className="h-full bg-emerald-500 animate-pulse transition-all duration-1000" style={{ width: '100%' }} />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-6 flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                            <span>Latency: 8ms</span>
-                            <span className="text-emerald-500">Live Database Link Established</span>
-                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Sync Status</p>
+                        <p className="text-sm font-bold text-emerald-600">●&nbsp;Live Database Linked</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Inventory Controls */}
+            {/* Controls */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex gap-2 p-1.5 bg-black/5 rounded-2xl w-fit overflow-x-auto">
                     <button
                         onClick={() => setSelectedRDC("All")}
-                        className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedRDC === "All"
-                            ? "bg-white text-slate-900 shadow-sm"
-                            : "text-slate-400 hover:text-slate-600"
-                            }`}
+                        className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedRDC === "All" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                     >
-                        Master Inventory
+                        All rdcs
                     </button>
-                    {RDCS.map(rdc => (
+                    {rdcs.map(rdc => (
                         <button
                             key={rdc}
                             onClick={() => setSelectedRDC(rdc)}
-                            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedRDC === rdc
-                                ? "bg-white text-slate-900 shadow-sm"
-                                : "text-slate-400 hover:text-slate-600"
-                                }`}
+                            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedRDC === rdc ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                         >
                             {rdc.split(" ")[0]}
                         </button>
@@ -233,21 +339,40 @@ export default function InventoryPage() {
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input
-                            placeholder="Locate Stock Item..."
-                            className="pl-12 pr-6 h-14 rounded-2xl bg-white border-black/5 shadow-sm w-full lg:w-[300px] font-bold"
+                            placeholder="Search by product name or SKU..."
+                            className="pl-12 pr-6 h-14 rounded-2xl bg-white border-black/5 shadow-sm w-full lg:w-[320px] font-bold"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
+                    <Button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="h-14 px-6 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest"
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                        {isSyncing ? "Syncing..." : "Refresh"}
+                    </Button>
                 </div>
             </div>
+
+            {/* Error Banner */}
+            {error && (
+                <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-700">
+                    <AlertCircle className="h-5 w-5 shrink-0" />
+                    <p className="text-sm font-bold">{error}</p>
+                    <Button size="sm" variant="ghost" onClick={() => loadData()} className="ml-auto text-rose-700">Retry</Button>
+                </div>
+            )}
 
             {/* Inventory Matrix */}
             <Card className="rounded-[2.5rem] border-black/5 shadow-2xl overflow-hidden bg-white">
                 <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
                     <div>
                         <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Inventory Matrix</CardTitle>
-                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">Professional oversight for regional node stock distribution.</CardDescription>
+                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">
+                            Live stock data — click the edit icon to update quantities directly.
+                        </CardDescription>
                     </div>
                     {selectedRDC !== "All" && (
                         <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-2 rounded-xl uppercase tracking-widest">
@@ -261,86 +386,174 @@ export default function InventoryPage() {
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-black/5">
                                     <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Stock Identity</TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Department</TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">
-                                        {selectedRDC === "All" ? "Global Vol." : `${selectedRDC.split(" ")[0]} Vol.`}
-                                    </TableHead>
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Integrity</TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Category</TableHead>
+                                    {selectedRDC === "All"
+                                        ? rdcs.map(r => (
+                                            <TableHead key={r} className="px-4 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                                                {r.split(" ")[0]}
+                                            </TableHead>
+                                        ))
+                                        : <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">
+                                            {selectedRDC.split(" ")[0]} Stock
+                                        </TableHead>
+                                    }
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Total</TableHead>
                                     <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loading && !isSyncing ? (
+                                {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="py-20 text-center">
+                                        <TableCell colSpan={8} className="py-20 text-center">
                                             <div className="flex flex-col items-center justify-center animate-pulse">
                                                 <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-                                                <p className="font-black text-[10px] text-muted-foreground uppercase tracking-widest">Accessing central ledger...</p>
+                                                <p className="font-black text-[10px] text-muted-foreground uppercase tracking-widest">Accessing database...</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredInventory.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="py-20 text-center">
-                                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No inventory records detected.</p>
+                                        <TableCell colSpan={8} className="py-20 text-center">
+                                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No inventory records found.</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredInventory.map(product => {
-                                        const displayStock = selectedRDC === "All"
-                                            ? product.totalStock
-                                            : product.rdcStocks[selectedRDC.split(" ")[0]] || 0;
+                                    filteredInventory.map(product => (
+                                        <TableRow key={product.id} className="hover:bg-slate-50/30 transition-colors group border-black/5">
+                                            <TableCell className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img src={product.image || ""} alt={product.name} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
+                                                        <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku || product.id}</p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="px-8 py-6">
+                                                <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3 py-1 bg-white text-slate-600">
+                                                    {product.category}
+                                                </Badge>
+                                            </TableCell>
 
-                                        return (
-                                            <TableRow key={product.id} className="hover:bg-slate-50/30 transition-colors group border-black/5">
-                                                <TableCell className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                                            <img src={product.image || ""} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
-                                                            <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku || product.id}</p>
-                                                        </div>
+                                            {selectedRDC === "All"
+                                                ? rdcs.map(rdc => {
+                                                    const qty = product.rdcStocks[rdc] ?? 0;
+                                                    const isEditing = editingStock?.productId === product.id && editingStock?.rdc === rdc;
+                                                    // Product has no per-RDC data - show a dash
+                                                    if (!product.hasRdcData) {
+                                                        return (
+                                                            <TableCell key={rdc} className="px-4 py-6 text-center">
+                                                                <span className="text-[10px] text-slate-300 font-black">—</span>
+                                                            </TableCell>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <TableCell key={rdc} className="px-4 py-6 text-center">
+                                                            {isEditing ? (
+                                                                <div className="flex items-center gap-1 justify-center">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={editValue}
+                                                                        onChange={e => setEditValue(e.target.value)}
+                                                                        className="h-8 w-20 text-center text-sm font-bold rounded-lg border-primary"
+                                                                        autoFocus
+                                                                    />
+                                                                    <button onClick={saveStockEdit} disabled={savingStock} className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
+                                                                        <Check className="h-3 w-3" />
+                                                                    </button>
+                                                                    <button onClick={() => setEditingStock(null)} className="p-1.5 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200">
+                                                                        <X className="h-3 w-3" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-center gap-1.5 group/cell">
+                                                                    <span className={`text-sm font-black tabular-nums ${qty < 200 ? "text-rose-600" : qty < 500 ? "text-amber-600" : "text-slate-900"}`}>
+                                                                        {qty.toLocaleString()}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => startEditStock(product.id, rdc, qty)}
+                                                                        className="opacity-0 group-hover/cell:opacity-100 p-1 rounded hover:bg-black/5 transition-all"
+                                                                    >
+                                                                        <Edit2 className="h-2.5 w-2.5 text-slate-400" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })
+                                                : (() => {
+                                                    const qty = product.rdcStocks[selectedRDC] ?? 0;
+                                                    const isEditing = editingStock?.productId === product.id && editingStock?.rdc === selectedRDC;
+                                                    return (
+                                                        <TableCell className="px-8 py-6">
+                                                            {isEditing ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={editValue}
+                                                                        onChange={e => setEditValue(e.target.value)}
+                                                                        className="h-9 w-28 text-sm font-bold rounded-lg border-primary"
+                                                                        autoFocus
+                                                                    />
+                                                                    <button onClick={saveStockEdit} disabled={savingStock} className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
+                                                                        <Check className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                    <button onClick={() => setEditingStock(null)} className="p-1.5 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200">
+                                                                        <X className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="space-y-1.5">
+                                                                        <p className={`text-lg font-black tabular-nums tracking-tighter italic leading-none ${qty < 200 ? "text-rose-600" : qty < 500 ? "text-amber-600" : "text-slate-900"}`}>
+                                                                            {qty.toLocaleString()}
+                                                                        </p>
+                                                                        <div className="h-1 w-24 bg-black/5 rounded-full overflow-hidden">
+                                                                            <div className={`h-full ${qty < 200 ? "bg-rose-500" : qty < 500 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                                                                style={{ width: `${Math.min(100, (qty / 3000) * 100)}%` }} />
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => startEditStock(product.id, selectedRDC, qty)}
+                                                                        className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-black/5 transition-all"
+                                                                    >
+                                                                        <Edit2 className="h-3.5 w-3.5 text-slate-400" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })()
+                                            }
+
+                                            <TableCell className="px-8 py-6">
+                                                <div className="space-y-1.5">
+                                                    <p className="text-sm font-black tabular-nums tracking-tighter italic text-slate-900 leading-none">
+                                                        {product.totalStock.toLocaleString()}
+                                                    </p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Live</span>
                                                     </div>
-                                                </TableCell>
-                                                <TableCell className="px-8 py-6">
-                                                    <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3 py-1 bg-white text-slate-600">
-                                                        {product.category}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="px-8 py-6">
-                                                    <div className="space-y-1.5">
-                                                        <p className="text-lg font-black tabular-nums tracking-tighter italic text-slate-900 leading-none">
-                                                            {displayStock.toLocaleString()}
-                                                        </p>
-                                                        <div className="h-1 w-24 bg-black/5 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full ${displayStock < 500 ? "bg-rose-500" : "bg-emerald-500"}`}
-                                                                style={{ width: `${Math.min(100, (displayStock / 2000) * 100)}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="px-8 py-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sync Active</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="px-8 py-6 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5 transition-all text-slate-600"
-                                                    >
-                                                        <ArrowRightLeft className="mr-2 h-4 w-4 opacity-40" />
-                                                        Transfer
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
+                                                </div>
+                                            </TableCell>
+
+                                            <TableCell className="px-8 py-6 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openTransferModal(product)}
+                                                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5 transition-all text-slate-600"
+                                                >
+                                                    <ArrowRightLeft className="mr-2 h-4 w-4 opacity-40" />
+                                                    Transfer
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
                                 )}
                             </TableBody>
                         </Table>
@@ -348,7 +561,78 @@ export default function InventoryPage() {
                 </CardContent>
             </Card>
 
-            {/* Transfer Dock - Fixed Bottom */}
+            {/* Transfer Modal */}
+            {showTransferModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 w-full max-w-md space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div>
+                            <h2 className="text-xl font-black uppercase tracking-tighter italic text-slate-900">Inter-Node Transfer</h2>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{transfer.productName}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">From RDC</label>
+                                <select
+                                    value={transfer.fromRdc}
+                                    onChange={e => setTransfer(t => ({ ...t, fromRdc: e.target.value }))}
+                                    className="w-full h-12 rounded-xl border border-black/10 px-4 font-bold text-sm bg-white"
+                                >
+                                    {rdcs.map(r => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                                <p className="text-[10px] text-slate-400 mt-1 ml-1">
+                                    Available: {(inventoryWithStock.find(p => p.id === transfer.productId)?.rdcStocks[transfer.fromRdc] || 0).toLocaleString()} units
+                                </p>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <ArrowRightLeft className="h-5 w-5 text-slate-300" />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">To RDC</label>
+                                <select
+                                    value={transfer.toRdc}
+                                    onChange={e => setTransfer(t => ({ ...t, toRdc: e.target.value }))}
+                                    className="w-full h-12 rounded-xl border border-black/10 px-4 font-bold text-sm bg-white"
+                                >
+                                    {rdcs.map(r => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Quantity to Transfer</label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    value={transfer.quantity}
+                                    onChange={e => setTransfer(t => ({ ...t, quantity: parseInt(e.target.value) || 0 }))}
+                                    className="h-12 rounded-xl font-bold text-lg"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowTransferModal(false)}
+                                className="flex-1 h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={executeTransfer}
+                                disabled={transferring}
+                                className="flex-1 h-12 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest"
+                            >
+                                {transferring ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Zap className="mr-2 h-4 w-4" />Authorize Transfer</>}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bottom Bar */}
             <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-white border-t border-black/5 p-6 z-40 shadow-[0_-20px_50px_rgba(0,0,0,0.05)] backdrop-blur-xl bg-white/90">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-8">
@@ -367,11 +651,21 @@ export default function InventoryPage() {
                         <div className="h-12 w-px bg-black/5 hidden md:block" />
                         <div className="hidden md:block">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Allocation Active</p>
-                            <p className="font-bold text-slate-600 text-sm italic tracking-tight">Direct database link for cross-regional inventory movement.</p>
+                            <p className="font-bold text-slate-600 text-sm italic tracking-tight">
+                                {loading ? "Loading..." : `${totalGlobalStock.toLocaleString()} total units across ${rdcs.length} nodes`}
+                            </p>
                         </div>
                     </div>
-                    <Button className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-black/20 group">
-                        Authorize Stock Realignment <Zap className="ml-2 h-4 w-4 text-primary fill-current group-hover:scale-125 transition-transform" />
+                    <Button
+                        onClick={resyncLedger}
+                        disabled={isSyncing}
+                        className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-black/20 group"
+                    >
+                        {isSyncing
+                            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            : <Zap className="ml-2 h-4 w-4 text-primary fill-current group-hover:scale-125 transition-transform" />
+                        }
+                        Authorize Stock Realignment
                     </Button>
                 </div>
             </div>
