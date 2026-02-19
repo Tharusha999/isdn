@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/public/src/supabaseClient";
+import { loginUser, registerCustomerUser } from "@/public/src/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [isLogin, setIsLogin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [adminKey, setAdminKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [userRole, setUserRole] = useState<
-    "admin" | "customer" | "driver" | null
-  >(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await loginUser(username, password);
+      let user;
+      if (isLogin) {
+        user = await loginUser(username, password, isAdmin ? adminKey : undefined);
+      } else {
+        user = await registerCustomerUser({
+          username,
+          password,
+          full_name: fullName,
+          email
+        });
+      }
 
       // Store user data in localStorage
       localStorage.setItem(
@@ -34,113 +46,153 @@ export default function LoginPage() {
         }),
       );
 
+      // Legacy support for specific pages
+      localStorage.setItem("profileName", user.full_name);
+      localStorage.setItem("userRole", user.role);
+
       // Redirect based on role
       if (user.role === "admin") {
         router.push("/dashboard");
-      } else if (user.role === "customer") {
-        router.push("/customer-dashboard");
-      } else if (user.role === "driver") {
-        router.push("/driver-dashboard");
+      } else {
+        router.push("/dashboard/products");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-6">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white rounded-[3rem] shadow-2xl shadow-indigo-200/50 p-12 border border-slate-100">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">ISDN</h1>
-            <p className="text-gray-600">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-black italic tracking-tighter text-slate-900 mb-2">ISDN</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Integrated Supply Distribution Network
             </p>
           </div>
 
+          {/* Form Toggle */}
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
+            <button
+              onClick={() => { setIsLogin(true); setIsAdmin(false); }}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLogin && !isAdmin ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setIsLogin(false); setIsAdmin(false); }}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isLogin ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+            >
+              First Time
+            </button>
+            <button
+              onClick={() => { setIsLogin(true); setIsAdmin(true); }}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLogin && isAdmin ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
+            >
+              Admin Access
+            </button>
+          </div>
+
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider text-center">
                 {error}
               </div>
             )}
 
-            {/* Username Field */}
+            {!isLogin && (
+              <div>
+                <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Full Identity</label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Retail Partner Name"
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-bold text-sm"
+                />
+              </div>
+            )}
+
+            {!isLogin && (
+              <div>
+                <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Dispatch Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contact@distribution.com"
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-bold text-sm"
+                />
+              </div>
+            )}
+
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Username
-              </label>
+              <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Network Username</label>
               <input
-                id="username"
                 type="text"
+                required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                placeholder="Enter username"
+                className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-bold text-sm"
                 disabled={loading}
               />
             </div>
 
-            {/* Password Field */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
+              <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Security Key</label>
               <input
-                id="password"
                 type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                placeholder="••••••••"
+                className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-bold text-sm"
                 disabled={loading}
               />
             </div>
+
+            {isAdmin && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                <label className="block text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-2 px-1">Verification Token</label>
+                <input
+                  type="password"
+                  required
+                  value={adminKey}
+                  onChange={(e) => setAdminKey(e.target.value)}
+                  placeholder="Admin Security Token"
+                  className="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-black text-sm text-indigo-600 placeholder:text-indigo-200"
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+              className={`w-full ${isAdmin ? 'bg-indigo-600 shadow-indigo-200' : 'bg-slate-900 shadow-slate-200'} shadow-xl text-white font-black uppercase tracking-widest text-[10px] py-5 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all mt-4 flex items-center justify-center`}
             >
-              {loading ? "Logging in..." : "Log In"}
+              {loading ? (
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                isLogin ? (isAdmin ? "Authorize Admin Access" : "Synchronise Account") : "Initialize Network Identity"
+              )}
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-8 pt-8 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-4 font-semibold">
-              Demo Credentials:
-            </p>
-            <div className="space-y-3 text-sm">
-              <div className="bg-blue-50 p-3 rounded">
-                <p className="font-semibold text-blue-900">Admin</p>
-                <p className="text-blue-700">Username: admin</p>
-                <p className="text-blue-700">Password: admin123</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded">
-                <p className="font-semibold text-green-900">Customer</p>
-                <p className="text-green-700">Username: singer_mega</p>
-                <p className="text-green-700">Password: customer123</p>
-              </div>
-              <div className="bg-purple-50 p-3 rounded">
-                <p className="font-semibold text-purple-900">Driver</p>
-                <p className="text-purple-700">Username: john_driver</p>
-                <p className="text-purple-700">Password: driver123</p>
-              </div>
-            </div>
-          </div>
+          {/* Policy */}
+          <p className="mt-8 text-center text-[8px] font-black uppercase tracking-widest text-slate-300">
+            Secured via ISDN End-to-End Encryption
+          </p>
         </div>
       </div>
     </div>

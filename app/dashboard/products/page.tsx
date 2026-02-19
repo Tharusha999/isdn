@@ -187,6 +187,7 @@ export default function ProductsPage() {
             };
 
             await createOrderWithItems(orderData, itemsData, transactionData);
+            await loadProducts();
 
             setShowSuccess(true);
             setCart({});

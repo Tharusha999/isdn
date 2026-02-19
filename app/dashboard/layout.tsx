@@ -18,9 +18,7 @@ export default function DashboardLayout({
 
     const [globalSearch, setGlobalSearch] = useState("");
     const [role, setRole] = useState<string | null>(null);
-    const [adminName, setAdminName] = useState("Alex Rivera");
-    const [customerName, setCustomerName] = useState("Guest Customer");
-    const [driverName, setDriverName] = useState("Sam Perera");
+    const [userName, setUserName] = useState("Loading Identity...");
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [tempName, setTempName] = useState("");
     const [isLoaded, setIsLoaded] = useState(false);
@@ -51,68 +49,65 @@ export default function DashboardLayout({
     };
 
     useEffect(() => {
-        const storedRole = localStorage.getItem('userRole');
-        const storedAdminName = localStorage.getItem('isdn_admin_name');
-        const storedCustomerName = localStorage.getItem('isdn_customer_name');
-        const storedDriverName = localStorage.getItem('isdn_driver_name');
+        const checkAuth = async () => {
+            const storedAuth = localStorage.getItem('authUser');
 
-        const timer = setTimeout(() => {
-            if (storedAdminName) setAdminName(storedAdminName);
-            if (storedCustomerName) setCustomerName(storedCustomerName);
-            if (storedDriverName) setDriverName(storedDriverName);
-
-            if (!isLoaded) {
-                setRole(storedRole);
-                setIsLoaded(true);
+            if (!storedAuth) {
+                router.push('/login');
+                return;
             }
-        }, 0);
 
-        if (!storedRole && pathname !== '/') {
-            router.push('/');
-        }
+            try {
+                const user = JSON.parse(storedAuth);
+                setRole(user.role);
+                setUserName(user.full_name);
+                setIsLoaded(true);
+            } catch (err) {
+                console.error("Auth sync error:", err);
+                router.push('/login');
+            }
+        };
 
-        return () => clearTimeout(timer);
-    }, [pathname, router, isLoaded]);
+        checkAuth();
+    }, [pathname, router]);
 
     const handleSaveProfile = () => {
         if (tempName.trim()) {
-            if (role === 'admin') {
-                setAdminName(tempName);
-                localStorage.setItem('isdn_admin_name', tempName);
-            } else if (role === 'customer') {
-                setCustomerName(tempName);
-                localStorage.setItem('isdn_customer_name', tempName);
-            } else if (role === 'driver') {
-                setDriverName(tempName);
-                localStorage.setItem('isdn_driver_name', tempName);
+            setUserName(tempName);
+            const storedAuth = localStorage.getItem('authUser');
+            if (storedAuth) {
+                const user = JSON.parse(storedAuth);
+                user.full_name = tempName;
+                localStorage.setItem('authUser', JSON.stringify(user));
+                localStorage.setItem('profileName', tempName); // Sync legacy
             }
         }
         setIsEditingProfile(false);
     };
 
     const handleStartEdit = () => {
-        setTempName(role === 'admin' ? adminName : (role === 'customer' ? customerName : driverName));
+        setTempName(userName);
         setIsEditingProfile(true);
     };
 
     const roleInfo = {
         admin: {
-            name: adminName,
+            name: userName,
             label: "Global Admin",
             avatar: "Alex"
         },
         customer: {
-            name: customerName,
-            label: "Customer",
+            name: userName,
+            label: "Retail Partner",
             avatar: "Guest"
         },
         driver: {
-            name: driverName,
+            name: userName,
             label: "Logistics Driver",
             avatar: "Sam"
         },
         loading: {
-            name: "Loading...",
+            name: "Synchronising Identity...",
             label: "...",
             avatar: "placeholder"
         }
