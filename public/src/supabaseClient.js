@@ -70,10 +70,7 @@ export const updateProduct = async (id, productData) => {
 };
 
 export const deleteProduct = async (id) => {
-  const { error } = await supabase
-    .from("products")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw error;
 };
 
@@ -498,4 +495,200 @@ export const subscribeToMissions = (callback) => {
       callback(payload);
     })
     .subscribe();
+};
+// ============================================
+// Authentication Functions
+// ============================================
+
+// Login for Admin Users
+export const loginAdmin = async (username, password) => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .eq("username", username)
+    .eq("password", password)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Invalid username or password");
+  }
+
+  // Update last login
+  await supabase
+    .from("admin_users")
+    .update({ last_login: new Date().toISOString() })
+    .eq("id", data.id);
+
+  return data;
+};
+
+// Login for Customer Users
+export const loginCustomer = async (username, password) => {
+  const { data, error } = await supabase
+    .from("customer_users")
+    .select("*")
+    .eq("username", username)
+    .eq("password", password)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Invalid username or password");
+  }
+
+  // Update last login
+  await supabase
+    .from("customer_users")
+    .update({ last_login: new Date().toISOString() })
+    .eq("id", data.id);
+
+  return data;
+};
+
+// Login for Driver Users
+export const loginDriver = async (username, password) => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .select("*")
+    .eq("username", username)
+    .eq("password", password)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Invalid username or password");
+  }
+
+  // Update last login
+  await supabase
+    .from("driver_users")
+    .update({ last_login: new Date().toISOString() })
+    .eq("id", data.id);
+
+  return data;
+};
+
+// Universal Login - Returns user object with role
+export const loginUser = async (username, password) => {
+  // Try admin login
+  try {
+    const adminUser = await loginAdmin(username, password);
+    return { ...adminUser, role: "admin" };
+  } catch (e) {
+    // Try customer login
+    try {
+      const customerUser = await loginCustomer(username, password);
+      return { ...customerUser, role: "customer" };
+    } catch (e) {
+      // Try driver login
+      try {
+        const driverUser = await loginDriver(username, password);
+        return { ...driverUser, role: "driver" };
+      } catch (e) {
+        throw new Error("Invalid username or password");
+      }
+    }
+  }
+};
+
+// Get Admin User by ID
+export const getAdminUser = async (id) => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Get Customer User by ID
+export const getCustomerUser = async (id) => {
+  const { data, error } = await supabase
+    .from("customer_users")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Get Driver User by ID
+export const getDriverUser = async (id) => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Create Admin User
+export const createAdminUser = async (adminData) => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .insert([adminData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+// Create Customer User
+export const createCustomerUser = async (customerData) => {
+  const { data, error } = await supabase
+    .from("customer_users")
+    .insert([customerData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+// Create Driver User
+export const createDriverUser = async (driverData) => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .insert([driverData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+// Update Driver Status
+export const updateDriverStatus = async (driverId, isActive) => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .update({ is_active: isActive })
+    .eq("id", driverId)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+// Fetch All Admin Users
+export const fetchAllAdminUsers = async () => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
+// Fetch All Customer Users
+export const fetchAllCustomerUsers = async () => {
+  const { data, error } = await supabase
+    .from("customer_users")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
+// Fetch All Driver Users
+export const fetchAllDriverUsers = async () => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
 };

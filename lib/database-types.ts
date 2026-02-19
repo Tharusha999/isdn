@@ -9,6 +9,77 @@ export type PaymentMethodType = 'Credit Card' | 'Bank Transfer' | 'Online Bankin
 export type StaffStatusType = 'Active' | 'Away' | 'On Route' | 'Offline'
 export type MissionStatusType = 'In Transit' | 'Maintenance' | 'Idle'
 export type PartnerStatusType = 'Active' | 'Review' | 'Inactive'
+export type UserRole = 'admin' | 'customer' | 'driver'
+
+// ============================================
+// User Authentication Types
+// ============================================
+
+export interface AdminUser {
+  id: string
+  username: string
+  password: string
+  email: string
+  full_name: string
+  phone?: string
+  role: UserRole
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login?: string
+}
+
+export interface CustomerUser {
+  id: string
+  username: string
+  password: string
+  email: string
+  full_name: string
+  phone?: string
+  company_name?: string
+  address?: string
+  city?: string
+  role: UserRole
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login?: string
+}
+
+export interface DriverUser {
+  id: string
+  username: string
+  password: string
+  email: string
+  full_name: string
+  phone: string
+  license_number: string
+  license_expiry?: string
+  vehicle_assigned?: string
+  rdc_hub?: RDCType
+  role: UserRole
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login?: string
+}
+
+export interface AuthUser {
+  id: string
+  username: string
+  email: string
+  full_name: string
+  phone?: string
+  role: UserRole
+  is_active: boolean
+  last_login?: string
+}
+
+export interface LoginResponse {
+  user: AuthUser
+  role: UserRole
+  token?: string
+}
 
 // ============================================
 // Product Related Types

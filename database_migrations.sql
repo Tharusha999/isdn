@@ -10,6 +10,63 @@ CREATE TYPE payment_method AS ENUM ('Credit Card', 'Bank Transfer', 'Online Bank
 CREATE TYPE staff_status AS ENUM ('Active', 'Away', 'On Route', 'Offline');
 CREATE TYPE mission_status AS ENUM ('In Transit', 'Maintenance', 'Idle');
 CREATE TYPE partner_status AS ENUM ('Active', 'Review', 'Inactive');
+CREATE TYPE user_role AS ENUM ('admin', 'customer', 'driver');
+
+-- ============================================
+-- User Authentication Tables
+-- ============================================
+
+-- Admin Users Table
+CREATE TABLE admin_users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  role user_role DEFAULT 'admin' NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  last_login TIMESTAMP WITH TIME ZONE
+);
+
+-- Customer Users Table
+CREATE TABLE customer_users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  company_name TEXT,
+  address TEXT,
+  city TEXT,
+  role user_role DEFAULT 'customer' NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  last_login TIMESTAMP WITH TIME ZONE
+);
+
+-- Driver Users Table
+CREATE TABLE driver_users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  license_number TEXT UNIQUE NOT NULL,
+  license_expiry DATE,
+  vehicle_assigned TEXT,
+  rdc_hub rdc_type,
+  role user_role DEFAULT 'driver' NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  last_login TIMESTAMP WITH TIME ZONE
+);
 
 -- Products Table
 CREATE TABLE products (
@@ -202,6 +259,18 @@ CREATE INDEX idx_missions_driver_id ON missions(driver_id);
 CREATE INDEX idx_missions_status ON missions(status);
 CREATE INDEX idx_mission_tasks_mission_id ON mission_tasks(mission_id);
 
+-- User Table Indexes
+CREATE INDEX idx_admin_users_username ON admin_users(username);
+CREATE INDEX idx_admin_users_email ON admin_users(email);
+CREATE INDEX idx_admin_users_is_active ON admin_users(is_active);
+CREATE INDEX idx_customer_users_username ON customer_users(username);
+CREATE INDEX idx_customer_users_email ON customer_users(email);
+CREATE INDEX idx_customer_users_is_active ON customer_users(is_active);
+CREATE INDEX idx_driver_users_username ON driver_users(username);
+CREATE INDEX idx_driver_users_email ON driver_users(email);
+CREATE INDEX idx_driver_users_license_number ON driver_users(license_number);
+CREATE INDEX idx_driver_users_is_active ON driver_users(is_active);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_stock ENABLE ROW LEVEL SECURITY;
@@ -210,6 +279,9 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE driver_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_activity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff_performance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rdc_partners ENABLE ROW LEVEL SECURITY;
@@ -252,7 +324,18 @@ CREATE POLICY "Enable read access for all users" ON staff_performance FOR SELECT
 CREATE POLICY "Enable insert for authenticated users" ON staff_performance FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Enable update for authenticated users" ON staff_performance FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
 
-CREATE POLICY "Enable read access for all users" ON rdc_partners FOR SELECT USING (TRUE);
+-- User Authentication RLS Policies
+CREATE POLICY "Enable read access for admin users" ON admin_users FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for admin users" ON admin_users FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Enable update for admin users" ON admin_users FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
+
+CREATE POLICY "Enable read access for customer users" ON customer_users FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for customer users" ON customer_users FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Enable update for customer users" ON customer_users FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
+
+CREATE POLICY "Enable read access for driver users" ON driver_users FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for driver users" ON driver_users FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Enable update for driver users" ON driver_users FOR UPDATE USING (TRUE) WITH CHECK (TRUE);CREATE POLICY "Enable read access for all users" ON rdc_partners FOR SELECT USING (TRUE);
 CREATE POLICY "Enable insert for authenticated users" ON rdc_partners FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Enable update for authenticated users" ON rdc_partners FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
 
