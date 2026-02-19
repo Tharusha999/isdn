@@ -137,73 +137,183 @@ export const createOrderWithItems = async (orderData, items, transactionData) =>
 };
 
 export const decrementProductStock = async (productId, rdc, quantity) => {
-  // 1. Decrement from RDC node
-  // First, get current stock for that RDC
-  const { data: currentStock, error: fetchError } = await supabase
-    .from("product_stock")
-    .select("quantity")
-    .eq("product_id", productId)
-    .eq("rdc", rdc)
-    .single();
+  try {
+    // 1. Decrement from RDC node
+    const { data: currentStock, error: fetchError } = await supabase
+      .from("product_stock")
+      .select("quantity")
+      .eq("product_id", productId)
+      .eq("rdc", rdc);
 
-  if (fetchError) throw fetchError;
+    if (fetchError) throw fetchError;
 
-  const newRdcQuantity = (currentStock?.quantity || 0) - quantity;
+    if (currentStock && currentStock.length > 0) {
+      const newRdcQuantity = (currentStock[0].quantity || 0) - quantity;
+      const { error: rdcError } = await supabase
+        .from("product_stock")
+        .update({ quantity: Math.max(0, newRdcQuantity) })
+        .eq("product_id", productId)
+        .eq("rdc", rdc);
+      if (rdcError) throw rdcError;
+    }
 
-  const { error: rdcError } = await supabase
-    .from("product_stock")
-    .update({ quantity: Math.max(0, newRdcQuantity) })
-    .eq("product_id", productId)
-    .eq("rdc", rdc);
+    // 2. Decrement from master product table
+    const { data: product, error: pFetchError } = await supabase
+      .from("products")
+      .select("stock")
+      .eq("id", productId);
 
-  if (rdcError) throw rdcError;
+    if (pFetchError) throw pFetchError;
 
-  // 2. Decrement from master product table
-  const { data: product, error: pFetchError } = await supabase
-    .from("products")
-    .select("stock")
-    .eq("id", productId)
-    .single();
-
-  if (pFetchError) throw pFetchError;
-
-  const newTotalStock = (product?.stock || 0) - quantity;
-
-  const { error: pError } = await supabase
-    .from("products")
-    .update({ stock: Math.max(0, newTotalStock) })
-    .eq("id", productId);
-
-  if (pError) throw pError;
+    if (product && product.length > 0) {
+      const newTotalStock = (product[0].stock || 0) - quantity;
+      const { error: pError } = await supabase
+        .from("products")
+        .update({ stock: Math.max(0, newTotalStock) })
+        .eq("id", productId);
+      if (pError) throw pError;
+    }
+  } catch (err) {
+    console.error(`Stock update failed for product ${productId}:`, err);
+    // Continue even if per-RDC stock fails, but log it
+  }
 };
 
-// Orders
-export const fetchOrders = async () => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .order("date", { ascending: false });
+// Helper to fetch user profiles from all possible tables to ensure identity resolution
+export const fetchUserMapping = async (ids) => {
+  if (!ids || ids.length === 0) return {};
 
-  if (error) throw error;
+  try {
+    // Fetch from all user tables concurrently
+    // We select more fields and check legacy table 'customers' just in case
+    const [customersUsers, admins, drivers, legacyCustomers] = await Promise.all([
+      supabase.from("customer_users").select("id, full_name, username, company_name").in("id", ids),
+      supabase.from("admin_users").select("id, full_name, username").in("id", ids),
+      supabase.from("driver_users").select("id, full_name, username").in("id", ids),
+      supabase.from("customers").select("id, name").in("id", ids), // Fallback for old schema
+    ]);
 
-  // Try to join with customer_users if possible, or just return basic data
-  // The UI currently falls back to "General Distribution" if customers is missing
-  return data;
+    const mapping = {};
+    const merge = (result, type) => {
+      if (result.error) {
+        // Only log error for current tables, not legacy ones
+        if (type !== "legacy") console.error(`Identity lookup error in ${type}:`, result.error);
+        return;
+      }
+      if (result.data) {
+        result.data.forEach(user => {
+          // Robust name resolution - prioritized by database fields
+          const resolvedName = user.full_name ||
+            user.name ||
+            user.company_name ||
+            user.username ||
+            user.id; // Final fallback to ID if no name exists
+
+          mapping[user.id] = {
+            ...user,
+            name: resolvedName,
+            full_name: resolvedName
+          };
+        });
+      }
+    };
+
+    merge(customersUsers, "customers_users");
+    merge(admins, "admins");
+    merge(drivers, "drivers");
+    merge(legacyCustomers, "legacy");
+
+    return mapping;
+  } catch (err) {
+    console.error("fetchUserMapping critical failure:", err);
+    return {};
+  }
 };
 
-export const fetchOrdersByStatus = async (status) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      `
-      *,
-      customers:customer_id ( name, email, phone )
-    `,
-    )
-    .eq("status", status)
-    .order("date", { ascending: false });
-  if (error) throw error;
-  return data;
+// Orders - Modified to support role-based filtering and robust name resolution
+export const fetchOrders = async (userId = null, role = null) => {
+  try {
+    let query = supabase.from("orders").select("*");
+
+    if (role === 'customer' && userId) {
+      query = query.eq("customer_id", userId);
+    }
+
+    const { data: orders, error: ordersError } = await query.order("date", { ascending: false });
+
+    if (ordersError) throw ordersError;
+    if (!orders || orders.length === 0) return [];
+
+    // Fetch identity sources (Customer and Admin)
+    const [cRes, aRes] = await Promise.all([
+      supabase.from('customer_users').select('id, full_name'),
+      supabase.from('admin_users').select('id, full_name')
+    ]);
+
+    const nameMap = {};
+    const merge = (data) => {
+      if (data) data.forEach(u => {
+        if (u.id) nameMap[u.id.toLowerCase()] = u.full_name;
+      });
+    };
+    merge(cRes.data);
+    merge(aRes.data);
+
+    // Merge names - using case-insensitive lookup
+    // IMPORTANT: We return null for 'customers' if not found, to allow UI fallbacks
+    return orders.map(order => {
+      const cid = order.customer_id?.toLowerCase() || "";
+      const name = nameMap[cid];
+
+      return {
+        ...order,
+        customers: name ? { name, full_name: name } : null
+      };
+    });
+  } catch (err) {
+    console.error("fetchOrders execution failure:", err);
+    throw err;
+  }
+};
+
+export const fetchOrdersByStatus = async (status, userId = null, role = null) => {
+  try {
+    let query = supabase.from("orders").select("*").eq("status", status);
+
+    if (role === 'customer' && userId) {
+      query = query.eq("customer_id", userId);
+    }
+
+    const { data: orders, error: ordersError } = await query.order("date", { ascending: false });
+
+    if (ordersError) throw ordersError;
+    if (!orders || orders.length === 0) return [];
+
+    const [cRes, aRes] = await Promise.all([
+      supabase.from('customer_users').select('id, full_name'),
+      supabase.from('admin_users').select('id, full_name')
+    ]);
+
+    const nameMap = {};
+    const merge = (data) => {
+      if (data) data.forEach(u => {
+        if (u.id) nameMap[u.id.toLowerCase()] = u.full_name;
+      });
+    };
+    merge(cRes.data);
+    merge(aRes.data);
+
+    return orders.map(order => {
+      const name = nameMap[order.customer_id?.toLowerCase()];
+      return {
+        ...order,
+        customers: name ? { name, full_name: name } : null
+      };
+    });
+  } catch (err) {
+    console.error("fetchOrdersByStatus execution failure:", err);
+    throw err;
+  }
 };
 
 export const fetchOrdersByRDC = async (rdc) => {
@@ -244,10 +354,14 @@ export const fetchCustomers = async () => {
   if (error) throw error;
 
   // Map full_name to name for UI compatibility
-  return data.map(c => ({
-    ...c,
-    name: c.full_name
-  }));
+  return data.map(c => {
+    const resolvedName = c.full_name || c.username || c.id;
+    return {
+      ...c,
+      name: resolvedName,
+      full_name: resolvedName
+    };
+  });
 };
 
 export const createCustomer = async (customerData) => {
@@ -330,12 +444,38 @@ export const deleteAdmin = async (id) => {
 
 // Transactions
 export const fetchTransactions = async () => {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .order("date", { ascending: false });
-  if (error) throw error;
-  return data;
+  try {
+    const { data: transactions, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .order("date", { ascending: false });
+
+    if (error) throw error;
+    if (!transactions || transactions.length === 0) return [];
+
+    // Fetch identity sources (Customer and Admin)
+    const [cRes, aRes] = await Promise.all([
+      supabase.from('customer_users').select('id, full_name'),
+      supabase.from('admin_users').select('id, full_name')
+    ]);
+
+    const nameMap = {};
+    if (cRes.data) cRes.data.forEach(u => nameMap[u.id.toLowerCase()] = u.full_name);
+    if (aRes.data) aRes.data.forEach(u => nameMap[u.id.toLowerCase()] = u.full_name);
+
+    return transactions.map(t => {
+      const cid = t.customer?.toLowerCase() || "";
+      const resolvedName = nameMap[cid] || t.customer || "System";
+
+      return {
+        ...t,
+        resolved_customer: resolvedName
+      };
+    });
+  } catch (err) {
+    console.error("fetchTransactions execution failure:", err);
+    throw err;
+  }
 };
 
 export const fetchTransactionsByStatus = async (status) => {

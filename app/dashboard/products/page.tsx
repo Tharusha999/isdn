@@ -160,7 +160,7 @@ export default function ProductsPage() {
 
             // Get ID from authenticated session
             const storedAuth = localStorage.getItem('authUser');
-            let customerId = "CUST-001"; // Fallback for demo
+            let customerId = "CUST-USER-001"; // Fallback for demo
             if (storedAuth) {
                 const user = JSON.parse(storedAuth);
                 customerId = user.id;
@@ -199,9 +199,10 @@ export default function ProductsPage() {
 
             setShowSuccess(true);
             setCart({});
-        } catch (err) {
+        } catch (err: any) {
             console.error("Checkout failed:", err);
-            alert("Network synchronization failed during checkout. Please try again.");
+            const errorMsg = err.message || "Network synchronization failed during checkout.";
+            alert(`${errorMsg} Please try again.`);
         } finally {
             setIsCheckingOut(false);
         }

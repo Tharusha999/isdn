@@ -357,17 +357,37 @@ export default function DashboardPage() {
             <div className="grid gap-8 lg:grid-cols-3">
                 <Card className="lg:col-span-2 border-none shadow-2xl bg-white rounded-[3rem] overflow-hidden border border-black/5">
                     <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
-                        <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Inventory Cockpit</CardTitle>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Executive Order Manifest</CardTitle>
+                                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Live synchronisation of system-wide requisition logs.</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/orders')} className="h-10 rounded-xl border border-black/5 font-black uppercase text-[9px] tracking-widest px-4">View Full Registry</Button>
+                        </div>
                     </CardHeader>
-                    <CardContent className="p-10 h-[350px] flex items-center justify-center relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(#00000005_1px,transparent_1px)] [background-size:32px_32px]" />
-                        <div className="relative flex gap-12 items-end h-40">
-                            {inventoryData.map((p, i) => (
-                                <div key={i} className="flex flex-col items-center gap-4">
-                                    <div className="w-10 bg-slate-50 rounded-full relative flex items-end p-1 border border-black/[0.02]" style={{ height: '140px' }}>
-                                        <div className={`w-full rounded-full transition-all duration-1000 ${(p.stock ?? 0) < 50 ? 'bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-emerald-500'}`} style={{ height: `${Math.min((p.stock ?? 0) / 10, 100)}%` }} />
+                    <CardContent className="p-8">
+                        <div className="space-y-4">
+                            {orders.slice(0, 5).map((order, i) => (
+                                <div key={i} className="group flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-black/[0.02] hover:bg-white hover:shadow-xl hover:shadow-black/5 transition-all cursor-pointer" onClick={() => router.push('/dashboard/orders')}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                                            <Package className="h-5 w-5 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase italic tracking-tight text-slate-900 leading-none">{order.id}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                {order.customers?.name ||
+                                                    (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('authUser') || '{}').id === order.customer_id ? JSON.parse(localStorage.getItem('authUser') || '{}').full_name : null) ||
+                                                    order.customer_id || "Retail Partner"}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest w-12 text-center truncate">{p.name}</span>
+                                    <div className="text-right">
+                                        <p className="text-[12px] font-black italic tracking-tighter text-slate-900">Rs. {Number(order.total).toLocaleString()}</p>
+                                        <Badge variant="outline" className={`mt-1 h-5 px-3 rounded-full border-none font-black uppercase tracking-widest text-[8px] ${order.status === 'Delivered' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {order.status}
+                                        </Badge>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -386,7 +406,11 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex justify-between items-baseline">
-                                        <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">{log.customer || "System"}</p>
+                                        <p className="text-[11px] font-black uppercase tracking-tight text-slate-900">
+                                            {((log as any).resolved_customer === (log as any).customer_id ? null : (log as any).resolved_customer) ||
+                                                (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('authUser') || '{}').id === (log as any).customer_id ? JSON.parse(localStorage.getItem('authUser') || '{}').full_name : null) ||
+                                                (log as any).customer || "System"}
+                                        </p>
                                         <span className="text-[9px] font-black text-slate-300">{log.status}</span>
                                     </div>
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rs. {log.amount.toLocaleString()}</p>

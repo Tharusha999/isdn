@@ -103,22 +103,12 @@ CREATE TABLE product_stock (
   UNIQUE(product_id, rdc)
 );
 
--- Customers Table
-CREATE TABLE customers (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE,
-  phone TEXT,
-  address TEXT,
-  city TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
+-- (Removed redundant customers table)
 
 -- Orders Table
 CREATE TABLE orders (
   id TEXT PRIMARY KEY,
-  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  customer_id TEXT NOT NULL REFERENCES customer_users(id) ON DELETE RESTRICT,
   total DECIMAL(12, 2) NOT NULL,
   status order_status NOT NULL,
   rdc rdc_type NOT NULL,
@@ -285,7 +275,7 @@ CREATE INDEX idx_driver_users_is_active ON driver_users(is_active);
 -- Enable Row Level Security (RLS)
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_stock ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+-- (customers table removed)
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -309,9 +299,7 @@ CREATE POLICY "Enable read access for all users" ON product_stock FOR SELECT USI
 CREATE POLICY "Enable insert for authenticated users" ON product_stock FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Enable update for authenticated users" ON product_stock FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
 
-CREATE POLICY "Enable read access for all users" ON customers FOR SELECT USING (TRUE);
-CREATE POLICY "Enable insert for authenticated users" ON customers FOR INSERT WITH CHECK (TRUE);
-CREATE POLICY "Enable update for authenticated users" ON customers FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
+-- (customers policies removed)
 
 CREATE POLICY "Enable read access for all users" ON orders FOR SELECT USING (TRUE);
 CREATE POLICY "Enable insert for authenticated users" ON orders FOR INSERT WITH CHECK (TRUE);

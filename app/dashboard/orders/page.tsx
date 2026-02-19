@@ -31,19 +31,32 @@ export default function OrdersPage() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const data = await fetchOrders();
+
+            // Get user context for role-based filtering
+            const authUserJson = localStorage.getItem('authUser');
+            let userId = null;
+            let userRole = null;
+
+            if (authUserJson) {
+                const authUser = JSON.parse(authUserJson);
+                userId = authUser.id;
+                userRole = authUser.role;
+            }
+
+            // @ts-ignore - Parameters are allowed in the updated JS client
+            const data = await fetchOrders(userId, userRole);
             setOrders(data || []);
             setError(null);
-        } catch (err: unknown) {
+        } catch (err: any) {
             console.error("Error loading orders:", err);
-            setError("Failed to synchronize order registry.");
+            setError(err.message || "Failed to synchronize order registry.");
         } finally {
             setLoading(false);
         }
     };
 
     const filteredOrders = orders.filter((order) => {
-        const customerName = order.customers?.name || "General Distribution";
+        const customerName = order.customers?.name || order.customer_id || "General Distribution";
         return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (order.id || "").toLowerCase().includes(searchQuery.toLowerCase());
     });
@@ -51,7 +64,7 @@ export default function OrdersPage() {
     const handleExport = () => {
         const csvContent = "data:text/csv;charset=utf-8,"
             + "Order ID,Customer,Date,Total,Status\n"
-            + filteredOrders.map(o => `${o.id},${o.customers?.name || 'N/A'},${o.date},${o.total},${o.status}`).join("\n");
+            + filteredOrders.map(o => `${o.id},${o.customers?.name || o.customer_id || 'N/A'},${o.date},${o.total},${o.status}`).join("\n");
 
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -158,7 +171,11 @@ export default function OrdersPage() {
                                                 <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
                                                     <ShoppingBag className="h-4 w-4" />
                                                 </div>
-                                                <span className="font-bold text-sm text-slate-900 truncate max-w-[200px]">{order.customers?.name || "General Distribution"}</span>
+                                                <span className="font-bold text-sm text-slate-900 truncate max-w-[200px]">
+                                                    {order.customers?.name ||
+                                                        (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('authUser') || '{}').id === order.customer_id ? JSON.parse(localStorage.getItem('authUser') || '{}').full_name : null) ||
+                                                        order.customer_id || "Retail Partner"}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">
@@ -197,6 +214,6 @@ export default function OrdersPage() {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

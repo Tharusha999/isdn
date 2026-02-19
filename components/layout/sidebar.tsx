@@ -81,10 +81,10 @@ export function Sidebar() {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-lg font-bold tracking-tight leading-none text-foreground">
-                            {role === 'admin' ? adminName : 'IslandLink'}
+                            {role === 'admin' ? (adminName || 'Global Admin') : 'IslandLink'}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Global Admin'))}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Systems Executive'))}
                         </span>
                     </div>
                 </Link>

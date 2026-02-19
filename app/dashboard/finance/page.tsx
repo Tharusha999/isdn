@@ -423,7 +423,7 @@ export default function FinancePage() {
                                                                             </div>
 
                                                                             <div className="space-y-6">
-                                                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consignment Breakdown</p>
+                                                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order Breakdown</p>
                                                                                 <div className="space-y-4">
                                                                                     {details ? details.items.map((item, idx) => (
                                                                                         <div key={idx} className="flex justify-between items-center py-4 border-b border-black/5 last:border-0 group">

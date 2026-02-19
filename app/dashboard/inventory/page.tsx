@@ -139,7 +139,7 @@ export default function InventoryPage() {
                             </div>
                             <ArrowUpRight className="h-4 w-4 text-slate-300" />
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Consignment</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Stock</p>
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
                             {loading ? "..." : totalGlobalStock.toLocaleString()}
                         </h3>
@@ -233,7 +233,7 @@ export default function InventoryPage() {
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input
-                            placeholder="Locate Consignment..."
+                            placeholder="Locate Stock Item..."
                             className="pl-12 pr-6 h-14 rounded-2xl bg-white border-black/5 shadow-sm w-full lg:w-[300px] font-bold"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -242,11 +242,11 @@ export default function InventoryPage() {
                 </div>
             </div>
 
-            {/* Consignment Matrix */}
+            {/* Inventory Matrix */}
             <Card className="rounded-[2.5rem] border-black/5 shadow-2xl overflow-hidden bg-white">
                 <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Consignment Matrix</CardTitle>
+                        <CardTitle className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Inventory Matrix</CardTitle>
                         <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">Professional oversight for regional node stock distribution.</CardDescription>
                     </div>
                     {selectedRDC !== "All" && (
@@ -260,7 +260,7 @@ export default function InventoryPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-black/5">
-                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Consignment Identity</TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Stock Identity</TableHead>
                                     <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Department</TableHead>
                                     <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">
                                         {selectedRDC === "All" ? "Global Vol." : `${selectedRDC.split(" ")[0]} Vol.`}
@@ -282,7 +282,7 @@ export default function InventoryPage() {
                                 ) : filteredInventory.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="py-20 text-center">
-                                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No consignment records detected.</p>
+                                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No inventory records detected.</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : (

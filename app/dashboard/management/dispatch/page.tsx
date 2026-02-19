@@ -230,7 +230,7 @@ export default function DispatchManagementPage() {
 
                                 <div className="space-y-8">
                                     <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b pb-4 flex items-center gap-2">
-                                        <Navigation className="h-4 w-4" /> Consignment Timeline
+                                        <Navigation className="h-4 w-4" /> Mission Timeline
                                     </h5>
                                     <div className="space-y-4">
                                         {currentSelectedMission.tasks.map((task, idx) => (

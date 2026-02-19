@@ -30,7 +30,7 @@ export default function DashboardLayout({
             return "Management Dashboard";
         }
         if (pathname === "/dashboard/products") return "Products";
-        if (pathname === "/dashboard/orders") return "Orders Hub";
+        if (pathname === "/dashboard/orders") return "Order Registry";
         if (pathname === "/dashboard/inventory") return "Inventory";
         if (pathname === "/dashboard/logistics") return "RDC Management Portal";
         if (pathname === "/dashboard/finance") {
@@ -60,7 +60,8 @@ export default function DashboardLayout({
             try {
                 const user = JSON.parse(storedAuth);
                 setRole(user.role);
-                setUserName(user.full_name);
+                // Robust name fallback for top-right profile
+                setUserName(user.full_name || user.username || "Authorized User");
                 setIsLoaded(true);
             } catch (err) {
                 console.error("Auth sync error:", err);

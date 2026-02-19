@@ -70,17 +70,13 @@ INSERT INTO product_stock (product_id, rdc, quantity) VALUES
 ('P005', 'East (Trincomalee)', 400),
 ('P005', 'West (Colombo)', 2500);
 
--- Insert Customers
-INSERT INTO customers (id, name, email, phone) VALUES
-('CUST-001', 'Singer Mega - Colombo 03', 'contact@singermega.lk', '+94 11 234 5678'),
-('CUST-002', 'Softlogic Retail - Galle', 'galle@softlogic.lk', '+94 91 234 5678'),
-('CUST-003', 'Abans PLC - Kandy', 'kandy@abans.lk', '+94 81 234 5678');
+-- (Redundant customers data removed)
 
 -- Insert Orders
 INSERT INTO orders (id, customer_id, total, status, rdc, date, eta) VALUES
-('ORD-9921', 'CUST-001', 12500, 'In Transit', 'West (Colombo)', '2026-02-18', '2026-02-20'),
-('ORD-9922', 'CUST-002', 49000, 'Delivered', 'South (Galle)', '2026-02-15', '2026-02-17'),
-('ORD-9923', 'CUST-003', 245000, 'Pending', 'Central (Kandy)', '2026-02-18', '2026-02-19');
+('ORD-9921', 'CUST-USER-001', 12500, 'In Transit', 'West (Colombo)', '2026-02-18', '2026-02-20'),
+('ORD-9922', 'CUST-USER-002', 49000, 'Delivered', 'South (Galle)', '2026-02-15', '2026-02-17'),
+('ORD-9923', 'CUST-USER-003', 245000, 'Pending', 'Central (Kandy)', '2026-02-18', '2026-02-19');
 
 -- Insert Order Items
 INSERT INTO order_items (order_id, product_id, quantity, price) VALUES
