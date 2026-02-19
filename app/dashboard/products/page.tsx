@@ -587,7 +587,7 @@ export default function ProductsPage() {
                                                 onClick={() => addToCart(product.id)}
                                                 className="w-full h-14 rounded-2xl bg-white border border-black/5 text-slate-900 hover:bg-slate-900 hover:text-white transition-all font-black uppercase tracking-widest text-[9px]"
                                             >
-                                                Add to Consignment <Plus className="ml-2 h-4 w-4" />
+                                                Purchase Item <Plus className="ml-2 h-4 w-4" />
                                             </Button>
                                         )}
                                     </CardFooter>
@@ -674,7 +674,7 @@ export default function ProductsPage() {
                                     <div className="h-px bg-white/5" />
                                     <div className="flex justify-between items-center text-left">
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Total Consignment Value</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Total Order Value</span>
                                             <span className="text-4xl font-black italic tracking-tighter">Rs. {cartTotal.toLocaleString()}</span>
                                         </div>
                                     </div>
