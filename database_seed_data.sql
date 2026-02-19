@@ -1,6 +1,27 @@
 -- ISDN Database Seed Data
 -- Insert initial data for products, orders, transactions, staff members, and partners
 
+-- ============================================
+-- Insert User Accounts
+-- ============================================
+
+-- Admin Users (password: admin123 - should be hashed in production)
+INSERT INTO admin_users (id, username, password, email, full_name, phone, is_active) VALUES
+('ADMIN-001', 'admin', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'admin@isdn.lk', 'Admin User', '+94 11 123 4567', TRUE),
+('ADMIN-002', 'manager', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'manager@isdn.lk', 'Manager User', '+94 11 234 5678', TRUE);
+
+-- Customer Users (password: customer123 - should be hashed in production)
+INSERT INTO customer_users (id, username, password, email, full_name, phone, company_name, city, is_active) VALUES
+('CUST-USER-001', 'singer_mega', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'contact@singermega.lk', 'Singer Mega', '+94 11 234 5678', 'Singer Mega - Colombo', 'Colombo', TRUE),
+('CUST-USER-002', 'softlogic_galle', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'galle@softlogic.lk', 'Softlogic Retail', '+94 91 234 5678', 'Softlogic Retail - Galle', 'Galle', TRUE),
+('CUST-USER-003', 'abans_kandy', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'kandy@abans.lk', 'Abans PLC', '+94 81 234 5678', 'Abans PLC - Kandy', 'Kandy', TRUE);
+
+-- Driver Users (password: driver123 - should be hashed in production)
+INSERT INTO driver_users (id, username, password, email, full_name, phone, license_number, license_expiry, vehicle_assigned, rdc_hub, is_active) VALUES
+('DRIVER-001', 'john_driver', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'john@isdn.lk', 'John Driver', '+94 77 123 4567', 'DL-2022-001', '2027-03-01', 'IS-VAN-782', 'West (Colombo)', TRUE),
+('DRIVER-002', 'mike_driver', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'mike@isdn.lk', 'Mike Driver', '+94 77 345 6789', 'DL-2022-002', '2027-06-01', 'IS-VAN-783', 'South (Galle)', TRUE),
+('DRIVER-003', 'david_driver', '$2y$10$Z0TqJhzLWcVHQQsLqakxS.Lc.RfPqbA9lkH8P0KnzKl9jKl9jKl9jK', 'david@isdn.lk', 'David Driver', '+94 77 567 8901', 'DL-2022-003', '2027-08-01', 'IS-VAN-784', 'Central (Kandy)', TRUE);
+
 -- Insert Products
 INSERT INTO products (id, sku, name, category, price, image, description) VALUES
 ('P001', 'ISDN-FD-101', 'Premium Ceylon White Rice (5kg)', 'Packaged Food', 1250, 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400', 'High-quality basmati rice sourced from local farmers.'),
