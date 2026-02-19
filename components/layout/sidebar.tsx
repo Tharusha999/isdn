@@ -9,6 +9,7 @@ import {
     Navigation,
     Package,
     Settings,
+    ShieldCheck,
     ShoppingCart,
     Truck,
     Users,
@@ -30,6 +31,7 @@ const sidebarItems = [
     { title: "Customers", href: "/dashboard/management/customers", icon: Users },
     { title: "Dispatch", href: "/dashboard/management/dispatch", icon: Navigation },
     { title: "RDC Partners", href: "/dashboard/management/partners", icon: Truck },
+    { title: "Administrators", href: "/dashboard/management/admins", icon: ShieldCheck },
     { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

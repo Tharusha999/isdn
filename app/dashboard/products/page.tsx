@@ -19,6 +19,7 @@ import {
     AlertTriangle,
     X,
     Package,
+    Trash2,
 } from "lucide-react";
 import {
     Sheet,
@@ -28,7 +29,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems } from "@/public/src/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct } from "@/public/src/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
@@ -203,6 +204,22 @@ export default function ProductsPage() {
             alert("Network synchronization failed during checkout. Please try again.");
         } finally {
             setIsCheckingOut(false);
+        }
+    };
+
+    const handleDeleteProduct = async (id: string, name: string) => {
+        if (!confirm(`Are you sure you want to terminate the sync for "${name}"? This will permanently remove it from the global catalog.`)) return;
+
+        try {
+            setLoading(true);
+            await deleteProduct(id);
+            await loadProducts();
+            console.log(`Product ${id} removed.`);
+        } catch (err) {
+            console.error("Deletion failed:", err);
+            alert("Security lock prevented product removal. Please check permissions.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -513,10 +530,18 @@ export default function ProductsPage() {
                                                     {isOutOfStock ? "Out of Stock" : isLowStock ? "Limited" : "In Stock"}
                                                 </Badge>
                                             </div>
-                                            <div className="absolute top-4 right-4 z-10">
+                                            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
                                                 <button className="h-10 w-10 rounded-2xl bg-white/80 backdrop-blur-md text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-lg border border-white">
                                                     <Info className="h-5 w-5" />
                                                 </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleDeleteProduct(product.id, product.name)}
+                                                        className="h-10 w-10 rounded-2xl bg-white/80 backdrop-blur-md text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-lg border border-white"
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </CardHeader>

@@ -291,6 +291,43 @@ export const deleteCustomer = async (id) => {
   if (error) throw error;
 };
 
+// Admins
+export const fetchAdmins = async () => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .order("full_name", { ascending: true });
+  if (error) throw error;
+  return data;
+};
+
+export const createAdmin = async (adminData) => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .insert([adminData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateAdmin = async (id, adminData) => {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .update(adminData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteAdmin = async (id) => {
+  const { error } = await supabase
+    .from("admin_users")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+};
+
 // Transactions
 export const fetchTransactions = async () => {
   const { data, error } = await supabase
