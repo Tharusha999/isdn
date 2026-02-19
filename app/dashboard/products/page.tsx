@@ -156,7 +156,14 @@ export default function ProductsPage() {
 
             // Create real Order
             const orderId = `ORD-${Math.floor(Math.random() * 9000) + 1000}`;
-            const customerId = localStorage.getItem("customerId") || "CUST-001"; // Fallback to seed customer
+
+            // Get ID from authenticated session
+            const storedAuth = localStorage.getItem('authUser');
+            let customerId = "CUST-001"; // Fallback for demo
+            if (storedAuth) {
+                const user = JSON.parse(storedAuth);
+                customerId = user.id;
+            }
 
             const orderData = {
                 id: orderId,

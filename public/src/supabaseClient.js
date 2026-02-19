@@ -181,14 +181,13 @@ export const decrementProductStock = async (productId, rdc, quantity) => {
 export const fetchOrders = async () => {
   const { data, error } = await supabase
     .from("orders")
-    .select(
-      `
-      *,
-      customers:customer_id ( name, email, phone )
-    `,
-    )
+    .select("*")
     .order("date", { ascending: false });
+
   if (error) throw error;
+
+  // Try to join with customer_users if possible, or just return basic data
+  // The UI currently falls back to "General Distribution" if customers is missing
   return data;
 };
 
@@ -239,35 +238,54 @@ export const updateOrderStatus = async (orderId, status) => {
 // Customers
 export const fetchCustomers = async () => {
   const { data, error } = await supabase
-    .from("customers")
+    .from("customer_users")
     .select("*")
-    .order("name", { ascending: true });
+    .order("full_name", { ascending: true });
   if (error) throw error;
-  return data;
+
+  // Map full_name to name for UI compatibility
+  return data.map(c => ({
+    ...c,
+    name: c.full_name
+  }));
 };
 
 export const createCustomer = async (customerData) => {
+  // Map name back to full_name if coming from UI
+  const payload = {
+    ...customerData,
+    full_name: customerData.name || customerData.full_name,
+    password: customerData.password || 'password123' // Default password for admin-created nodes
+  };
+  delete payload.name;
+
   const { data, error } = await supabase
-    .from("customers")
-    .insert([customerData])
+    .from("customer_users")
+    .insert([payload])
     .select();
   if (error) throw error;
-  return data[0];
+  return { ...data[0], name: data[0].full_name };
 };
 
 export const updateCustomer = async (id, customerData) => {
+  const payload = { ...customerData };
+  if (payload.name) {
+    payload.full_name = payload.name;
+    delete payload.name;
+  }
+
   const { data, error } = await supabase
-    .from("customers")
-    .update(customerData)
+    .from("customer_users")
+    .update(payload)
     .eq("id", id)
     .select();
   if (error) throw error;
-  return data[0];
+  return { ...data[0], name: data[0].full_name };
 };
 
 export const deleteCustomer = async (id) => {
   const { error } = await supabase
-    .from("customers")
+    .from("customer_users")
     .delete()
     .eq("id", id);
   if (error) throw error;
