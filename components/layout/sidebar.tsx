@@ -14,7 +14,7 @@ import {
     Users,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 
@@ -35,31 +35,28 @@ const sidebarItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
     const [adminName, setAdminName] = useState("Alex Rivera");
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const storedRole = localStorage.getItem('userRole');
-        const storedAdminName = localStorage.getItem('isdn_admin_name');
-        const storedCustomerName = localStorage.getItem('isdn_customer_name');
-        const storedDriverName = localStorage.getItem('isdn_driver_name');
-
-        let initialName = "Alex Rivera";
-        if (storedRole === 'customer') initialName = storedCustomerName || "Guest Customer";
-        else if (storedRole === 'driver') initialName = storedDriverName || "Sam Perera";
-        else if (storedAdminName) initialName = storedAdminName;
-
-        const timer = setTimeout(() => {
-            setAdminName(initialName);
-            setRole(storedRole);
-            setIsLoaded(true);
-        }, 0);
-        return () => clearTimeout(timer);
+        const storedAuth = localStorage.getItem('authUser');
+        if (storedAuth) {
+            try {
+                const user = JSON.parse(storedAuth);
+                setAdminName(user.full_name);
+                setRole(user.role);
+                setIsLoaded(true);
+            } catch (e) {
+                console.error("Sidebar auth sync error:", e);
+            }
+        }
     }, []);
 
     const handleSignOut = () => {
-        localStorage.removeItem('userRole');
+        localStorage.clear();
+        router.push('/login');
     };
 
     const filteredItems = sidebarItems.filter(item => {

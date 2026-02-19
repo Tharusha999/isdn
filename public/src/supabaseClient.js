@@ -501,16 +501,17 @@ export const subscribeToMissions = (callback) => {
 // ============================================
 
 // Login for Admin Users
-export const loginAdmin = async (username, password) => {
+export const loginAdmin = async (username, password, adminKey) => {
   const { data, error } = await supabase
     .from("admin_users")
     .select("*")
     .eq("username", username)
     .eq("password", password)
+    .eq("admin_key", adminKey)
     .single();
 
   if (error || !data) {
-    throw new Error("Invalid username or password");
+    throw new Error("Invalid credentials or Admin Key");
   }
 
   // Update last login
@@ -519,7 +520,7 @@ export const loginAdmin = async (username, password) => {
     .update({ last_login: new Date().toISOString() })
     .eq("id", data.id);
 
-  return data;
+  return { ...data, role: "admin" };
 };
 
 // Login for Customer Users
@@ -535,13 +536,21 @@ export const loginCustomer = async (username, password) => {
     throw new Error("Invalid username or password");
   }
 
-  // Update last login
-  await supabase
-    .from("customer_users")
-    .update({ last_login: new Date().toISOString() })
-    .eq("id", data.id);
+  return { ...data, role: "customer" };
+};
 
-  return data;
+// Register Customer User
+export const registerCustomerUser = async (customerData) => {
+  const { data, error } = await supabase
+    .from("customer_users")
+    .insert([customerData])
+    .select();
+
+  if (error) {
+    if (error.code === '23505') throw new Error("Username or Email already exists");
+    throw error;
+  }
+  return { ...data[0], role: "customer" };
 };
 
 // Login for Driver Users
@@ -567,10 +576,10 @@ export const loginDriver = async (username, password) => {
 };
 
 // Universal Login - Returns user object with role
-export const loginUser = async (username, password) => {
+export const loginUser = async (username, password, adminKey) => {
   // Try admin login
   try {
-    const adminUser = await loginAdmin(username, password);
+    const adminUser = await loginAdmin(username, password, adminKey);
     return { ...adminUser, role: "admin" };
   } catch (e) {
     // Try customer login
