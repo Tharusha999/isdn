@@ -1,6 +1,17 @@
 -- ISDN Database Schema Migration
 -- This file contains all the SQL needed to set up the Supabase database for the ISDN system
 
+-- Drop existing ENUM types if they exist (safe to re-run)
+DROP TYPE IF EXISTS product_category CASCADE;
+DROP TYPE IF EXISTS rdc_type CASCADE;
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS transaction_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS staff_status CASCADE;
+DROP TYPE IF EXISTS mission_status CASCADE;
+DROP TYPE IF EXISTS partner_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
 -- Create ENUM types for status fields
 CREATE TYPE product_category AS ENUM ('Packaged Food', 'Beverages', 'Home Cleaning', 'Personal Care');
 CREATE TYPE rdc_type AS ENUM ('North (Jaffna)', 'South (Galle)', 'East (Trincomalee)', 'West (Colombo)', 'Central (Kandy)');

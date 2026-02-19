@@ -2,6 +2,13 @@
 -- Insert initial data for products, orders, transactions, staff members, and partners
 
 -- ============================================
+-- Clear existing data (safe to re-run)
+-- ============================================
+DELETE FROM admin_users WHERE TRUE;
+DELETE FROM customer_users WHERE TRUE;
+DELETE FROM driver_users WHERE TRUE;
+
+-- ============================================
 -- Insert User Accounts
 -- ============================================
 
