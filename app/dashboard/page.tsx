@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { MissionWithTasks, OrderWithDetails, Transaction, Product, MissionTask } from "@/lib/database-types";
-import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts } from "@/public/src/supabaseClient";
+import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks } from "@/public/src/supabaseClient";
 
 // Custom Globe Icon
 const Globe = ({ className }: { className?: string }) => (
@@ -38,6 +38,8 @@ export default function DashboardPage() {
     const [orders, setOrders] = useState<OrderWithDetails[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [partners, setPartners] = useState<any[]>([]);
+    const [allStocks, setAllStocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -47,17 +49,21 @@ export default function DashboardPage() {
         const loadDashboardData = async () => {
             try {
                 setLoading(true);
-                const [missionsData, ordersData, transactionsData, productsData] = await Promise.all([
+                const [missionsData, ordersData, transactionsData, productsData, partnersData, stocksData] = await Promise.all([
                     fetchMissions(),
                     fetchOrders(),
                     fetchTransactions(),
-                    fetchProducts()
+                    fetchProducts(),
+                    fetchPartners(),
+                    fetchAllProductStocks()
                 ]);
 
                 setMissions(missionsData as MissionWithTasks[] || []);
                 setOrders(ordersData as OrderWithDetails[] || []);
                 setTransactions(transactionsData as Transaction[] || []);
                 setProducts(productsData as Product[] || []);
+                setPartners(partnersData || []);
+                setAllStocks(stocksData || []);
 
                 // Profile Name resolution
                 let storedName = null;
@@ -296,6 +302,19 @@ export default function DashboardPage() {
     const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
     const activeFleet = missions.filter(m => m.status === 'In Transit').length;
 
+    // Dynamic Compliance Score
+    const complianceScore = partners.length > 0
+        ? (partners.reduce((sum, p) => sum + (p.compliance_score || 0), 0) / partners.length).toFixed(1)
+        : "98.4";
+
+    // Aggregated Stock Data for Inventory Cockpit
+    const inventoryData = products.slice(0, 5).map(product => {
+        const totalStock = allStocks
+            .filter(s => s.product_id === product.id)
+            .reduce((sum, s) => sum + (s.quantity || 0), 0);
+        return { ...product, stock: totalStock };
+    });
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-16">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -318,7 +337,7 @@ export default function DashboardPage() {
                     { label: "Pulse Revenue", val: `Rs. ${totalRev.toLocaleString()}`, color: "bg-emerald-500/10", icon: DollarSign, iconColor: "text-emerald-600", sub: "+12.5% vs LW" },
                     { label: "Active Units", val: `${activeFleet} Units`, color: "bg-blue-500/10", icon: Truck, iconColor: "text-blue-600", sub: "Fleet Nominal" },
                     { label: "Active Orders", val: `${activeOrders} Pending`, color: "bg-amber-500/10", icon: Package, iconColor: "text-amber-600", sub: "Requires Sync" },
-                    { label: "Compliance", val: "98.4%", color: "bg-purple-500/10", icon: ShieldCheck, iconColor: "text-purple-600", sub: "High Grade" }
+                    { label: "Compliance", val: `${complianceScore}%`, color: "bg-purple-500/10", icon: ShieldCheck, iconColor: "text-purple-600", sub: "High Grade" }
                 ].map((stat) => (
                     <Card key={stat.label} className="border-none shadow-sm bg-white/50 backdrop-blur-sm group hover:bg-black/5 transition-all duration-300">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -343,10 +362,10 @@ export default function DashboardPage() {
                     <CardContent className="p-10 h-[350px] flex items-center justify-center relative">
                         <div className="absolute inset-0 bg-[radial-gradient(#00000005_1px,transparent_1px)] [background-size:32px_32px]" />
                         <div className="relative flex gap-12 items-end h-40">
-                            {products.slice(0, 5).map((p, i) => (
+                            {inventoryData.map((p, i) => (
                                 <div key={i} className="flex flex-col items-center gap-4">
                                     <div className="w-10 bg-slate-50 rounded-full relative flex items-end p-1 border border-black/[0.02]" style={{ height: '140px' }}>
-                                        <div className={`w-full rounded-full transition-all duration-1000 ${(p.stock ?? 0) < 50 ? 'bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-emerald-500'}`} style={{ height: `${Math.min(p.stock ?? 0, 100)}%` }} />
+                                        <div className={`w-full rounded-full transition-all duration-1000 ${(p.stock ?? 0) < 50 ? 'bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-emerald-500'}`} style={{ height: `${Math.min((p.stock ?? 0) / 10, 100)}%` }} />
                                     </div>
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest w-12 text-center truncate">{p.name}</span>
                                 </div>

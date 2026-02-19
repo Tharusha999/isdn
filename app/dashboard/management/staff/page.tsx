@@ -14,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { fetchStaff, createStaffMember } from "@/public/src/supabaseClient";
+import { fetchStaff, createStaffMember, updateStaffMember, deleteStaffMember } from "@/public/src/supabaseClient";
 import type { StaffMember } from "@/app/dashboard/staff/data";
 
 export default function StaffPage() {
@@ -22,8 +22,9 @@ export default function StaffPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
-    const [editIndex, setEditIndex] = useState<number | null>(null);
+    const [editMember, setEditMember] = useState<StaffMember | null>(null);
     const [search, setSearch] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState<{
         name: string;
         role: string;
@@ -60,12 +61,13 @@ export default function StaffPage() {
         if (!form.name || !form.role || !form.email || !form.phone) return;
 
         try {
-            if (editIndex !== null) {
-                // For now, only handle creation via Supabase helper as requested
-                // Update logic would follow similar pattern
-                const updatedList = [...staffList];
-                updatedList[editIndex] = { ...updatedList[editIndex], ...form };
-                setStaffList(updatedList);
+            setIsSaving(true);
+            if (editMember) {
+                // Update existing member in Supabase
+                const staffData = {
+                    ...form,
+                };
+                await updateStaffMember(editMember.id, staffData);
             } else {
                 // Add new member to Supabase
                 const newId = `STF-${Math.floor(Math.random() * 9000) + 1000}`;
@@ -73,37 +75,52 @@ export default function StaffPage() {
                     id: newId,
                     ...form,
                     join_date: new Date().toISOString().split('T')[0],
-                    department: "General", // Default for now
-                    location: "Main Branch", // Default for now
+                    department: "General",
+                    location: "Main Branch",
                 };
 
                 await createStaffMember(staffData);
-                await loadStaff(); // Reload to get full details including performance/activity
             }
 
+            await loadStaff();
             setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
-            setEditIndex(null);
+            setEditMember(null);
             setShowModal(false);
         } catch (err) {
             console.error("Error saving staff member:", err);
             alert("Failed to save staff member. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleEdit = (member: StaffMember, index: number) => {
-        setForm(member);
-        setEditIndex(index);
+    const handleEdit = (member: StaffMember) => {
+        setForm({
+            name: member.name,
+            role: member.role,
+            status: member.status,
+            email: member.email,
+            phone: member.phone,
+        });
+        setEditMember(member);
         setShowModal(true);
     };
 
     const openAddModal = () => {
         setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
-        setEditIndex(null);
+        setEditMember(null);
         setShowModal(true);
     };
 
-    const handleRemove = (index: number) => {
-        setStaffList(staffList.filter((_, i) => i !== index));
+    const handleRemove = async (id: string) => {
+        if (!confirm("Are you sure you want to terminate this staff sync?")) return;
+        try {
+            await deleteStaffMember(id);
+            await loadStaff();
+        } catch (err) {
+            console.error("Error deleting staff member:", err);
+            alert("Failed to delete staff member.");
+        }
     };
 
     const filtered = staffList.filter(
@@ -219,8 +236,8 @@ export default function StaffPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                                        <DropdownMenuItem onClick={() => handleEdit(member, index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Terminate Sync</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleEdit(member)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleRemove(member.id)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Terminate Sync</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
@@ -245,10 +262,10 @@ export default function StaffPage() {
                         </button>
 
                         <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-1">
-                            {editIndex !== null ? 'Edit Staff Details' : 'Add New Staff'}
+                            {editMember ? 'Edit Staff Details' : 'Add New Staff'}
                         </h3>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
-                            {editIndex !== null ? 'Update the member information below' : 'Fill in the details to add a new team member'}
+                            {editMember ? 'Update the member information below' : 'Fill in the details to add a new team member'}
                         </p>
 
                         <div className="space-y-5">
@@ -317,7 +334,7 @@ export default function StaffPage() {
                                 disabled={!form.name || !form.role || !form.email || !form.phone}
                                 className="flex-1 h-12 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-xl"
                             >
-                                {editIndex !== null ? 'Update Member' : 'Add Member'}
+                                {editMember ? 'Update Member' : 'Add Member'}
                             </Button>
                         </div>
                     </div>

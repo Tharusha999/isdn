@@ -28,7 +28,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct } from "@/public/src/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems } from "@/public/src/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
@@ -56,6 +56,7 @@ export default function ProductsPage() {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
+    const [allStocks, setAllStocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -75,8 +76,12 @@ export default function ProductsPage() {
     const loadProducts = async () => {
         try {
             setLoading(true);
-            const data = await fetchProducts();
-            setProducts(data || []);
+            const [productsData, stocksData] = await Promise.all([
+                fetchProducts(),
+                fetchAllProductStocks()
+            ]);
+            setProducts(productsData || []);
+            setAllStocks(stocksData || []);
             setError(null);
         } catch (err: unknown) {
             console.error("Error fetching products:", err);
@@ -102,7 +107,7 @@ export default function ProductsPage() {
         setSaveError(null);
         try {
             const newId = `P${Math.floor(Math.random() * 90000) + 10000}`;
-            await createProduct({
+            const productData = {
                 id: newId,
                 sku: form.sku.toUpperCase(),
                 name: form.name,
@@ -111,7 +116,15 @@ export default function ProductsPage() {
                 stock: form.stock ? parseInt(form.stock) : 0,
                 description: form.description || null,
                 image: form.image || null,
-            });
+            };
+
+            await createProduct(productData);
+
+            // Also Initialize stock in West (Colombo) RDC node for tracking
+            if (form.stock && parseInt(form.stock) > 0) {
+                await createProductStock(newId, 'West (Colombo)', parseInt(form.stock));
+            }
+
             await loadProducts();
             setForm(EMPTY_FORM);
             setShowAddModal(false);
@@ -137,13 +150,52 @@ export default function ProductsPage() {
         }
     };
 
-    const handleCheckout = () => {
-        setIsCheckingOut(true);
-        setTimeout(() => {
-            setIsCheckingOut(false);
+    const handleCheckout = async () => {
+        try {
+            setIsCheckingOut(true);
+
+            // Create real Order
+            const orderId = `ORD-${Math.floor(Math.random() * 9000) + 1000}`;
+            const customerId = localStorage.getItem("customerId") || "CUST-001"; // Fallback to seed customer
+
+            const orderData = {
+                id: orderId,
+                customer_id: customerId,
+                total: cartTotal,
+                status: 'Pending',
+                rdc: 'West (Colombo)', // Default for frontend orders
+                date: new Date().toISOString().split('T')[0],
+                eta: estimatedDelivery.toISOString().split('T')[0]
+            };
+
+            const itemsData = Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return {
+                    product_id: id,
+                    quantity: qty,
+                    price: product?.price || 0
+                };
+            });
+
+            const transactionData = {
+                id: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
+                customer: localStorage.getItem("profileName") || "Retail Partner",
+                amount: cartTotal,
+                date: new Date().toISOString().split('T')[0],
+                status: 'PAID', // Assuming instant payment for demo
+                method: 'Online Banking'
+            };
+
+            await createOrderWithItems(orderData, itemsData, transactionData);
+
             setShowSuccess(true);
             setCart({});
-        }, 1500);
+        } catch (err) {
+            console.error("Checkout failed:", err);
+            alert("Network synchronization failed during checkout. Please try again.");
+        } finally {
+            setIsCheckingOut(false);
+        }
     };
 
     const filteredProducts = products.filter(p => {

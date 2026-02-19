@@ -50,6 +50,25 @@ export const createProduct = async (productData) => {
   return data[0];
 };
 
+export const createProductStock = async (productId, rdc, quantity) => {
+  const { data, error } = await supabase
+    .from("product_stock")
+    .insert([{ product_id: productId, rdc, quantity }])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateProduct = async (id, productData) => {
+  const { data, error } = await supabase
+    .from("products")
+    .update(productData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
 export const deleteProduct = async (id) => {
   const { error } = await supabase
     .from("products")
@@ -79,6 +98,86 @@ export const updateProductStock = async (productId, rdc, quantity) => {
     .select();
   if (error) throw error;
   return data;
+};
+
+export const fetchAllProductStocks = async () => {
+  const { data, error } = await supabase
+    .from("product_stock")
+    .select("*");
+  if (error) throw error;
+  return data;
+};
+
+export const createOrderWithItems = async (orderData, items, transactionData) => {
+  // Step 1: Create the Order
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert([orderData])
+    .select();
+  if (orderError) throw orderError;
+
+  // Step 2: Create Order Items
+  const itemsWithOrderId = items.map(item => ({ ...item, order_id: order[0].id }));
+  const { error: itemsError } = await supabase
+    .from("order_items")
+    .insert(itemsWithOrderId);
+  if (itemsError) throw itemsError;
+
+  // Step 3: Create Transaction (if provided)
+  if (transactionData) {
+    const { error: transError } = await supabase
+      .from("transactions")
+      .insert([{ ...transactionData, order_id: order[0].id }]);
+    if (transError) throw transError;
+  }
+
+  // Step 4: Decrement Stock for each item
+  for (const item of items) {
+    await decrementProductStock(item.product_id, orderData.rdc, item.quantity);
+  }
+
+  return order[0];
+};
+
+export const decrementProductStock = async (productId, rdc, quantity) => {
+  // 1. Decrement from RDC node
+  // First, get current stock for that RDC
+  const { data: currentStock, error: fetchError } = await supabase
+    .from("product_stock")
+    .select("quantity")
+    .eq("product_id", productId)
+    .eq("rdc", rdc)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const newRdcQuantity = (currentStock?.quantity || 0) - quantity;
+
+  const { error: rdcError } = await supabase
+    .from("product_stock")
+    .update({ quantity: Math.max(0, newRdcQuantity) })
+    .eq("product_id", productId)
+    .eq("rdc", rdc);
+
+  if (rdcError) throw rdcError;
+
+  // 2. Decrement from master product table
+  const { data: product, error: pFetchError } = await supabase
+    .from("products")
+    .select("stock")
+    .eq("id", productId)
+    .single();
+
+  if (pFetchError) throw pFetchError;
+
+  const newTotalStock = (product?.stock || 0) - quantity;
+
+  const { error: pError } = await supabase
+    .from("products")
+    .update({ stock: Math.max(0, newTotalStock) })
+    .eq("id", productId);
+
+  if (pError) throw pError;
 };
 
 // Orders
@@ -138,6 +237,43 @@ export const updateOrderStatus = async (orderId, status) => {
     .select();
   if (error) throw error;
   return data[0];
+};
+
+// Customers
+export const fetchCustomers = async () => {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+};
+
+export const createCustomer = async (customerData) => {
+  const { data, error } = await supabase
+    .from("customers")
+    .insert([customerData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateCustomer = async (id, customerData) => {
+  const { data, error } = await supabase
+    .from("customers")
+    .update(customerData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteCustomer = async (id) => {
+  const { error } = await supabase
+    .from("customers")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 };
 
 // Transactions
@@ -227,6 +363,24 @@ export const updateStaffStatus = async (staffId, status) => {
     .select();
   if (error) throw error;
   return data[0];
+};
+
+export const updateStaffMember = async (id, staffData) => {
+  const { data, error } = await supabase
+    .from("staff")
+    .update(staffData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteStaffMember = async (id) => {
+  const { error } = await supabase
+    .from("staff")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 };
 
 // RDC Partners

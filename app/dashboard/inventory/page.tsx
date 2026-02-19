@@ -27,16 +27,18 @@ import {
     Zap,
     Loader2
 } from "lucide-react";
-import { fetchProducts } from "@/public/src/supabaseClient";
+import { fetchProducts, fetchAllProductStocks, updateProduct } from "@/public/src/supabaseClient";
 import type { Product } from "@/lib/database-types";
+import { AlertCircle, RotateCcw } from "lucide-react";
 
-const RDCS = ["West (Colombo)", "Central (Kandy)", "South (Galle)", "North (Jaffna)", "East (Batticaloa)"];
+const RDCS = ["West (Colombo)", "Central (Kandy)", "South (Galle)", "North (Jaffna)", "East (Trincomalee)"];
 
 export default function InventoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedRDC, setSelectedRDC] = useState<string | "All">("All");
     const [isSyncing, setIsSyncing] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
+    const [allStocks, setAllStocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,8 +49,12 @@ export default function InventoryPage() {
     const loadData = async () => {
         try {
             if (!isSyncing) setLoading(true);
-            const data = await fetchProducts();
-            setProducts(data || []);
+            const [productsData, stocksData] = await Promise.all([
+                fetchProducts(),
+                fetchAllProductStocks()
+            ]);
+            setProducts(productsData || []);
+            setAllStocks(stocksData || []);
             setError(null);
         } catch (err: unknown) {
             console.error("Error fetching inventory:", err);
@@ -59,19 +65,67 @@ export default function InventoryPage() {
         }
     };
 
-    const handleSync = () => {
+    const handleSync = async () => {
         setIsSyncing(true);
-        loadData();
+        await loadData();
     };
 
-    const filteredInventory = products.filter(p => {
+    const resyncLedger = async () => {
+        try {
+            setIsSyncing(true);
+            const [productsData, stocksData] = await Promise.all([
+                fetchProducts(),
+                fetchAllProductStocks()
+            ]);
+
+            for (const product of (productsData || [])) {
+                const totalStock = (stocksData || [])
+                    .filter(s => s.product_id === product.id)
+                    .reduce((acc, s) => acc + (s.quantity || 0), 0);
+
+                if (product.stock !== totalStock) {
+                    console.log(`Resyncing ${product.name}: ${product.stock} -> ${totalStock}`);
+                    await updateProduct(product.id, { stock: totalStock });
+                }
+            }
+            await loadData();
+            alert("Ledger synchronisation complete. Master records aligned with regional nodes.");
+        } catch (err) {
+            console.error("Resync failed:", err);
+            alert("Failed to resync ledger.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const inventoryWithStock = products.map(p => {
+        const stocksForProduct = allStocks.filter(s => s.product_id === p.id);
+        const totalStock = stocksForProduct.reduce((acc, s) => acc + (s.quantity || 0), 0);
+
+        // Per-RDC stock mapping - using split(0) to match RDCS component logic
+        const rdcStocks: Record<string, number> = {};
+        stocksForProduct.forEach(s => {
+            const key = s.rdc.split(" ")[0];
+            rdcStocks[key] = (rdcStocks[key] || 0) + (s.quantity || 0);
+        });
+
+        return { ...p, totalStock, rdcStocks };
+    });
+
+    const filteredInventory = inventoryWithStock.filter(p => {
         const matchesSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
             (p.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+        if (selectedRDC !== "All") {
+            const rdcKey = selectedRDC.split(" ")[0];
+            return matchesSearch && (p.rdcStocks[rdcKey] !== undefined);
+        }
+
         return matchesSearch;
     });
 
-    const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0);
-    const lowStockCount = products.filter(p => (p.stock || 0) < 500).length;
+    const totalGlobalStock = inventoryWithStock.reduce((acc, p) => acc + p.totalStock, 0);
+    const lowStockCount = inventoryWithStock.filter(p => p.totalStock < 500).length;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -87,22 +141,31 @@ export default function InventoryPage() {
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Consignment</p>
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
-                            {loading ? "..." : totalStock.toLocaleString()}
+                            {loading ? "..." : totalGlobalStock.toLocaleString()}
                         </h3>
                     </CardContent>
                 </Card>
 
-                <Card className="rounded-[2rem] border-black/5 shadow-sm bg-white/50 backdrop-blur-sm">
+                <Card className="rounded-[2.5rem] border-black/5 shadow-2xl bg-white overflow-hidden group hover:scale-[1.02] transition-all">
                     <CardContent className="p-8">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="h-12 w-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-600">
-                                <ShieldAlert className="h-6 w-6" />
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+                                <AlertCircle className="h-6 w-6" />
                             </div>
-                            <span className="text-[10px] font-black text-rose-600">CRITICAL</span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={resyncLedger}
+                                disabled={isSyncing}
+                                className="h-8 rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-amber-100 text-amber-600 border border-amber-100"
+                            >
+                                <RotateCcw className={`mr-1.5 h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                                Resync Ledger
+                            </Button>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Low Stock Alerts</p>
-                        <h3 className="text-3xl font-black italic tracking-tighter text-rose-600">
-                            {loading ? "..." : lowStockCount}
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Stock Discrepancies</p>
+                        <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">
+                            {loading ? "..." : lowStockCount} Nodes
                         </h3>
                     </CardContent>
                 </Card>
@@ -197,11 +260,13 @@ export default function InventoryPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-transparent border-black/5">
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Consignment Identity</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Department</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Global Vol.</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Integrity</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Consignment Identity</TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Department</TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">
+                                        {selectedRDC === "All" ? "Global Vol." : `${selectedRDC.split(" ")[0]} Vol.`}
+                                    </TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Integrity</TableHead>
+                                    <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -221,55 +286,61 @@ export default function InventoryPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredInventory.map(product => (
-                                        <TableRow key={product.id} className="hover:bg-slate-50/30 transition-colors group border-black/5">
-                                            <TableCell className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                                        <img src={product.image || ""} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                    filteredInventory.map(product => {
+                                        const displayStock = selectedRDC === "All"
+                                            ? product.totalStock
+                                            : product.rdcStocks[selectedRDC.split(" ")[0]] || 0;
+
+                                        return (
+                                            <TableRow key={product.id} className="hover:bg-slate-50/30 transition-colors group border-black/5">
+                                                <TableCell className="px-8 py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                                            <img src={product.image || ""} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
+                                                            <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku || product.id}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
-                                                        <p className="text-[10px] font-black text-primary font-mono opacity-60 uppercase">{product.sku || product.id}</p>
+                                                </TableCell>
+                                                <TableCell className="px-8 py-6">
+                                                    <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3 py-1 bg-white text-slate-600">
+                                                        {product.category}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="px-8 py-6">
+                                                    <div className="space-y-1.5">
+                                                        <p className="text-lg font-black tabular-nums tracking-tighter italic text-slate-900 leading-none">
+                                                            {displayStock.toLocaleString()}
+                                                        </p>
+                                                        <div className="h-1 w-24 bg-black/5 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full ${displayStock < 500 ? "bg-rose-500" : "bg-emerald-500"}`}
+                                                                style={{ width: `${Math.min(100, (displayStock / 2000) * 100)}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-8 py-6">
-                                                <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-black/10 px-3 py-1 bg-white text-slate-600">
-                                                    {product.category}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-8 py-6">
-                                                <div className="space-y-1.5">
-                                                    <p className="text-lg font-black tabular-nums tracking-tighter italic text-slate-900 leading-none">
-                                                        {(product.stock || 0).toLocaleString()}
-                                                    </p>
-                                                    <div className="h-1 w-24 bg-black/5 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${(product.stock || 0) < 500 ? "bg-rose-500" : "bg-emerald-500"}`}
-                                                            style={{ width: `${Math.min(100, ((product.stock || 0) / 2000) * 100)}%` }}
-                                                        />
+                                                </TableCell>
+                                                <TableCell className="px-8 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sync Active</span>
                                                     </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-8 py-6">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sync Active</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-8 py-6 text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5 transition-all text-slate-600"
-                                                >
-                                                    <ArrowRightLeft className="mr-2 h-4 w-4 opacity-40" />
-                                                    Transfer
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                                <TableCell className="px-8 py-6 text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black/5 transition-all text-slate-600"
+                                                    >
+                                                        <ArrowRightLeft className="mr-2 h-4 w-4 opacity-40" />
+                                                        Transfer
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>
