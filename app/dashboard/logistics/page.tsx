@@ -338,8 +338,7 @@ export default function LogisticsPage() {
                         {queue.map(truck => (
                             <div
                                 key={truck.id}
-                                className="p-6 rounded-[2.5rem] bg-slate-50 border border-black/[0.03] hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1 transition-all group cursor-pointer relative overflow-hidden"
-                                onClick={() => router.push('/dashboard/logistics/track')}
+                                className="p-6 rounded-[2.5rem] bg-slate-50 border border-black/[0.03] hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1 transition-all group relative overflow-hidden"
                             >
                                 {truck.status === "IN ROUTE" && (
                                     <div className="absolute top-0 right-0 p-4">

@@ -13,13 +13,14 @@ import {
     ShieldCheck,
     Navigation,
     Clock,
-    Loader2
+    Loader2,
+    Check
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { MissionWithTasks, OrderWithDetails, Transaction, Product, MissionTask } from "@/lib/database-types";
-import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks } from "@/public/src/supabaseClient";
+import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks, fetchMissionsByDriver, updateMissionTask, updateMissionProgress, updateMissionStatus } from "@/public/src/supabaseClient";
 
 // Custom Globe Icon
 const Globe = ({ className }: { className?: string }) => (
@@ -45,42 +46,67 @@ export default function DashboardPage() {
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
         setRole(storedRole);
-
-        const loadDashboardData = async () => {
-            try {
-                setLoading(true);
-                const [missionsData, ordersData, transactionsData, productsData, partnersData, stocksData] = await Promise.all([
-                    fetchMissions(),
-                    fetchOrders(),
-                    fetchTransactions(),
-                    fetchProducts(),
-                    fetchPartners(),
-                    fetchAllProductStocks()
-                ]);
-
-                setMissions(missionsData as MissionWithTasks[] || []);
-                setOrders(ordersData as OrderWithDetails[] || []);
-                setTransactions(transactionsData as Transaction[] || []);
-                setProducts(productsData as Product[] || []);
-                setPartners(partnersData || []);
-                setAllStocks(stocksData || []);
-
-                // Profile Name resolution
-                let storedName = null;
-                if (storedRole === 'admin') storedName = localStorage.getItem('isdn_admin_name');
-                else if (storedRole === 'customer') storedName = localStorage.getItem('isdn_customer_name');
-                else if (storedRole === 'driver') storedName = localStorage.getItem('isdn_driver_name');
-
-                setProfileName(storedName || (storedRole === 'admin' ? "Global Admin" : storedRole === 'driver' ? "System Driver" : "Partner Store"));
-            } catch (err) {
-                console.error("Dashboard data load error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadDashboardData();
     }, []);
+
+    const loadDashboardData = async () => {
+        try {
+            setLoading(true);
+            const storedRole = localStorage.getItem('userRole');
+            const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
+            const userId = authUser.id;
+
+            const [missionsData, ordersData, transactionsData, productsData, partnersData, stocksData] = await Promise.all([
+                storedRole === 'driver' ? fetchMissionsByDriver(userId) : fetchMissions(),
+                fetchOrders(),
+                fetchTransactions(),
+                fetchProducts(),
+                fetchPartners(),
+                fetchAllProductStocks()
+            ]);
+
+            setMissions(missionsData as MissionWithTasks[] || []);
+            setOrders(ordersData as OrderWithDetails[] || []);
+            setTransactions(transactionsData as Transaction[] || []);
+            setProducts(productsData as Product[] || []);
+            setPartners(partnersData || []);
+            setAllStocks(stocksData || []);
+
+            // Profile Name resolution
+            setProfileName(authUser.full_name || (storedRole === 'admin' ? "Global Admin" : storedRole === 'driver' ? "System Driver" : "Partner Store"));
+        } catch (err) {
+            console.error("Dashboard data load error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleTask = async (taskId: number, missionId: string, currentDone: boolean) => {
+        try {
+            await updateMissionTask(taskId, { done: !currentDone });
+
+            // Recalculate mission progress
+            const mission = missions.find(m => m.id === missionId);
+            if (mission) {
+                const totalTasks = mission.mission_tasks?.length || 0;
+                const doneTasks = (mission.mission_tasks?.filter((t: any) => t.id === taskId ? !currentDone : t.done).length || 0);
+                const newProgress = Math.round((doneTasks / totalTasks) * 100);
+
+                await updateMissionProgress(missionId, newProgress);
+
+                if (newProgress === 100) {
+                    await updateMissionStatus(missionId, 'Completed');
+                }
+            }
+
+            // Refresh data
+            const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
+            const missionsData = await fetchMissionsByDriver(authUser.id);
+            setMissions(missionsData as MissionWithTasks[] || []);
+        } catch (err) {
+            console.error("Task toggle error:", err);
+        }
+    };
 
     if (loading) {
         return (
@@ -226,9 +252,9 @@ export default function DashboardPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     {[
                         { label: 'Route Progress', value: `${activeRoute.progress}%`, sub: 'Estimated ETA 45m', icon: Navigation, color: 'text-blue-600', bg: 'bg-blue-600/10' },
-                        { label: 'Fuel Matrix', value: activeRoute.fuel_level || activeRoute.telemetry?.fuel || '85%', sub: 'Level Optimal', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-600/10' },
-                        { label: 'Cold-Chain', value: activeRoute.temperature || activeRoute.telemetry?.temp || '4°C', sub: 'Critical Monitor', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-600/10' },
-                        { label: 'Active Weight', value: activeRoute.load_weight || activeRoute.telemetry?.load || '1,240kg', sub: 'Load Balanced', icon: Package, color: 'text-purple-600', bg: 'bg-purple-600/10' },
+                        { label: 'Fuel Matrix', value: activeRoute.telemetry?.fuel || activeRoute.fuel_level || '85%', sub: 'Level Optimal', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-600/10' },
+                        { label: 'Cold-Chain', value: activeRoute.telemetry?.temp || activeRoute.temperature || '4°C', sub: 'Critical Monitor', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-600/10' },
+                        { label: 'Active Weight', value: activeRoute.telemetry?.load || activeRoute.load_weight || '1,240kg', sub: 'Load Balanced', icon: Package, color: 'text-purple-600', bg: 'bg-purple-600/10' },
                     ].map((stat, i) => (
                         <Card key={i} className="border-none shadow-sm bg-white/50 group hover:bg-white transition-colors">
                             <CardContent className="p-4 flex items-center gap-4">
@@ -256,15 +282,18 @@ export default function DashboardPage() {
                         <CardContent className="p-6">
                             <div className="space-y-6 relative ml-2">
                                 <div className="absolute top-0 bottom-0 left-0 w-px bg-slate-200 ml-[11px]" />
-                                {(activeRoute.mission_tasks || []).map((task: MissionTask, i: number) => (
+                                {(activeRoute.mission_tasks || []).map((task: any, i: number) => (
                                     <div key={i} className="relative flex items-center gap-6 group">
-                                        <div className={`h-6 w-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center relative z-10 transition-colors ${task.completed || task.done ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                                            {(task.completed || task.done) && <ArrowRight className="h-2 w-2 text-white" />}
-                                        </div>
+                                        <button
+                                            onClick={() => handleToggleTask(task.id, activeRoute.id, task.done)}
+                                            className={`h-6 w-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center relative z-10 transition-all ${task.done ? 'bg-emerald-500' : 'bg-slate-200 hover:bg-slate-300'}`}
+                                        >
+                                            {task.done && <Check className="h-3 w-3 text-white" />}
+                                        </button>
                                         <div className="flex-1 min-w-0 bg-white p-3 rounded-xl border border-transparent group-hover:border-primary/20 transition-all">
                                             <div className="flex items-center justify-between font-black uppercase tracking-tight text-[10px]">
-                                                <h4 className={task.completed || task.done ? 'text-slate-400 line-through' : 'text-slate-900'}>{task.task_label || task.label}</h4>
-                                                <span className="text-muted-foreground">{task.task_time || task.time}</span>
+                                                <h4 className={task.done ? 'text-slate-400 line-through' : 'text-slate-900'}>{task.task_label}</h4>
+                                                <span className="text-muted-foreground">{task.task_time}</span>
                                             </div>
                                             <p className="text-[9px] text-muted-foreground font-medium mt-0.5">{task.location}</p>
                                         </div>
@@ -274,23 +303,25 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-xl bg-slate-900 text-white rounded-[2rem] p-8 flex flex-col justify-between group">
+                    <Card className="border-none shadow-xl bg-slate-900 text-white rounded-[1.5rem] p-8 flex flex-col justify-between group">
                         <div className="space-y-8">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Current Vector</p>
-                                <div className="text-2xl font-black tracking-tighter uppercase italic text-white line-clamp-2 leading-tight">{activeRoute.currentLocation}</div>
+                                <div className="text-2xl font-black tracking-tighter uppercase italic text-white line-clamp-2 leading-tight">{activeRoute.current_location || 'Awaiting Sync'}</div>
                             </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between text-[10px] font-black uppercase">
                                     <span className="text-slate-400">Next Node</span>
-                                    <span className="text-emerald-400">Sector West-09</span>
+                                    <span className="text-emerald-400">Sector {activeRoute.id.slice(-4)}</span>
                                 </div>
                                 <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-emerald-500 w-[72%] rounded-full animate-pulse" />
+                                    <div className="h-full bg-emerald-500 rounded-full animate-pulse transition-all duration-1000" style={{ width: `${activeRoute.progress}%` }} />
                                 </div>
                             </div>
                         </div>
-                        <Button className="w-full mt-8 h-14 rounded-xl bg-white text-slate-900 font-black uppercase tracking-widest text-[10px] hover:bg-emerald-500 hover:text-white transition-all">Update Status</Button>
+                        <Button className="w-full mt-8 h-14 rounded-xl bg-white text-slate-900 font-black uppercase tracking-widest text-[10px] hover:bg-emerald-500 hover:text-white transition-all">
+                            Signal Dispatch
+                        </Button>
                     </Card>
                 </div>
             </div>

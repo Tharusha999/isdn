@@ -25,10 +25,10 @@ import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionT
 
 export default function DispatchManagementPage() {
     const router = useRouter();
-    const [missions, setMissions] = useState<any[]>([]);
+    const [missions, setMissions] = useState<Mission[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedMission, setSelectedMission] = useState<any | null>(null);
-    const [newTask, setNewTask] = useState<any>({ time: "", label: "", location: "", done: false });
+    const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+    const [newTask, setNewTask] = useState<{ time: string; label: string; location: string; done: boolean }>({ time: "", label: "", location: "", done: false });
     const [role, setRole] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -54,13 +54,13 @@ export default function DispatchManagementPage() {
                 currentLocation: m.destination || "N/A",
                 kmTraversed: m.km_traversed || "0km",
                 telemetry: m.telemetry || { fuel: "100%", temp: "24°C", load: "Optimal" }
-            }));
+            })) as Mission[];
 
             setMissions(mappedMissions);
 
             // If we have a selected mission, update it from the new list
             if (selectedMission) {
-                const refreshed = mappedMissions.find(m => m.id === selectedMission.id);
+                const refreshed = mappedMissions.find((m: Mission) => m.id === selectedMission.id);
                 if (refreshed) setSelectedMission(refreshed);
             }
         } catch (err) {
@@ -85,12 +85,12 @@ export default function DispatchManagementPage() {
 
     // Find the latest version of the selected mission from the main missions list
     const currentSelectedMission = selectedMission
-        ? missions.find(m => m.id === selectedMission.id) || null
+        ? missions.find((m: Mission) => m.id === selectedMission.id) || null
         : null;
 
     const handleUpdateTask = async (missionId: string, taskIndex: number, done: boolean) => {
-        const mission = missions.find(m => m.id === missionId);
-        if (!mission) return;
+        const mission = missions.find((m: Mission) => m.id === missionId);
+        if (!mission || !mission.tasks) return;
 
         const task = mission.tasks[taskIndex];
         if (!task || !task.id) return;
@@ -99,8 +99,8 @@ export default function DispatchManagementPage() {
             await updateMissionTask(task.id, done);
 
             // Optimistic UI update
-            setMissions(prev => prev.map(m => {
-                if (m.id === missionId) {
+            setMissions((prev: Mission[]) => prev.map((m: Mission) => {
+                if (m.id === missionId && m.tasks) {
                     const updatedTasks = [...m.tasks];
                     updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], done };
                     return { ...m, tasks: updatedTasks };
@@ -129,7 +129,7 @@ export default function DispatchManagementPage() {
     const handleUpdateProgress = async (missionId: string, progress: number) => {
         try {
             await updateMissionProgress(missionId, progress);
-            setMissions((prev: any[]) => prev.map(m => m.id === missionId ? { ...m, progress } : m));
+            setMissions((prev: Mission[]) => prev.map((m: Mission) => m.id === missionId ? { ...m, progress } : m));
         } catch (err) {
             console.error("Failed to update progress:", err);
         }
@@ -138,7 +138,7 @@ export default function DispatchManagementPage() {
     const handleUpdateLocation = async (missionId: string, location: string) => {
         try {
             await updateMission(missionId, { destination: location });
-            setMissions(prev => prev.map(m => {
+            setMissions((prev: Mission[]) => prev.map((m: Mission) => {
                 if (m.id === missionId) {
                     return { ...m, currentLocation: location };
                 }
@@ -252,7 +252,7 @@ export default function DispatchManagementPage() {
                                             value={currentSelectedMission.currentLocation}
                                             onChange={(e) => {
                                                 const val = e.target.value;
-                                                setMissions(prev => prev.map(m => m.id === currentSelectedMission.id ? { ...m, currentLocation: val } : m));
+                                                setMissions((prev: Mission[]) => prev.map((m: Mission) => m.id === currentSelectedMission.id ? { ...m, currentLocation: val } : m));
                                             }}
                                             className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-slate-900 text-lg shadow-sm"
                                         />
@@ -267,7 +267,7 @@ export default function DispatchManagementPage() {
                                                 value={currentSelectedMission.progress}
                                                 onChange={(e) => {
                                                     const val = parseInt(e.target.value);
-                                                    setMissions(prev => prev.map(m => m.id === currentSelectedMission.id ? { ...m, progress: val } : m));
+                                                    setMissions((prev: Mission[]) => prev.map((m: Mission) => m.id === currentSelectedMission.id ? { ...m, progress: val } : m));
                                                 }}
                                                 className="flex-1 accent-indigo-500 h-1.5"
                                             />
@@ -281,7 +281,7 @@ export default function DispatchManagementPage() {
                                         <Navigation className="h-4 w-4" /> Mission Timeline
                                     </h5>
                                     <div className="space-y-4">
-                                        {currentSelectedMission.tasks.map((task, idx) => (
+                                        {(currentSelectedMission.tasks || []).map((task: MissionTask, idx: number) => (
                                             <div key={idx} className="flex items-center gap-6 p-6 rounded-3xl bg-white border border-black/5 hover:border-indigo-500/20 hover:bg-slate-50/50 transition-all group">
                                                 <button
                                                     onClick={() => handleUpdateTask(currentSelectedMission.id, idx, !task.done)}
@@ -371,11 +371,11 @@ export default function DispatchManagementPage() {
 
 const OperationsCockpit = ({ activeRoute, onUpdateLocation }: { activeRoute: Mission, onUpdateLocation?: (loc: string) => void }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [val, setVal] = useState(activeRoute.currentLocation);
+    const [val, setVal] = useState<string>(activeRoute.currentLocation || "");
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            setVal(activeRoute.currentLocation);
+            setVal(activeRoute.currentLocation || "");
         }, 0);
         return () => clearTimeout(timer);
     }, [activeRoute.currentLocation]);
@@ -435,11 +435,11 @@ const OperationsCockpit = ({ activeRoute, onUpdateLocation }: { activeRoute: Mis
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Fuel</p>
-                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.fuel}</p>
+                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry?.fuel || "0%"}</p>
                         </div>
                         <div>
                             <p className="text-[8px] font-black text-slate-300 uppercase mb-1">Load</p>
-                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry.load}</p>
+                            <p className="font-black italic text-lg leading-none text-slate-900">{activeRoute.telemetry?.load || "N/A"}</p>
                         </div>
                     </div>
                 </div>
@@ -448,7 +448,7 @@ const OperationsCockpit = ({ activeRoute, onUpdateLocation }: { activeRoute: Mis
             <Card className="border-none shadow-xl bg-slate-50 rounded-[2.5rem] p-8 flex flex-col justify-between group">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Daily Traverse</p>
-                    <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed}</div>
+                    <div className="text-2xl font-black tracking-tighter text-slate-900 italic leading-none">{activeRoute.kmTraversed || activeRoute.km_traversed}</div>
                 </div>
                 <Navigation className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
             </Card>
@@ -472,7 +472,7 @@ const MissionTimeline = ({ activeRoute, fullWidth, onToggleTask }: { activeRoute
         <CardContent className="p-10">
             <div className="space-y-10 relative">
                 <div className="absolute left-6 top-2 bottom-2 w-px bg-slate-100" />
-                {activeRoute.tasks.map((task, idx) => (
+                {(activeRoute.tasks || []).map((task: MissionTask, idx: number) => (
                     <div key={idx} className="flex gap-8 relative items-start group">
                         <button
                             disabled={!onToggleTask}

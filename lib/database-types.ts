@@ -254,6 +254,8 @@ export interface PartnerAudit {
   result: string
   inspector: string
   created_at: string
+  // Compatibility fields
+  date?: string
 }
 
 export interface PartnerWithAudits extends RDCPartner {
@@ -285,6 +287,9 @@ export interface Mission {
     temp: string
     load: string
   }
+  tasks?: MissionTask[]
+  driverName?: string
+  kmTraversed?: string
 }
 
 export interface MissionTask {

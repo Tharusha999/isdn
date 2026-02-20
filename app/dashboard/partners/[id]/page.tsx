@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { partners as initialPartners } from "../data";
+import { RDCPartner } from "@/lib/database-types";
+import { fetchPartners } from "@/public/src/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,28 +36,50 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PartnerStatusType } from "@/lib/database-types";
 
 export default function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const decodedName = decodeURIComponent(id);
 
-    const [partner, setPartner] = useState(() => {
-        // Initial load from base data
-        return initialPartners.find(p => p.name === decodedName);
-    });
+    const [partner, setPartner] = useState<RDCPartner | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const [isSaving, setIsSaving] = useState(false);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     useEffect(() => {
+        const loadPartner = async () => {
+            try {
+                setLoading(true);
+                const data = await fetchPartners();
+                const found = (data || []).find((p: any) => p.name === decodedName);
+                if (found) {
+                    setPartner(found as RDCPartner);
+                }
+            } catch (err) {
+                console.error("Failed to fetch partner:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         const savedData = localStorage.getItem(`partner_${decodedName}`);
         if (savedData) {
-            const timer = setTimeout(() => {
-                setPartner(JSON.parse(savedData));
-            }, 0);
-            return () => clearTimeout(timer);
+            setPartner(JSON.parse(savedData));
+            setLoading(false);
+        } else {
+            loadPartner();
         }
     }, [decodedName]);
+
+    if (loading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <Activity className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     if (!partner) {
         notFound();
@@ -136,7 +159,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                                     {['Active', 'Review'].map((status) => (
                                                         <button
                                                             key={status}
-                                                            onClick={() => setPartner({ ...partner, status })}
+                                                            onClick={() => setPartner({ ...partner, status: status as PartnerStatusType })}
                                                             className={`h-12 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border ${partner.status === status ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-black/10 hover:border-black/20'}`}
                                                         >
                                                             {status}
@@ -148,7 +171,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                             <div className="space-y-4">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Agreement Type</Label>
                                                 <Input
-                                                    value={partner.agreementType}
+                                                    value={partner.agreementType || ""}
                                                     onChange={(e) => setPartner({ ...partner, agreementType: e.target.value })}
                                                     className="h-14 rounded-xl border-black/10 font-bold text-slate-900 shadow-sm focus:ring-2 focus:ring-indigo-500/10"
                                                 />
@@ -158,7 +181,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                                 <div className="space-y-4">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract Start</Label>
                                                     <Input
-                                                        value={partner.contractStart}
+                                                        value={partner.contractStart || ""}
                                                         onChange={(e) => setPartner({ ...partner, contractStart: e.target.value })}
                                                         className="h-14 rounded-xl border-black/10 font-bold text-slate-900"
                                                     />
@@ -166,7 +189,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                                 <div className="space-y-4">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract End</Label>
                                                     <Input
-                                                        value={partner.contractEnd}
+                                                        value={partner.contractEnd || ""}
                                                         onChange={(e) => setPartner({ ...partner, contractEnd: e.target.value })}
                                                         className="h-14 rounded-xl border-black/10 font-bold text-slate-900"
                                                     />
@@ -176,7 +199,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                             <div className="space-y-4 pt-6 border-t border-dashed border-black/10">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Internal Bio / Compliance Memo</Label>
                                                 <textarea
-                                                    value={partner.bio}
+                                                    value={partner.bio || ""}
                                                     onChange={(e) => setPartner({ ...partner, bio: e.target.value })}
                                                     className="w-full h-40 rounded-2xl border border-black/10 p-4 text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500/10 transition-all resize-none"
                                                 />
@@ -233,7 +256,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Phone Number</p>
-                                            <p className="text-sm font-bold">{partner.phone}</p>
+                                            <p className="text-sm font-bold">{partner.phone || "N/A"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -294,7 +317,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                 <Card className="bg-white border-black/5 shadow-sm rounded-2xl">
                                     <CardContent className="p-5 flex flex-col items-center text-center">
                                         <ShieldCheck className="h-6 w-6 text-indigo-500 mb-2" />
-                                        <p className="text-2xl font-black">{partner.recentAudits.length}</p>
+                                        <p className="text-2xl font-black">{partner.recentAudits?.length || 0}</p>
                                         <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audits (Year)</p>
                                     </CardContent>
                                 </Card>
@@ -316,7 +339,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                 </CardHeader>
                                 <CardContent className="pt-6">
                                     <div className="space-y-6">
-                                        {partner.recentAudits.map((audit, i) => (
+                                        {partner.recentAudits?.map((audit, i) => (
                                             <div key={i} className="flex gap-4 items-start">
                                                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-black/5">
                                                     <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -326,7 +349,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                                                         <h4 className="font-bold text-sm">Routine Performance Audit</h4>
                                                         <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[8px] uppercase tracking-widest px-2">{audit.result}</Badge>
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground mt-1">Conducted by <span className="text-foreground font-bold">{audit.inspector}</span> on {audit.date}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">Conducted by <span className="text-foreground font-bold">{audit.inspector}</span> on {audit.date || audit.audit_date}</p>
                                                 </div>
                                             </div>
                                         ))}

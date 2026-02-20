@@ -26,11 +26,14 @@ import {
     UserPlus
 } from "lucide-react";
 import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/public/src/supabaseClient";
+import type { AdminUser } from "@/lib/database-types";
+
 
 
 
 export default function AdminsManagementPage() {
-    const [admins, setAdmins] = useState<any[]>([]);
+    const [admins, setAdmins] = useState<AdminUser[]>([]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");

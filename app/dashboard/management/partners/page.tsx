@@ -1,4 +1,5 @@
 "use client";
+import { RDCPartner, RDCType, PartnerStatusType } from "@/lib/database-types";
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,14 +27,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { RDCPartner } from "../../partners/data";
 import Link from "next/link";
-import { fetchPartners } from "@/public/src/supabaseClient";
-import { createPartner, updatePartner, deletePartner } from "@/public/src/partnerActions";
+import { fetchPartners, fetchAllProductStocks, createPartner, updatePartner, deletePartner } from "@/public/src/supabaseClient";
 
 export default function PartnersPage() {
     const [partnerList, setPartnerList] = useState<RDCPartner[]>([]);
     const [loading, setLoading] = useState(true);
+    const [rdcs, setRdcs] = useState<string[]>([]);
     const [showModal, setShowModal] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [search, setSearch] = useState("");
@@ -42,17 +42,19 @@ export default function PartnersPage() {
         id: "",
         name: "",
         type: "",
-        hub: "",
+        hub: "" as RDCType,
         contact: "",
         email: "",
         phone: "",
-        status: "Active",
+        status: "Active" as PartnerStatusType,
         rating: 5.0,
-        contractStart: "",
-        contractEnd: "",
-        agreementType: "",
-        complianceScore: 0,
+        contract_start: "",
+        contract_end: "",
+        agreement_type: "",
+        compliance_score: 0,
         bio: "",
+        created_at: "",
+        updated_at: "",
         recentAudits: []
     });
 
@@ -63,8 +65,15 @@ export default function PartnersPage() {
     const loadPartners = async () => {
         try {
             setLoading(true);
-            const data = await fetchPartners();
-            setPartnerList(data as RDCPartner[] || []);
+            const [partnerData, stocksData] = await Promise.all([
+                fetchPartners(),
+                fetchAllProductStocks()
+            ]);
+            setPartnerList(partnerData as RDCPartner[] || []);
+
+            // Derive unique RDCs from the database
+            const uniqueRdcs = Array.from(new Set((stocksData || []).map((s: any) => s.rdc))).sort();
+            setRdcs(uniqueRdcs);
         } catch (err) {
             console.error("Error loading partners:", err);
         } finally {
@@ -77,17 +86,19 @@ export default function PartnersPage() {
             id: "",
             name: "",
             type: "",
-            hub: "",
+            hub: "" as RDCType,
             contact: "",
             email: "",
             phone: "",
-            status: "Active",
+            status: "Active" as PartnerStatusType,
             rating: 5.0,
-            contractStart: "",
-            contractEnd: "",
-            agreementType: "",
-            complianceScore: 0,
+            contract_start: "",
+            contract_end: "",
+            agreement_type: "",
+            compliance_score: 0,
             bio: "",
+            created_at: "",
+            updated_at: "",
             recentAudits: []
         });
         setEditingIndex(null);
@@ -301,7 +312,7 @@ export default function PartnersPage() {
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Partner Organization Name</Label>
                                 <Input
                                     placeholder="e.g. Lanka Logistics & Co."
-                                    value={form.name}
+                                    value={form.name || ""}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                 />
@@ -310,7 +321,7 @@ export default function PartnersPage() {
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logistics Service Type</Label>
                                 <Input
                                     placeholder="e.g. Prime Logistics"
-                                    value={form.type}
+                                    value={form.type || ""}
                                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                 />
@@ -318,23 +329,21 @@ export default function PartnersPage() {
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Distribution Center (RDC)</Label>
                                 <select
-                                    value={form.hub}
-                                    onChange={(e) => setForm({ ...form, hub: e.target.value })}
+                                    value={form.hub || ""}
+                                    onChange={(e) => setForm({ ...form, hub: e.target.value as RDCType })}
                                     className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5 cursor-pointer"
                                 >
                                     <option value="">Select a Hub</option>
-                                    <option value="North (Jaffna)">North (Jaffna)</option>
-                                    <option value="South (Galle)">South (Galle)</option>
-                                    <option value="East (Trincomalee)">East (Trincomalee)</option>
-                                    <option value="West (Colombo)">West (Colombo)</option>
-                                    <option value="Central (Kandy)">Central (Kandy)</option>
+                                    {rdcs.map(rdc => (
+                                        <option key={rdc} value={rdc}>{rdc}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Contact Person</Label>
                                 <Input
                                     placeholder="e.g. Damien Silva"
-                                    value={form.contact}
+                                    value={form.contact || ""}
                                     onChange={(e) => setForm({ ...form, contact: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                 />
@@ -342,8 +351,8 @@ export default function PartnersPage() {
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Status</Label>
                                 <select
-                                    value={form.status}
-                                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                                    value={form.status || "Active"}
+                                    onChange={(e) => setForm({ ...form, status: e.target.value as PartnerStatusType })}
                                     className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5 cursor-pointer"
                                 >
                                     <option value="Active">Active</option>
@@ -357,7 +366,7 @@ export default function PartnersPage() {
                                     <Input
                                         placeholder="ops@partner.lk"
                                         type="email"
-                                        value={form.email}
+                                        value={form.email || ""}
                                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                                         className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                     />
@@ -366,7 +375,7 @@ export default function PartnersPage() {
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Number</Label>
                                     <Input
                                         placeholder="+94 11 234 5678"
-                                        value={form.phone}
+                                        value={form.phone || ""}
                                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
                                         className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                     />

@@ -125,8 +125,8 @@ export default function CustomersManagementPage() {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">Customer Directory</h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1">Global node management for retail partners and enterprise clients.</p>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Client <span className="text-primary">Registry</span></h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Consolidated directory of registered network service recipients.</p>
                 </div>
                 <Button onClick={handleOpenAdd} className="bg-slate-900 text-white hover:bg-black h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 shadow-2xl shadow-black/20">
                     <Plus className="mr-3 h-4 w-4" /> Add Partner Node

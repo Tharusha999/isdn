@@ -436,7 +436,7 @@ export default function FinancePage() {
                                                                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recipient Node</p>
                                                                                     <div>
                                                                                         <p className="font-black text-lg text-slate-900 uppercase italic">{selectedInvoice.customer}</p>
-                                                                                        <p className="text-xs font-bold text-slate-500 mt-1 leading-relaxed">Verification ID: CUST-88029<br />Assigned RDC: West (Colombo)</p>
+                                                                                        <p className="text-xs font-bold text-slate-500 mt-1 leading-relaxed">Identity Verified System Node<br />Network Participant</p>
                                                                                     </div>
                                                                                 </div>
                                                                                 <div className="space-y-4 bg-slate-50 p-6 rounded-3xl border border-black/[0.03]">

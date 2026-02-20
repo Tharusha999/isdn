@@ -276,8 +276,7 @@ export default function ProductsPage() {
         try {
             setLoading(true);
             await deleteProduct(id);
-            await loadProducts();
-            console.log(`Product ${id} removed.`);
+            setProducts(products.filter(p => p.id !== id));
         } catch (err) {
             console.error("Deletion failed:", err);
             alert("Security lock prevented product removal. Please check permissions.");

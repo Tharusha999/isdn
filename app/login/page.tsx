@@ -49,7 +49,7 @@ export default function LoginPage() {
       localStorage.setItem("userRole", user.role);
 
       // Redirect based on role
-      if (user.role === "admin") {
+      if (user.role === "admin" || user.role === "driver") {
         router.push("/dashboard");
       } else {
         router.push("/dashboard/products");

@@ -602,6 +602,18 @@ export const deleteStaffMember = async (id) => {
   if (error) throw error;
 };
 
+export const fetchAllStaffActivity = async () => {
+  const { data, error } = await supabase
+    .from("staff_activity")
+    .select(`
+      *,
+      staff (name)
+    `)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
 // RDC Partners
 export const fetchPartners = async () => {
   const { data, error } = await supabase
@@ -633,6 +645,30 @@ export const fetchPartnersByRDC = async (hub) => {
     .eq("hub", hub);
   if (error) throw error;
   return data;
+};
+
+export const createPartner = async (partnerData) => {
+  const { data, error } = await supabase
+    .from("rdc_partners")
+    .insert([partnerData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updatePartner = async (id, partnerData) => {
+  const { data, error } = await supabase
+    .from("rdc_partners")
+    .update(partnerData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deletePartner = async (id) => {
+  const { error } = await supabase.from("rdc_partners").delete().eq("id", id);
+  if (error) throw error;
 };
 // Missions
 export const fetchMissions = async () => {
@@ -692,8 +728,18 @@ export const updateMission = async (id, missionData) => {
 export const updateMissionStatus = async (missionId, status) => {
   const { data, error } = await supabase
     .from("missions")
-    .update({ status: status })
+    .update({ status })
     .eq("id", missionId)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateMissionTask = async (taskId, taskData) => {
+  const { data, error } = await supabase
+    .from("mission_tasks")
+    .update(taskData)
+    .eq("id", taskId)
     .select();
   if (error) throw error;
   return data[0];
@@ -702,18 +748,8 @@ export const updateMissionStatus = async (missionId, status) => {
 export const updateMissionProgress = async (missionId, progress) => {
   const { data, error } = await supabase
     .from("missions")
-    .update({ progress: progress })
+    .update({ progress })
     .eq("id", missionId)
-    .select();
-  if (error) throw error;
-  return data[0];
-};
-
-export const updateMissionTask = async (taskId, done) => {
-  const { data, error } = await supabase
-    .from("mission_tasks")
-    .update({ done: done })
-    .eq("id", taskId)
     .select();
   if (error) throw error;
   return data[0];
@@ -826,8 +862,10 @@ export const loginDriver = async (username, password) => {
 
 // Universal Login - Returns user object with role
 export const loginUser = async (username, password) => {
-  // Pattern Check: If username ends with @admin.ISDN, it's an admin
-  if (username.toLowerCase().includes("@admin.isdn")) {
+  const lowerUsername = username.toLowerCase();
+
+  // Pattern Check for Admin
+  if (lowerUsername.includes("@admin.isdn")) {
     try {
       const adminUser = await loginAdmin(username, password);
       return { ...adminUser, role: "admin" };
@@ -836,12 +874,22 @@ export const loginUser = async (username, password) => {
     }
   }
 
+  // Pattern Check for Driver (NEW)
+  if (lowerUsername.includes("@driver.isdn")) {
+    try {
+      const driverUser = await loginDriver(username, password);
+      return { ...driverUser, role: "driver" };
+    } catch (e) {
+      throw new Error("Invalid driver credentials");
+    }
+  }
+
   // Otherwise, default to customer login
   try {
     const customerUser = await loginCustomer(username, password);
     return { ...customerUser, role: "customer" };
   } catch (e) {
-    // Final fallback: try driver login if customer fails
+    // Final fallback: try driver login if customer fails (Legacy support)
     try {
       const driverUser = await loginDriver(username, password);
       return { ...driverUser, role: "driver" };

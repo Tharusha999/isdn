@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { fetchStaff, createStaffMember, updateStaffMember, deleteStaffMember } from "@/public/src/supabaseClient";
-import type { StaffMember } from "@/app/dashboard/staff/data";
+import { StaffMember, StaffStatusType } from "@/lib/database-types";
 
 export default function StaffPage() {
     const [staffList, setStaffList] = useState<StaffMember[]>([]);
@@ -34,7 +34,7 @@ export default function StaffPage() {
     }>({
         name: "",
         role: "",
-        status: "Active",
+        status: "Active" as StaffStatusType,
         email: "",
         phone: "",
     });
@@ -99,15 +99,15 @@ export default function StaffPage() {
             name: member.name,
             role: member.role,
             status: member.status,
-            email: member.email,
-            phone: member.phone,
+            email: member.email || "",
+            phone: member.phone || "",
         });
         setEditMember(member);
         setShowModal(true);
     };
 
     const openAddModal = () => {
-        setForm({ name: "", role: "", status: "Active", email: "", phone: "" });
+        setForm({ name: "", role: "", status: "Active" as StaffStatusType, email: "", phone: "" });
         setEditMember(null);
         setShowModal(true);
     };
@@ -291,7 +291,7 @@ export default function StaffPage() {
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</Label>
                                 <select
                                     value={form.status}
-                                    onChange={(e) => setForm({ ...form, status: e.target.value as "Active" | "Away" | "On Route" | "Offline" })}
+                                    onChange={(e) => setForm({ ...form, status: e.target.value as StaffStatusType })}
                                     className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5"
                                 >
                                     <option value="Active">Active</option>
@@ -305,7 +305,7 @@ export default function StaffPage() {
                                 <Input
                                     placeholder="e.g. john@isdn.lk"
                                     type="email"
-                                    value={form.email}
+                                    value={form.email || ""}
                                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                 />
@@ -314,7 +314,7 @@ export default function StaffPage() {
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phone</Label>
                                 <Input
                                     placeholder="e.g. +94 77 123 4567"
-                                    value={form.phone}
+                                    value={form.phone || ""}
                                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
                                 />
