@@ -220,7 +220,7 @@ export default function CustomersManagementPage() {
                                                     <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 border-black/5 shadow-2xl">
                                                         <DropdownMenuItem onClick={() => handleOpenEdit(customer)} className="rounded-xl px-4 py-3 cursor-pointer group">
                                                             <Edit2 className="mr-3 h-4 w-4 text-slate-400 group-hover:text-slate-900" />
-                                                            <span className="text-xs font-black uppercase tracking-widest">Edit Node</span>
+                                                            <span className="text-xs font-black uppercase tracking-widest">Edit </span>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleDelete(customer.id)} className="rounded-xl px-4 py-3 cursor-pointer text-rose-600 group focus:bg-rose-50 focus:text-rose-600">
                                                             <Trash2 className="mr-3 h-4 w-4 text-rose-400 group-hover:text-rose-600" />

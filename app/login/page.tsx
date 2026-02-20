@@ -163,7 +163,7 @@ export default function LoginPage() {
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                isLogin ? "Synchronise Account" : "Initialize Network Identity"
+                isLogin ? "Login" : "Login First Time"
               )}
             </button>
           </form>

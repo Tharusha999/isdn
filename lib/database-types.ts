@@ -47,20 +47,20 @@ export interface CustomerUser {
 }
 
 export interface DriverUser {
-  id: string
+  id: any
   username: string
-  password: string
-  email: string
+  password?: string
+  email?: string
   full_name: string
-  phone: string
-  license_number: string
+  phone?: string
+  license_number?: string
   license_expiry?: string
   vehicle_assigned?: string
   rdc_hub?: RDCType
-  role: UserRole
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  role?: UserRole
+  is_active?: boolean
+  created_at?: string
+  updated_at?: string
   last_login?: string
 }
 

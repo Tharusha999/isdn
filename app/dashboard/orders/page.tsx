@@ -118,7 +118,7 @@ export default function OrdersPage() {
                         onClick={handleNewOrder}
                         className="flex-1 md:flex-none h-12 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
                     >
-                        <Plus className="mr-2 h-4 w-4" /> New Requisition
+                        <Plus className="mr-2 h-4 w-4" /> New Request
                     </Button>
                 </div>
             </div>
