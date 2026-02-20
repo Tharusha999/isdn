@@ -224,7 +224,7 @@ export default function CustomersManagementPage() {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleDelete(customer.id)} className="rounded-xl px-4 py-3 cursor-pointer text-rose-600 group focus:bg-rose-50 focus:text-rose-600">
                                                             <Trash2 className="mr-3 h-4 w-4 text-rose-400 group-hover:text-rose-600" />
-                                                            <span className="text-xs font-black uppercase tracking-widest">Terminate Sync</span>
+                                                            <span className="text-xs font-black uppercase tracking-widest">Delete</span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

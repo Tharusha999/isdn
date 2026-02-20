@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { INITIAL_MISSIONS, Mission, MissionTask } from "@/lib/data";
+import { Mission, MissionTask } from "@/lib/database-types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,88 +21,136 @@ import {
     ChevronLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionTask, updateMission } from "@/public/src/supabaseClient";
 
 export default function DispatchManagementPage() {
     const router = useRouter();
-    const [missions, setMissions] = useState<Mission[]>(INITIAL_MISSIONS);
-    const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [newTask, setNewTask] = useState<MissionTask>({ time: "", label: "", location: "", done: false });
+    const [missions, setMissions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedMission, setSelectedMission] = useState<any | null>(null);
+    const [newTask, setNewTask] = useState<any>({ time: "", label: "", location: "", done: false });
     const [role, setRole] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Role check
+    const loadMissionsData = async () => {
+        try {
+            setLoading(true);
+            const data = await fetchMissions();
+
+            // Map database missions to UI format
+            const mappedMissions = (data || []).map((m: any) => ({
+                id: m.id,
+                driverName: m.driver_name || "Unassigned",
+                vehicle: m.vehicle || "N/A",
+                status: m.status,
+                progress: m.progress || 0,
+                tasks: (m.mission_tasks || []).map((t: any) => ({
+                    id: t.id,
+                    time: t.time,
+                    label: t.label,
+                    location: t.location,
+                    done: t.done
+                })),
+                currentLocation: m.destination || "N/A",
+                kmTraversed: m.km_traversed || "0km",
+                telemetry: m.telemetry || { fuel: "100%", temp: "24°C", load: "Optimal" }
+            }));
+
+            setMissions(mappedMissions);
+
+            // If we have a selected mission, update it from the new list
+            if (selectedMission) {
+                const refreshed = mappedMissions.find(m => m.id === selectedMission.id);
+                if (refreshed) setSelectedMission(refreshed);
+            }
+        } catch (err) {
+            console.error("Failed to load missions:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Role check and initial load
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
-        const timer = setTimeout(() => {
-            setRole(storedRole);
-            setIsLoaded(true);
-        }, 0);
+        setRole(storedRole);
+        setIsLoaded(true);
 
         if (storedRole !== 'admin') {
             router.push('/dashboard');
+        } else {
+            loadMissionsData();
         }
-        return () => clearTimeout(timer);
     }, [router]);
-
-    // Load missions from localStorage on mount
-    useEffect(() => {
-        const savedMissions = localStorage.getItem('isdn_missions');
-        if (savedMissions) {
-            const timer = setTimeout(() => {
-                try {
-                    setMissions(JSON.parse(savedMissions));
-                } catch (e) {
-                    console.error("Failed to parse missions", e);
-                }
-            }, 0);
-            return () => clearTimeout(timer);
-        }
-    }, []);
-
-    // Save missions to localStorage on change
-    useEffect(() => {
-        localStorage.setItem('isdn_missions', JSON.stringify(missions));
-    }, [missions]);
 
     // Find the latest version of the selected mission from the main missions list
     const currentSelectedMission = selectedMission
         ? missions.find(m => m.id === selectedMission.id) || null
         : null;
 
-    const handleUpdateTask = (missionId: string, taskIndex: number, done: boolean) => {
-        setMissions(prev => prev.map(m => {
-            if (m.id === missionId) {
-                const updatedTasks = [...m.tasks];
-                updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], done };
-                return { ...m, tasks: updatedTasks };
-            }
-            return m;
-        }));
+    const handleUpdateTask = async (missionId: string, taskIndex: number, done: boolean) => {
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission) return;
+
+        const task = mission.tasks[taskIndex];
+        if (!task || !task.id) return;
+
+        try {
+            await updateMissionTask(task.id, done);
+
+            // Optimistic UI update
+            setMissions(prev => prev.map(m => {
+                if (m.id === missionId) {
+                    const updatedTasks = [...m.tasks];
+                    updatedTasks[taskIndex] = { ...updatedTasks[taskIndex], done };
+                    return { ...m, tasks: updatedTasks };
+                }
+                return m;
+            }));
+        } catch (err) {
+            console.error("Failed to update task:", err);
+            alert("Failed to sync task update. Please try again.");
+            loadMissionsData(); // Revert on failure
+        }
     };
 
-    const handleAddTask = (missionId: string) => {
+    const handleAddTask = async (missionId: string) => {
         if (!newTask.time || !newTask.label) return;
-        setMissions(prev => prev.map(m => {
-            if (m.id === missionId) {
-                return { ...m, tasks: [...m.tasks, newTask] };
-            }
-            return m;
-        }));
-        setNewTask({ time: "", label: "", location: "", done: false });
+        try {
+            await createMissionTask(missionId, newTask);
+            setNewTask({ time: "", label: "", location: "", done: false });
+            await loadMissionsData();
+        } catch (err) {
+            console.error("Failed to add task:", err);
+            alert("Failed to create task. Check connection.");
+        }
     };
 
-    const handleUpdateLocation = (missionId: string, location: string) => {
-        setMissions(prev => prev.map(m => {
-            if (m.id === missionId) {
-                return { ...m, currentLocation: location };
-            }
-            return m;
-        }));
+    const handleUpdateProgress = async (missionId: string, progress: number) => {
+        try {
+            await updateMissionProgress(missionId, progress);
+            setMissions((prev: any[]) => prev.map(m => m.id === missionId ? { ...m, progress } : m));
+        } catch (err) {
+            console.error("Failed to update progress:", err);
+        }
+    };
+
+    const handleUpdateLocation = async (missionId: string, location: string) => {
+        try {
+            await updateMission(missionId, { destination: location });
+            setMissions(prev => prev.map(m => {
+                if (m.id === missionId) {
+                    return { ...m, currentLocation: location };
+                }
+                return m;
+            }));
+        } catch (err) {
+            console.error("Failed to update location:", err);
+        }
     };
 
     const handleSaveMission = () => {
-        // In a real app, this would be an API call
-        alert("Mission configuration saved to cloud sync.");
+        alert("Mission configuration synchronized with Supabase cloud.");
         setSelectedMission(null);
     };
 

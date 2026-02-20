@@ -234,9 +234,16 @@ export const fetchUserMapping = async (ids) => {
 };
 
 // Orders - Modified to support role-based filtering and robust name resolution
+/**
+ * @param {string} userId 
+ * @param {string} role 
+ */
 export const fetchOrders = async (userId = null, role = null) => {
   try {
-    let query = supabase.from("orders").select("*");
+    let query = supabase.from("orders").select(`
+      *,
+      order_items (*)
+    `);
 
     if (role === 'customer' && userId) {
       query = query.eq("customer_id", userId);
@@ -455,13 +462,20 @@ export const deleteAdmin = async (id) => {
   if (error) throw error;
 };
 
-// Transactions
-export const fetchTransactions = async () => {
+// Transactions - Modified to support role-based filtering and robust name resolution
+/**
+ * @param {string} userId 
+ * @param {string} role 
+ */
+export const fetchTransactions = async (userId = null, role = null) => {
   try {
-    const { data: transactions, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: false });
+    let query = supabase.from("transactions").select("*");
+
+    if (role === 'customer' && userId) {
+      query = query.eq("customer", userId);
+    }
+
+    const { data: transactions, error } = await query.order("date", { ascending: false });
 
     if (error) throw error;
     if (!transactions || transactions.length === 0) return [];
@@ -665,6 +679,16 @@ export const fetchMissionsByDriver = async (driverId) => {
   return data;
 };
 
+export const updateMission = async (id, missionData) => {
+  const { data, error } = await supabase
+    .from("missions")
+    .update(missionData)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
 export const updateMissionStatus = async (missionId, status) => {
   const { data, error } = await supabase
     .from("missions")
@@ -680,6 +704,25 @@ export const updateMissionProgress = async (missionId, progress) => {
     .from("missions")
     .update({ progress: progress })
     .eq("id", missionId)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateMissionTask = async (taskId, done) => {
+  const { data, error } = await supabase
+    .from("mission_tasks")
+    .update({ done: done })
+    .eq("id", taskId)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const createMissionTask = async (missionId, taskData) => {
+  const { data, error } = await supabase
+    .from("mission_tasks")
+    .insert([{ ...taskData, mission_id: missionId }])
     .select();
   if (error) throw error;
   return data[0];

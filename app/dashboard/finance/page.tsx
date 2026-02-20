@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-    INITIAL_TRANSACTIONS,
-    INITIAL_PRODUCTS,
-    INITIAL_ORDERS,
     Transaction
-} from "@/lib/data";
+} from "@/lib/database-types";
+import { fetchTransactions, fetchProducts, fetchOrders } from "@/public/src/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,19 +32,43 @@ import {
 } from "lucide-react";
 
 export default function FinancePage() {
-    const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-    const [selectedInvoice, setSelectedInvoice] = useState<Transaction | null>(null);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
     const [isPaying, setIsPaying] = useState(false);
     const [paySuccess, setPaySuccess] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
 
-    useState(() => {
-        if (typeof window !== 'undefined') {
-            setRole(localStorage.getItem('userRole'));
+    const loadFinanceData = async () => {
+        try {
+            setLoading(true);
+            const userRole = localStorage.getItem('userRole');
+            const userId = localStorage.getItem('userId');
+            setRole(userRole);
+
+            const [transData, productData, orderData] = await Promise.all([
+                fetchTransactions(userId || undefined, userRole || undefined),
+                fetchProducts(),
+                fetchOrders(userId || undefined, userRole || undefined)
+            ]);
+
+            setTransactions((transData || []) as Transaction[]);
+            setProducts((productData || []) as any[]);
+            setOrders((orderData || []) as any[]);
+        } catch (err) {
+            console.error("Failed to fetch finance data:", err);
+        } finally {
+            setLoading(false);
         }
-    });
+    };
+
+    useEffect(() => {
+        loadFinanceData();
+    }, []);
 
     const handlePayment = () => {
         setIsPaying(true);
@@ -55,11 +77,11 @@ export default function FinancePage() {
             setPaySuccess(true);
             setTimeout(() => {
                 setPaySuccess(false);
-                const updatedStatus = "PAID" as const;
-                setTransactions(prev => prev.map(t =>
+                const updatedStatus = "PAID";
+                setTransactions((prev: Transaction[]) => prev.map(t =>
                     t.id === selectedInvoice?.id ? { ...t, status: updatedStatus } : t
                 ));
-                setSelectedInvoice(prev => prev ? { ...prev, status: updatedStatus } : null);
+                setSelectedInvoice((prev: Transaction | null) => prev ? { ...prev, status: updatedStatus } : null);
             }, 2000);
         }, 2000);
     };
@@ -93,23 +115,27 @@ export default function FinancePage() {
 
     const getOrderDetails = (orderId?: string) => {
         if (!orderId) return null;
-        const order = INITIAL_ORDERS.find(o => o.id === orderId);
+        // Use fetched orders instead of INITIAL_ORDERS
+        const order = orders.find(o => o.id === orderId);
         if (!order) return null;
 
-        const items = order.items.map(item => {
-            const product = INITIAL_PRODUCTS.find(p => p.id === item.productId);
+        // In Supabase schema, the items are often in a separate table 'order_items'
+        // But for now, if the 'orders' fetch includes them or if we can derive them:
+        // Let's check products list
+        const items = (order.order_items || []).map((item: any) => {
+            const product = products.find(p => p.id === item.product_id);
             return {
                 name: product?.name || "Unknown Product",
                 qty: item.quantity,
-                price: product?.price || 0
+                price: item.unit_price || product?.price || 0
             };
         });
 
         return { ...order, items };
     };
 
-    const totalReceivables = transactions.reduce((acc, t) => t.status === "PENDING" ? acc + t.amount : acc, 0);
-    const totalRevenue = transactions.reduce((acc, t) => t.status === "PAID" ? acc + t.amount : acc, 0);
+    const totalReceivables = transactions.reduce((acc, t) => t.status === "PENDING" ? acc + (Number(t.amount) || 0) : acc, 0);
+    const totalRevenue = transactions.reduce((acc, t) => t.status === "PAID" ? acc + (Number(t.amount) || 0) : acc, 0);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -425,7 +451,7 @@ export default function FinancePage() {
                                                                             <div className="space-y-6">
                                                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order Breakdown</p>
                                                                                 <div className="space-y-4">
-                                                                                    {details ? details.items.map((item, idx) => (
+                                                                                    {details ? (details.items as any[]).map((item: any, idx: number) => (
                                                                                         <div key={idx} className="flex justify-between items-center py-4 border-b border-black/5 last:border-0 group">
                                                                                             <div>
                                                                                                 <p className="font-black text-xs text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">{item.name}</p>

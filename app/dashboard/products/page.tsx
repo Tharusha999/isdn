@@ -20,6 +20,8 @@ import {
     X,
     Package,
     Trash2,
+    Edit2,
+    Check,
 } from "lucide-react";
 import {
     Sheet,
@@ -29,7 +31,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct } from "@/public/src/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct } from "@/public/src/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
@@ -68,6 +70,8 @@ export default function ProductsPage() {
     // Admin state
     const [role, setRole] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [form, setForm] = useState(EMPTY_FORM);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -141,6 +145,49 @@ export default function ProductsPage() {
         }
     };
 
+    const openEditModal = (product: Product) => {
+        setEditingProduct(product);
+        setForm({
+            name: product.name,
+            category: product.category,
+            price: String(product.price),
+            sku: product.sku,
+            stock: String(product.stock || 0),
+            description: product.description || "",
+            image: product.image || "",
+        });
+        setSaveError(null);
+        setShowEditModal(true);
+    };
+
+    const handleEditProduct = async () => {
+        if (!editingProduct || !form.name || !form.sku || !form.price) return;
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+            const productData = {
+                sku: form.sku.toUpperCase(),
+                name: form.name,
+                category: form.category,
+                price: parseFloat(form.price),
+                stock: form.stock ? parseInt(form.stock) : editingProduct.stock,
+                description: form.description || null,
+                image: form.image || null,
+            };
+
+            await updateProduct(editingProduct.id, productData);
+            await loadProducts();
+            setShowEditModal(false);
+            setEditingProduct(null);
+            setForm(EMPTY_FORM);
+        } catch (err: unknown) {
+            console.error("Error updating product:", err);
+            setSaveError("Failed to update product. Please check the details and try again.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const addToCart = (id: string) => {
         setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     };
@@ -152,6 +199,17 @@ export default function ProductsPage() {
             const newCart = { ...cart };
             delete newCart[id];
             setCart(newCart);
+        }
+    };
+
+    const updateQuantity = (id: string, qty: string) => {
+        const val = parseInt(qty);
+        if (isNaN(val) || val <= 0) {
+            const newCart = { ...cart };
+            delete newCart[id];
+            setCart(newCart);
+        } else {
+            setCart(prev => ({ ...prev, [id]: val }));
         }
     };
 
@@ -414,6 +472,134 @@ export default function ProductsPage() {
                 </div>
             )}
 
+            {/* Edit Product Modal (Admin only) */}
+            {showEditModal && isAdmin && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                        <button
+                            onClick={() => { setShowEditModal(false); setEditingProduct(null); setForm(EMPTY_FORM); setSaveError(null); }}
+                            className="absolute top-5 right-5 h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all"
+                        >
+                            <X className="h-4 w-4 text-slate-600" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                <Edit2 className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Edit Product</h3>
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                            Update the product details in the network catalogue.
+                        </p>
+
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Product Name *</Label>
+                                    <Input
+                                        placeholder="e.g. Premium Ceylon White Rice (5kg)"
+                                        value={form.name}
+                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">SKU *</Label>
+                                    <Input
+                                        placeholder="e.g. ISDN-FD-101"
+                                        value={form.sku}
+                                        onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900 font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price (Rs.) *</Label>
+                                    <Input
+                                        placeholder="e.g. 1250"
+                                        type="number"
+                                        min="0"
+                                        value={form.price}
+                                        onChange={(e) => setForm({ ...form, price: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category</Label>
+                                    <select
+                                        value={form.category}
+                                        onChange={(e) => handleCategoryChange(e.target.value as ProductCategory)}
+                                        className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5"
+                                    >
+                                        {PRODUCT_CATEGORIES.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Master Stock (Units)</Label>
+                                    <Input
+                                        placeholder="e.g. 1000"
+                                        type="number"
+                                        min="0"
+                                        value={form.stock}
+                                        onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Image URL</Label>
+                                    <Input
+                                        placeholder="https://example.com/image.jpg"
+                                        value={form.image}
+                                        onChange={(e) => setForm({ ...form, image: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Description</Label>
+                                    <textarea
+                                        placeholder="Brief product description..."
+                                        value={form.description}
+                                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                                        rows={3}
+                                        className="w-full rounded-xl bg-slate-50 border border-black/5 px-4 py-3 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5 resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {saveError && (
+                                <div className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+                                    <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0" />
+                                    <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">{saveError}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <Button
+                                variant="outline"
+                                onClick={() => { setShowEditModal(false); setEditingProduct(null); setForm(EMPTY_FORM); setSaveError(null); }}
+                                className="flex-1 h-12 rounded-xl border-black/5 font-black text-[10px] uppercase tracking-widest"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleEditProduct}
+                                disabled={isSaving || !form.name || !form.sku || !form.price}
+                                className="flex-1 h-12 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-xl"
+                            >
+                                {isSaving ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Syncing...</>
+                                ) : (
+                                    <><Check className="mr-2 h-4 w-4" />Update Product</>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Promotion Grid */}
             <div className="grid gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2 relative h-72 rounded-[3rem] overflow-hidden bg-white shadow-2xl group border border-black/5">
@@ -540,12 +726,20 @@ export default function ProductsPage() {
                                                     <Info className="h-5 w-5" />
                                                 </button>
                                                 {isAdmin && (
-                                                    <button
-                                                        onClick={() => handleDeleteProduct(product.id, product.name)}
-                                                        className="h-10 w-10 rounded-2xl bg-white/80 backdrop-blur-md text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-lg border border-white"
-                                                    >
-                                                        <Trash2 className="h-5 w-5" />
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => openEditModal(product)}
+                                                            className="h-10 w-10 rounded-2xl bg-white/80 backdrop-blur-md text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-lg border border-white"
+                                                        >
+                                                            <Edit2 className="h-5 w-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteProduct(product.id, product.name)}
+                                                            className="h-10 w-10 rounded-2xl bg-white/80 backdrop-blur-md text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-lg border border-white"
+                                                        >
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -581,7 +775,12 @@ export default function ProductsPage() {
                                                 <Button variant="ghost" size="icon" onClick={() => removeFromCart(product.id)} className="h-10 w-10 text-white hover:bg-white/10 rounded-xl">
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
-                                                <span className="font-black text-lg text-white tabular-nums">{cart[product.id]}</span>
+                                                <input
+                                                    type="number"
+                                                    value={cart[product.id]}
+                                                    onChange={(e) => updateQuantity(product.id, e.target.value)}
+                                                    className="w-16 bg-transparent border-none text-center font-black text-lg text-white tabular-nums focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
                                                 <Button variant="ghost" size="icon" onClick={() => addToCart(product.id)} className="h-10 w-10 text-white hover:bg-white/10 rounded-xl">
                                                     <Plus className="h-4 w-4" />
                                                 </Button>

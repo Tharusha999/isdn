@@ -76,7 +76,7 @@ export default function InventoryPage() {
         name: "",
         category: "Packaged Food" as any,
         price: 0,
-        image: "https://images.unsplash.com/photo-1583258292688-d506b747db62?auto=format&fit=crop&q=80&w=400",
+        image: "",
         description: "",
         sku: ""
     });
@@ -242,7 +242,7 @@ export default function InventoryPage() {
                 name: "",
                 category: "Packaged Food" as any,
                 price: 0,
-                image: "https://images.unsplash.com/photo-1583258292688-d506b747db62?auto=format&fit=crop&q=80&w=400",
+                image: "",
                 description: "",
                 sku: ""
             });
@@ -495,8 +495,14 @@ export default function InventoryPage() {
                                             <TableCell className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="h-12 w-12 rounded-xl border border-black/5 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img src={product.image || ""} alt={product.name} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                                        {product.image ? (
+                                                            <>
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={product.image} alt={product.name} className="h-full w-full object-cover mix-blend-multiply opacity-80" />
+                                                            </>
+                                                        ) : (
+                                                            <Package className="h-5 w-5 text-slate-300" />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold tracking-tight text-slate-900 text-sm leading-none mb-1.5">{product.name}</p>
@@ -645,18 +651,18 @@ export default function InventoryPage() {
                         <div className="grid gap-8 md:grid-cols-2">
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Product Descriptor</label>
-                                <Input 
+                                <Input
                                     placeholder="e.g. Premium Basmati Rice"
                                     value={newProduct.name}
-                                    onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                                    onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
                                     className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
                                 />
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Category Node</label>
-                                <select 
+                                <select
                                     value={newProduct.category}
-                                    onChange={e => setNewProduct({...newProduct, category: e.target.value as any})}
+                                    onChange={e => setNewProduct({ ...newProduct, category: e.target.value as any })}
                                     className="w-full h-14 rounded-2xl border border-black/10 px-6 font-bold text-sm bg-slate-50/50"
                                 >
                                     <option>Packaged Food</option>
@@ -667,43 +673,43 @@ export default function InventoryPage() {
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unit Valuation (Rs.)</label>
-                                <Input 
+                                <Input
                                     type="number"
                                     placeholder="0.00"
                                     value={newProduct.price}
-                                    onChange={e => setNewProduct({...newProduct, price: parseFloat(e.target.value) || 0})}
+                                    onChange={e => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
                                     className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
                                 />
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Asset SKU (Leave blank for auto)</label>
-                                <Input 
+                                <Input
                                     placeholder="ISO-XXXXXX"
                                     value={newProduct.sku}
-                                    onChange={e => setNewProduct({...newProduct, sku: e.target.value})}
+                                    onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })}
                                     className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
                                 />
                             </div>
                             <div className="md:col-span-2 space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Visual Representation URL</label>
-                                <Input 
+                                <Input
                                     placeholder="https://..."
                                     value={newProduct.image}
-                                    onChange={e => setNewProduct({...newProduct, image: e.target.value})}
+                                    onChange={e => setNewProduct({ ...newProduct, image: e.target.value })}
                                     className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
                                 />
                             </div>
                         </div>
 
                         <div className="flex gap-4 pt-4">
-                            <Button 
-                                variant="ghost" 
+                            <Button
+                                variant="ghost"
                                 onClick={() => setShowAddModal(false)}
                                 className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400"
                             >
                                 Abort Initialization
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={handleCreateProduct}
                                 disabled={isCreatingProduct}
                                 className="flex-1 h-14 rounded-2xl bg-black text-white font-black uppercase text-[10px] tracking-widest shadow-2xl"

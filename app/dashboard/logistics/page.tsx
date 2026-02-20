@@ -32,47 +32,52 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
-
-const INITIAL_QUEUE = [
-    {
-        id: "RT-2280",
-        driver: "Logistics Driver 1",
-        vehicle: "IS-VAN-782",
-        eta: "12m",
-        status: "IN ROUTE",
-        progress: 65,
-        location: { x: 45, y: 55 },
-        metrics: { fuel: 72, dist: "142km" }
-    },
-    {
-        id: "RT-2291",
-        driver: "Logistics Driver 2",
-        vehicle: "IS-LRY-403",
-        eta: "8 Drops",
-        status: "LOADING",
-        progress: 25,
-        location: { x: 60, y: 35 },
-        metrics: { fuel: 95, dist: "12km" }
-    },
-    {
-        id: "RT-2305",
-        driver: "Logistics Driver 3",
-        vehicle: "IS-LRY-112",
-        eta: "16:00",
-        status: "STANDBY",
-        progress: 0,
-        location: { x: 30, y: 70 },
-        metrics: { fuel: 100, dist: "0km" }
-    }
-];
+import { fetchMissions } from "@/public/src/supabaseClient";
 
 export default function LogisticsPage() {
     const router = useRouter();
-    const [queue, setQueue] = useState(INITIAL_QUEUE);
+    const [queue, setQueue] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isOptimizing, setIsOptimizing] = useState(false);
+
+    const loadMissions = async () => {
+        try {
+            setLoading(true);
+            const data = await fetchMissions();
+
+            // Map database missions to UI format with initial random positions for the tactical grid
+            const mappedQueue = (data || []).map((m: any) => ({
+                id: m.id,
+                driver: m.driver_name || "Unassigned",
+                vehicle: m.vehicle || "N/A",
+                eta: m.status === 'In Transit' ? "12m" : "N/A",
+                status: m.status === 'In Transit' ? "IN ROUTE" : m.status.toUpperCase(),
+                progress: m.progress || 0,
+                location: {
+                    x: Math.floor(Math.random() * 80) + 10,
+                    y: Math.floor(Math.random() * 80) + 10
+                },
+                metrics: {
+                    fuel: m.telemetry?.fuel ? parseInt(m.telemetry.fuel) : 100,
+                    dist: m.km_traversed || "0km"
+                }
+            }));
+
+            setQueue(mappedQueue);
+        } catch (err) {
+            console.error("Failed to fetch missions:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadMissions();
+    }, []);
 
     // Simulate Live GPS Movement
     useEffect(() => {
+        if (queue.length === 0) return;
         const interval = setInterval(() => {
             setQueue(prev => prev.map(item => {
                 if (item.status === "IN ROUTE") {
@@ -91,11 +96,14 @@ export default function LogisticsPage() {
             }));
         }, 2000);
         return () => clearInterval(interval);
-    }, []);
+    }, [queue.length]);
 
     const handleOptimize = () => {
         setIsOptimizing(true);
-        setTimeout(() => setIsOptimizing(false), 2000);
+        setTimeout(() => {
+            setIsOptimizing(false);
+            loadMissions();
+        }, 2000);
     };
 
     return (

@@ -148,7 +148,7 @@ export default function PartnersPage() {
 
     const handleRemove = async (index: number) => {
         if (!confirm("Are you sure you want to terminate this partnership sync?")) return;
-        
+
         try {
             const partnerId = partnerList[index].id;
             await deletePartner(partnerId);
@@ -265,7 +265,7 @@ export default function PartnersPage() {
                                                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
                                                         <DropdownMenuItem onClick={() => handleEdit(index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
                                                         <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider cursor-pointer">Performance Audit</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Terminate Sync</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Delete</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
