@@ -234,12 +234,12 @@ export default function ProductsPage() {
         }
     };
 
-    const [orderInfo, setOrderInfo] = useState<{ 
-        id: string, 
-        total: number, 
-        date: string, 
-        eta: string, 
-        invoice: string, 
+    const [orderInfo, setOrderInfo] = useState<{
+        id: string,
+        total: number,
+        date: string,
+        eta: string,
+        invoice: string,
         method: string,
         items: { name: string, quantity: number, price: number }[]
     } | null>(null);
@@ -249,7 +249,7 @@ export default function ProductsPage() {
 
         // CSV Headers
         const headers = ["Order ID", "Invoice", "Date", "Customer", "Product Name", "Quantity", "Unit Price (Rs.)", "Line Total (Rs.)", "Grand Total (Rs.)", "Payment Method", "Estimated Arrival"];
-        
+
         // CSV Rows
         const rows = (orderInfo.items || []).map(item => [
             orderInfo.id,
@@ -383,7 +383,7 @@ export default function ProductsPage() {
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Zap className="h-40 w-40 rotate-12" />
                                 </div>
-                                
+
                                 <div className="relative z-10">
                                     <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center mb-8 backdrop-blur-md">
                                         <CheckCircle2 className="h-8 w-8 text-emerald-400" />
@@ -398,10 +398,7 @@ export default function ProductsPage() {
 
                                 <div className="relative z-10 pt-12">
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Node Synchronized</span>
-                                        </div>
+
                                         <div className="flex items-center gap-3">
                                             <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
                                             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Inventory Reserved</span>
@@ -467,13 +464,13 @@ export default function ProductsPage() {
                                 </div>
 
                                 <div className="mt-10 flex flex-col gap-3">
-                                    <Button 
-                                        onClick={() => setShowSuccess(false)} 
+                                    <Button
+                                        onClick={() => setShowSuccess(false)}
                                         className="h-14 bg-slate-900 text-white hover:bg-black w-full rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-900/20"
                                     >
                                         Acknowledge & Continue
                                     </Button>
-                                    <button 
+                                    <button
                                         onClick={downloadReceipt}
                                         className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors text-center py-2"
                                     >
