@@ -129,7 +129,7 @@ export default function CustomersManagementPage() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Consolidated directory of registered network service recipients.</p>
                 </div>
                 <Button onClick={handleOpenAdd} className="bg-slate-900 text-white hover:bg-black h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 shadow-2xl shadow-black/20">
-                    <Plus className="mr-3 h-4 w-4" /> Add Partner Node
+                    <Plus className="mr-3 h-4 w-4" /> Add Partner
                 </Button>
             </div>
 
