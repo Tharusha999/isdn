@@ -35,7 +35,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct } from "@/public/src/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct, updateProductStock } from "@/public/src/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
@@ -110,12 +110,21 @@ export default function ProductsPage() {
                 fetchProducts(),
                 fetchAllProductStocks()
             ]);
-            setProducts(productsData || []);
+
+            // Sync master stock totals from regional nodes for UI consistency
+            const syncedProducts = (productsData || []).map(p => {
+                const totalStock = (stocksData || [])
+                    .filter(s => s.product_id === p.id)
+                    .reduce((acc, s) => acc + (s.quantity || 0), 0);
+                return { ...p, stock: totalStock };
+            });
+
+            setProducts(syncedProducts);
             setAllStocks(stocksData || []);
             setError(null);
         } catch (err: unknown) {
             console.error("Error fetching products:", err);
-            setError("Failed to load product catalogue. Please try again.");
+            setError("Failed to synchronize with central inventory node.");
         } finally {
             setLoading(false);
         }
@@ -186,17 +195,31 @@ export default function ProductsPage() {
         setIsSaving(true);
         setSaveError(null);
         try {
+            const newStockTotal = form.stock ? parseInt(form.stock) : (editingProduct.stock || 0);
+            const stockDifference = newStockTotal - (editingProduct.stock || 0);
+
             const productData = {
                 sku: form.sku.toUpperCase(),
                 name: form.name,
                 category: form.category,
                 price: parseFloat(form.price),
-                stock: form.stock ? parseInt(form.stock) : editingProduct.stock,
+                stock: newStockTotal,
                 description: form.description || null,
                 image: form.image || null,
             };
 
             await updateProduct(editingProduct.id, productData);
+
+            // If stock was changed manually, update the regional distribution node
+            if (stockDifference !== 0 && defaultRdc) {
+                const existingRdcStock = allStocks.find(s => s.product_id === editingProduct.id && s.rdc === defaultRdc);
+                if (existingRdcStock) {
+                    await updateProductStock(editingProduct.id, defaultRdc, Math.max(0, (existingRdcStock.quantity || 0) + stockDifference));
+                } else {
+                    await createProductStock(editingProduct.id, defaultRdc, Math.max(0, stockDifference));
+                }
+            }
+
             await loadProducts();
             setShowEditModal(false);
             setEditingProduct(null);
