@@ -95,17 +95,17 @@ export default function DashboardLayout({
         admin: {
             name: userName,
             label: "Global Admin",
-            avatar: "Alex"
+            avatar: "admin"
         },
         customer: {
             name: userName,
             label: "Retail Partner",
-            avatar: "Guest"
+            avatar: "customer"
         },
         driver: {
             name: userName,
             label: "Logistics Driver",
-            avatar: "Sam"
+            avatar: "driver"
         },
         loading: {
             name: "Synchronising Identity...",

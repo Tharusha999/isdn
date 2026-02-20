@@ -171,9 +171,9 @@ ORDER BY p.category, p.name;
 ### Get Orders with Customer Information
 
 ```sql
-SELECT o.*, c.name as customer_name, c.email
+SELECT o.*, c.full_name as customer_name, c.email
 FROM orders o
-JOIN customers c ON o.customer_id = c.id
+JOIN customer_users c ON o.customer_id = c.id
 ORDER BY o.date DESC;
 ```
 
@@ -203,7 +203,7 @@ ORDER BY sp.rating DESC;
 ### Data Not Showing
 
 - Run the seed data script
-- Check customer foreign key references
+- Check customer_users foreign key references
 - Verify order and order_item relationships
 
 ## Next Steps

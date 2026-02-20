@@ -23,11 +23,11 @@ export interface RDCPartner {
 export const partners: RDCPartner[] = [
     {
         id: "RDC-101",
-        name: "Lanka Logistics & Co.",
+        name: "Regional Logistics Group A",
         type: "Prime Logistics",
         hub: "Central Hub",
-        contact: "Damien Silva",
-        email: "contact@lanka-log.lk",
+        contact: "Operations Contact 1",
+        email: "rdc-a@isdn.ops",
         phone: "+94 11 234 5678",
         status: "Active",
         rating: 4.8,
@@ -35,19 +35,19 @@ export const partners: RDCPartner[] = [
         contractEnd: "December 2025",
         agreementType: "Tier 1 Logistics",
         complianceScore: 98,
-        bio: "Lanka Logistics & Co. is our primary partner for the central region, specializing in bulk distribution and last-mile delivery. They have consistently exceeded performance targets for the past three years.",
+        bio: "Primary logistics partner for the central hub, managing bulk throughput and regional node distribution.",
         recentAudits: [
-            { date: "2024-01-15", result: "Excellent", inspector: "R. Jayasinghe" },
-            { date: "2023-07-20", result: "Good", inspector: "S. Fernando" }
+            { date: "2024-01-15", result: "Excellent", inspector: "Grid Inspector 1" },
+            { date: "2023-07-20", result: "Good", inspector: "Grid Inspector 2" }
         ]
     },
     {
         id: "RDC-102",
-        name: "Island Wide Distributors",
+        name: "Northern Distribution Network",
         type: "Regional Distributor",
         hub: "North (Jaffna)",
-        contact: "K. Rathnam",
-        email: "jaffna-dist@iwd.lk",
+        contact: "Operations Contact 2",
+        email: "rdc-north@isdn.ops",
         phone: "+94 21 888 1234",
         status: "Active",
         rating: 4.5,
@@ -55,18 +55,18 @@ export const partners: RDCPartner[] = [
         contractEnd: "February 2026",
         agreementType: "Regional Distribution",
         complianceScore: 92,
-        bio: "Focused on northern regional distribution, Island Wide Distributors provides critical access to Jaffna and surrounding areas. Their fleet is optimized for northern terrain.",
+        bio: "Critical access partner for the Northern grid, maintaining high reliability in challenging terrain nodes.",
         recentAudits: [
-            { date: "2024-02-10", result: "Good", inspector: "M. Perera" }
+            { date: "2024-02-10", result: "Good", inspector: "Grid Inspector 1" }
         ]
     },
     {
         id: "RDC-103",
-        name: "Eco-Fleet Express",
+        name: "Urban Fleet Solutions",
         type: "Eco Delivery Partner",
         hub: "West (Colombo)",
-        contact: "Sarah Perera",
-        email: "fleet@ecofleet.com",
+        contact: "Operations Contact 3",
+        email: "rdc-west@isdn.ops",
         phone: "+94 77 123 4455",
         status: "Review",
         rating: 4.2,
@@ -74,18 +74,18 @@ export const partners: RDCPartner[] = [
         contractEnd: "June 2024",
         agreementType: "Specialized Delivery",
         complianceScore: 85,
-        bio: "An eco-friendly fleet trial partner focusing on zero-emission deliveries within the Colombo municipality. Currently under review for contract extension.",
+        bio: "Specialized urban delivery partner currently in pilot for zero-emission node distribution in Colombo.",
         recentAudits: [
-            { date: "2023-12-05", result: "Satisfactory", inspector: "A. Wickramasinghe" }
+            { date: "2023-12-05", result: "Satisfactory", inspector: "Grid Inspector 3" }
         ]
     },
     {
         id: "RDC-104",
-        name: "Southern Speed Logistics",
+        name: "Southern Expressway Logistics",
         type: "Prime Logistics",
         hub: "South (Galle)",
-        contact: "Roshan Kumara",
-        email: "ops@southernspeed.lk",
+        contact: "Operations Contact 4",
+        email: "rdc-south@isdn.ops",
         phone: "+94 91 555 6789",
         status: "Active",
         rating: 4.9,
@@ -93,9 +93,9 @@ export const partners: RDCPartner[] = [
         contractEnd: "August 2025",
         agreementType: "Tier 1 Logistics",
         complianceScore: 99,
-        bio: "Southern Speed Logistics manages our southern corridor with exceptional efficiency. They are known for their rapid turnaround times at the Galle hub.",
+        bio: "High-efficiency partner managing the southern logistics corridor with exceptional turnaround telemetry.",
         recentAudits: [
-            { date: "2024-01-22", result: "Excellent", inspector: "K. Gunawardena" }
+            { date: "2024-01-22", result: "Excellent", inspector: "Grid Inspector 4" }
         ]
     }
 ];

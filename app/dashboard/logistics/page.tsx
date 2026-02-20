@@ -36,7 +36,7 @@ import { useRouter } from "next/navigation";
 const INITIAL_QUEUE = [
     {
         id: "RT-2280",
-        driver: "Marcus Thorne",
+        driver: "Logistics Driver 1",
         vehicle: "IS-VAN-782",
         eta: "12m",
         status: "IN ROUTE",
@@ -46,7 +46,7 @@ const INITIAL_QUEUE = [
     },
     {
         id: "RT-2291",
-        driver: "Sarah Jenkins",
+        driver: "Logistics Driver 2",
         vehicle: "IS-LRY-403",
         eta: "8 Drops",
         status: "LOADING",
@@ -56,7 +56,7 @@ const INITIAL_QUEUE = [
     },
     {
         id: "RT-2305",
-        driver: "Dilshan Perera",
+        driver: "Logistics Driver 3",
         vehicle: "IS-LRY-112",
         eta: "16:00",
         status: "STANDBY",

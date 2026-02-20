@@ -27,10 +27,7 @@ import {
 } from "lucide-react";
 import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/public/src/supabaseClient";
 
-const generateAdminKey = () => {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    return `ISDN-ADMIN-${randomSuffix}`;
-};
+
 
 export default function AdminsManagementPage() {
     const [admins, setAdmins] = useState<any[]>([]);
@@ -48,8 +45,7 @@ export default function AdminsManagementPage() {
     const [form, setForm] = useState({
         full_name: "",
         username: "",
-        password: "",
-        admin_key: ""
+        password: ""
     });
 
     const loadAdmins = async () => {
@@ -74,8 +70,7 @@ export default function AdminsManagementPage() {
         setForm({
             full_name: "",
             username: "",
-            password: "",
-            admin_key: generateAdminKey()
+            password: ""
         });
         setSaveError(null);
         setShowModal(true);
@@ -86,8 +81,7 @@ export default function AdminsManagementPage() {
         setForm({
             full_name: admin.full_name,
             username: admin.username,
-            password: admin.password,
-            admin_key: admin.admin_key
+            password: admin.password
         });
         setSaveError(null);
         setShowModal(true);
@@ -200,19 +194,14 @@ export default function AdminsManagementPage() {
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">@{admin.username}</p>
                                 </div>
 
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-black/5 space-y-2">
+                                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Security Token</span>
-                                        <button
-                                            onClick={() => copyToClipboard(admin.admin_key)}
-                                            className="text-primary hover:text-black transition-colors"
-                                        >
-                                            {copiedKey === admin.admin_key ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                                        </button>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-600">Network Identity</span>
+                                        <Badge variant="outline" className="text-[7px] font-black uppercase tracking-tighter border-amber-200 text-amber-700 bg-white/50">Pattern Verified</Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Key className="h-3 w-3 text-primary" />
-                                        <code className="text-xs font-black font-mono tracking-tighter text-slate-900">{admin.admin_key}</code>
+                                        <ShieldCheck className="h-3 w-3 text-amber-600" />
+                                        <p className="text-xs font-black tracking-tighter text-amber-900 break-all">{admin.username}</p>
                                     </div>
                                 </div>
 
@@ -271,19 +260,11 @@ export default function AdminsManagementPage() {
                                     </div>
                                 </div>
 
-                                <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-between group">
+                                <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-between group">
                                     <div className="space-y-1">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-600">Generated Security Token</span>
-                                        <p className="text-xl font-black font-mono tracking-tighter text-amber-900 group-hover:scale-105 transition-transform">{form.admin_key}</p>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600">Access Pattern Helper</span>
+                                        <p className="text-xs font-bold text-indigo-900 leading-tight">Usernames will automatically include <span className="text-indigo-600 font-black">@admin.ISDN</span> for authentication routing.</p>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => copyToClipboard(form.admin_key)}
-                                        className="h-12 w-12 rounded-xl hover:bg-amber-100 text-amber-600"
-                                    >
-                                        {copiedKey === form.admin_key ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-                                    </Button>
                                 </div>
                             </div>
 

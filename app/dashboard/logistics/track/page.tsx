@@ -35,14 +35,14 @@ export default function TrackingPage() {
         id: "#ORD-9945",
         status: "In Transit",
         eta: "Today, 15:45",
-        driver: "Marcus Thorne",
+        driver: "Assigned Officer",
         vehicle: "IS-VAN-782",
-        origin: "Central RDC - Colombo 10",
-        destination: "Cargills Food City - Nugegoda",
+        origin: "Central RDC Hub",
+        destination: "Retail Partner Hub",
         history: [
-            { time: "08:15 AM", event: "Order Dispatched from Central RDC", done: true },
-            { time: "10:45 AM", event: "Keells Super Delivery Complete", done: true },
-            { time: "12:30 PM", event: "En Route to Nugegoda Segment", done: true },
+            { time: "08:15 AM", event: "Order Dispatched from RDC", done: true },
+            { time: "10:45 AM", event: "Node 1 Delivery Complete", done: true },
+            { time: "12:30 PM", event: "En Route to Next Segment", done: true },
             { time: "03:45 PM", event: "Estimated Arrival", done: false },
         ]
     };

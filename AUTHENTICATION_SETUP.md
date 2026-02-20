@@ -49,17 +49,18 @@ This guide explains how the ISDN system now supports three separate user roles (
   - `is_active`
   - `last_login`
 
-## Login Flow
-
 ### 1. User Visits Login Page (`/login`)
 
-- User enters username and password
-- System attempts authentication in this order:
-  1. Check `admin_users` table
-  2. Check `customer_users` table
-  3. Check `driver_users` table
-- On success, user is redirected to their role-specific dashboard
-- On failure, error message is displayed
+- User enters username and password.
+- System automatically detects the role based on the **network username pattern**:
+    - **Admin**: Username contains `@admin.ISDN` (e.g., `tharusha@admin.ISDN`).
+    - **Customer/Driver**: Any other username format.
+- **Authentication Order**:
+  1. If `@admin.ISDN` pattern detected → Check `admin_users` table.
+  2. If no admin pattern → Check `customer_users` table.
+  3. If customer check fails → Check `driver_users` table.
+- On success, user is redirected to their role-specific dashboard.
+- On failure, an error message is displayed.
 
 ### 2. Authentication Functions
 
@@ -111,21 +112,21 @@ Use these credentials to test the system:
 ### Admin
 
 ```
-Username: admin
+Username: admin@isdn.ops
 Password: admin123
 ```
 
 ### Customer
 
 ```
-Username: singer_mega
+Username: retail_west_1
 Password: customer123
 ```
 
 ### Driver
 
 ```
-Username: john_driver
+Username: driver_01
 Password: driver123
 ```
 
@@ -138,10 +139,10 @@ import { createAdminUser } from "@/public/src/supabaseClient";
 
 await createAdminUser({
   id: "ADMIN-003",
-  username: "newadmin",
+  username: "new_admin@isdn.ops",
   password: "hashed_password", // Should be bcrypt hashed
-  email: "newadmin@isdn.lk",
-  full_name: "New Admin",
+  email: "admin03@isdn.ops",
+  full_name: "Operations Admin 3",
   phone: "+94 11 xxx xxxx",
   is_active: true,
 });
@@ -154,13 +155,13 @@ import { createCustomerUser } from "@/public/src/supabaseClient";
 
 await createCustomerUser({
   id: "CUST-USER-004",
-  username: "new_customer",
+  username: "retail_east_2",
   password: "hashed_password", // Should be bcrypt hashed
-  email: "customer@retailer.lk",
-  full_name: "New Customer",
+  email: "contact@retail-east2.isdn",
+  full_name: "Retail Partner - East 2",
   phone: "+94 xx xxx xxxx",
-  company_name: "Retailer Company",
-  city: "Colombo",
+  company_name: "Retail Partner Hub - East",
+  city: "Trincomalee",
   is_active: true,
 });
 ```
@@ -172,10 +173,10 @@ import { createDriverUser } from "@/public/src/supabaseClient";
 
 await createDriverUser({
   id: "DRIVER-004",
-  username: "new_driver",
+  username: "driver_04",
   password: "hashed_password", // Should be bcrypt hashed
-  email: "driver@isdn.lk",
-  full_name: "New Driver",
+  email: "driver04@isdn.ops",
+  full_name: "Logistics Driver 4",
   phone: "+94 77 xxx xxxx",
   license_number: "DL-2024-004",
   license_expiry: "2028-12-31",
@@ -308,9 +309,9 @@ const missions = await fetchMissions();
    ```
 
 3. **Test credentials**:
-   - Admin: `admin` / `admin123` → `/dashboard`
-   - Customer: `singer_mega` / `customer123` → `/customer-dashboard`
-   - Driver: `john_driver` / `driver123` → `/driver-dashboard`
+   - Admin: `admin@isdn.ops` / `admin123` → `/dashboard`
+   - Customer: `retail_west_1` / `customer123` → `/customer-dashboard`
+   - Driver: `driver_01` / `driver123` → `/driver-dashboard`
 
 ## Next Steps
 

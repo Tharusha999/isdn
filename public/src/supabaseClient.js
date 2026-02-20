@@ -419,18 +419,28 @@ export const fetchAdmins = async () => {
 };
 
 export const createAdmin = async (adminData) => {
+  const payload = { ...adminData };
+  if (payload.username && !payload.username.toLowerCase().includes("@admin.isdn")) {
+    payload.username = `${payload.username}@admin.ISDN`;
+  }
+
   const { data, error } = await supabase
     .from("admin_users")
-    .insert([adminData])
+    .insert([payload])
     .select();
   if (error) throw error;
   return data[0];
 };
 
 export const updateAdmin = async (id, adminData) => {
+  const payload = { ...adminData };
+  if (payload.username && !payload.username.toLowerCase().includes("@admin.isdn")) {
+    payload.username = `${payload.username}@admin.ISDN`;
+  }
+
   const { data, error } = await supabase
     .from("admin_users")
-    .update(adminData)
+    .update(payload)
     .eq("id", id)
     .select();
   if (error) throw error;

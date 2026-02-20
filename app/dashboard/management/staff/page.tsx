@@ -272,7 +272,7 @@ export default function StaffPage() {
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</Label>
                                 <Input
-                                    placeholder="e.g. John Doe"
+                                    placeholder="e.g. Athula Perera"
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
