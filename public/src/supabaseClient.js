@@ -755,6 +755,24 @@ export const updateMissionProgress = async (missionId, progress) => {
   return data[0];
 };
 
+export const createMission = async (missionData) => {
+  const { data, error } = await supabase
+    .from("missions")
+    .insert([missionData])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const fetchDriverUsers = async () => {
+  const { data, error } = await supabase
+    .from("driver_users")
+    .select("*")
+    .order("full_name", { ascending: true });
+  if (error) throw error;
+  return data;
+};
+
 export const createMissionTask = async (missionId, taskData) => {
   const { data, error } = await supabase
     .from("mission_tasks")

@@ -21,7 +21,7 @@ import {
     ChevronLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionTask, updateMission } from "@/public/src/supabaseClient";
+import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionTask, updateMission, createMission, fetchDriverUsers } from "@/public/src/supabaseClient";
 
 export default function DispatchManagementPage() {
     const router = useRouter();
@@ -31,6 +31,16 @@ export default function DispatchManagementPage() {
     const [newTask, setNewTask] = useState<{ time: string; label: string; location: string; done: boolean }>({ time: "", label: "", location: "", done: false });
     const [role, setRole] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [drivers, setDrivers] = useState<any[]>([]);
+    const [newMission, setNewMission] = useState({
+        driver_id: "",
+        driver_name: "",
+        vehicle: "",
+        destination: "",
+        status: "Pending"
+    });
+    const [creating, setCreating] = useState(false);
 
     const loadMissionsData = async () => {
         try {
@@ -80,6 +90,7 @@ export default function DispatchManagementPage() {
             router.push('/dashboard');
         } else {
             loadMissionsData();
+            fetchDriverUsers().then(d => setDrivers(d || [])).catch(() => { });
         }
     }, [router]);
 
@@ -154,6 +165,33 @@ export default function DispatchManagementPage() {
         setSelectedMission(null);
     };
 
+    const handleCreateMission = async () => {
+        if (!newMission.driver_name || !newMission.vehicle || !newMission.destination) return;
+        setCreating(true);
+        try {
+            const missionId = `RT-${Math.floor(1000 + Math.random() * 9000)}`;
+            await createMission({
+                id: missionId,
+                driver_id: newMission.driver_id || null,
+                driver_name: newMission.driver_name,
+                vehicle: newMission.vehicle,
+                destination: newMission.destination,
+                status: "Pending",
+                progress: 0,
+                km_traversed: "0km",
+                telemetry: { fuel: "100%", temp: "24°C", load: "0kg" }
+            });
+            setShowCreateForm(false);
+            setNewMission({ driver_id: "", driver_name: "", vehicle: "", destination: "", status: "Pending" });
+            await loadMissionsData();
+        } catch (err) {
+            console.error("Mission creation failed:", err);
+            alert("Failed to create mission.");
+        } finally {
+            setCreating(false);
+        }
+    };
+
     if (!isLoaded || role !== 'admin') return null;
 
     return (
@@ -165,7 +203,73 @@ export default function DispatchManagementPage() {
                         Regional logistics grid coordination and high-level mission oversight.
                     </p>
                 </div>
+                <Button onClick={() => setShowCreateForm(!showCreateForm)} className="h-12 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest px-6 shadow-xl shadow-indigo-500/20">
+                    <Plus className="mr-2 h-4 w-4" /> Deploy New Mission
+                </Button>
             </div>
+
+            {showCreateForm && (
+                <Card className="border-none shadow-2xl bg-white rounded-[2rem] overflow-hidden animate-in slide-in-from-top-4 duration-300">
+                    <CardHeader className="p-8 bg-indigo-50/50 border-b border-indigo-100">
+                        <CardTitle className="text-xl font-black uppercase tracking-tighter italic text-slate-900">Mission Deployment Form</CardTitle>
+                        <CardDescription className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assign a new logistics mission to an available driver.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6">
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Assign Driver</Label>
+                                <select
+                                    value={newMission.driver_id}
+                                    onChange={(e) => {
+                                        const driver = drivers.find((d: any) => String(d.id) === e.target.value);
+                                        setNewMission({ ...newMission, driver_id: e.target.value, driver_name: driver?.full_name || '' });
+                                    }}
+                                    className="w-full h-14 rounded-2xl bg-slate-50 border border-black/5 font-bold text-slate-900 px-4 text-sm"
+                                >
+                                    <option value="">Select a driver...</option>
+                                    {drivers.map((d: any) => (
+                                        <option key={d.id} value={d.id}>{d.full_name} — {d.Organization || 'Fleet'}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Vehicle Unit</Label>
+                                <Input
+                                    placeholder="e.g. WP-KA 5523"
+                                    value={newMission.vehicle}
+                                    onChange={(e) => setNewMission({ ...newMission, vehicle: e.target.value })}
+                                    className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-lg"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Destination Route</Label>
+                            <Input
+                                placeholder="e.g. Colombo → Kandy → Nuwara Eliya"
+                                value={newMission.destination}
+                                onChange={(e) => setNewMission({ ...newMission, destination: e.target.value })}
+                                className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-lg"
+                            />
+                        </div>
+                        <div className="flex gap-4">
+                            <Button
+                                onClick={handleCreateMission}
+                                disabled={creating || !newMission.driver_name || !newMission.vehicle || !newMission.destination}
+                                className="flex-1 h-14 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-500/20 disabled:opacity-50"
+                            >
+                                {creating ? 'Deploying...' : 'Confirm Deployment'}
+                            </Button>
+                            <Button
+                                onClick={() => setShowCreateForm(false)}
+                                variant="ghost"
+                                className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest px-8"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Live Monitoring Section */}
             <div className="space-y-6">
