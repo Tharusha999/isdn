@@ -821,7 +821,7 @@ export default function ProductsPage() {
                                 </div>
                                 <SheetTrigger asChild>
                                     <Button className="bg-primary hover:bg-primary/90 text-white h-14 px-10 rounded-[2rem] font-black uppercase tracking-widest text-[10px] group">
-                                        Review Order <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                        PURCHASE <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                                     </Button>
                                 </SheetTrigger>
                             </div>
@@ -890,7 +890,7 @@ export default function ProductsPage() {
                                 >
                                     {isCheckingOut ? "Committing To Grid..." : (
                                         <>
-                                            Authorize Requisition <Zap className="ml-2 h-5 w-5 text-amber-500 fill-current" />
+                                            PURCHASE <Zap className="ml-2 h-5 w-5 text-amber-500 fill-current" />
                                         </>
                                     )}
                                 </Button>

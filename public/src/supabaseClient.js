@@ -736,9 +736,21 @@ export const updateMissionStatus = async (missionId, status) => {
 };
 
 export const updateMissionTask = async (taskId, taskData) => {
+  let payload = {};
+  if (typeof taskData === 'boolean') {
+    payload = { completed: taskData };
+  } else {
+    // Map 'done' to 'completed' for compatibility with various components
+    payload = { ...taskData };
+    if (payload.done !== undefined && payload.completed === undefined) {
+      payload.completed = payload.done;
+      delete payload.done;
+    }
+  }
+
   const { data, error } = await supabase
     .from("mission_tasks")
-    .update(taskData)
+    .update(payload)
     .eq("id", taskId)
     .select();
   if (error) throw error;
@@ -756,21 +768,40 @@ export const updateMissionProgress = async (missionId, progress) => {
 };
 
 export const createMission = async (missionData) => {
-  const { data, error } = await supabase.rpc("create_new_mission", {
-    p_id: missionData.id,
-    p_driver_id: missionData.driver_id || null,
-    p_driver_name: missionData.driver_name || "Unassigned",
-    p_vehicle: missionData.vehicle || "N/A",
-    p_current_location: missionData.destination || missionData.current_location || "N/A",
-    p_status: missionData.status || "Pending",
-    p_progress: missionData.progress || 0,
-    p_km_traversed: missionData.km_traversed || "0km",
-    p_fuel_level: missionData.fuel_level || "100%",
-    p_temperature: missionData.temperature || "24°C",
-    p_load_weight: missionData.load_weight || "0kg"
-  });
-  if (error) throw error;
-  return data;
+  const payload = {
+    driver_id: missionData.driver_id || null,
+    driver_name: missionData.driver_name || "Unassigned",
+    vehicle: missionData.vehicle || "N/A",
+    current_location: missionData.destination || missionData.current_location || "N/A",
+    status: missionData.status || "Idle",
+    progress: missionData.progress || 0,
+    km_traversed: missionData.km_traversed || "0km",
+    fuel_level: missionData.telemetry?.fuel || missionData.fuel_level || "100%",
+    temperature: missionData.telemetry?.temp || missionData.temperature || "24°C",
+    load_weight: missionData.telemetry?.load || missionData.load_weight || "0kg"
+  };
+
+  // Only include id if it's explicitly provided
+  if (missionData.id) {
+    payload.id = missionData.id;
+  }
+
+
+  const { data, error } = await supabase
+    .from("missions")
+    .insert([payload])
+    .select();
+
+  if (error) {
+    console.error("Supabase Mission Insert Error:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
+    throw error;
+  }
+  return data[0];
 };
 
 export const fetchDriverUsers = async () => {
@@ -778,15 +809,36 @@ export const fetchDriverUsers = async () => {
     .from("driver_users")
     .select("*")
     .order("full_name", { ascending: true });
+
   if (error) throw error;
-  return data;
+
+  // Map back to application format
+  return (data || []).map(d => ({
+    id: d.id,
+    full_name: d.full_name,
+    username: d.username,
+    email: d.Email,
+    phone: d["Phone Number"],
+    license_number: d.Type,
+    rdc_hub: d.Organization,
+    is_active: d.Status === "Active"
+  }));
 };
 
 export const createMissionTask = async (missionId, taskData) => {
+  const payload = {
+    mission_id: missionId,
+    task_time: taskData.time,
+    task_label: taskData.label,
+    location: taskData.location || "N/A",
+    completed: taskData.done || false
+  };
+
   const { data, error } = await supabase
     .from("mission_tasks")
-    .insert([{ ...taskData, mission_id: missionId }])
+    .insert([payload])
     .select();
+
   if (error) throw error;
   return data[0];
 };
@@ -867,10 +919,11 @@ export const registerCustomerUser = async (customerData) => {
 
 // Login for Driver Users
 export const loginDriver = async (username, password) => {
+  // Use ilike for case-insensitive username match
   const { data, error } = await supabase
     .from("driver_users")
     .select("*")
-    .eq("username", username)
+    .ilike("username", username)
     .eq("password", password)
     .single();
 
@@ -884,7 +937,18 @@ export const loginDriver = async (username, password) => {
     .update({ last_login: new Date().toISOString() })
     .eq("id", data.id);
 
-  return data;
+  // Map to application format
+  return {
+    id: data.id,
+    full_name: data.full_name,
+    username: data.username,
+    email: data.Email,
+    phone: data["Phone Number"],
+    license_number: data.Type,
+    rdc_hub: data.Organization,
+    role: "driver",
+    is_active: data.Status === "Active"
+  };
 };
 
 // Universal Login - Returns user object with role
@@ -981,23 +1045,107 @@ export const createCustomerUser = async (customerData) => {
 
 // Create Driver User
 export const createDriverUser = async (driverData) => {
+  let { username } = driverData;
+  if (username && !username.toLowerCase().includes("@driver.isdn")) {
+    username = `${username}@driver.ISDN`;
+  }
+
+  const payload = {
+    full_name: driverData.full_name,
+    username: username,
+    password: driverData.password,
+    Email: driverData.email,
+    "Phone Number": driverData.phone,
+    Type: driverData.license_number,
+    Organization: driverData.rdc_hub,
+    Status: driverData.is_active ? "Active" : "Inactive"
+  };
+
   const { data, error } = await supabase
     .from("driver_users")
-    .insert([driverData])
+    .insert([payload])
     .select();
+
   if (error) throw error;
-  return data[0];
+  const created = data[0];
+  return {
+    id: created.id,
+    full_name: created.full_name,
+    username: created.username,
+    email: created.Email,
+    phone: created["Phone Number"],
+    license_number: created.Type,
+    rdc_hub: created.Organization,
+    is_active: created.Status === "Active"
+  };
 };
 
 // Update Driver Status
 export const updateDriverStatus = async (driverId, isActive) => {
   const { data, error } = await supabase
     .from("driver_users")
-    .update({ is_active: isActive })
+    .update({ Status: isActive ? "Active" : "Inactive" })
     .eq("id", driverId)
     .select();
+
   if (error) throw error;
-  return data[0];
+  const d = data[0];
+  return {
+    id: d.id,
+    full_name: d.full_name,
+    username: d.username,
+    email: d.Email,
+    phone: d["Phone Number"],
+    license_number: d.Type,
+    rdc_hub: d.Organization,
+    is_active: d.Status === "Active"
+  };
+};
+
+// Update Driver User
+export const updateDriverUser = async (id, driverData) => {
+  let { username } = driverData;
+  if (username && !username.toLowerCase().includes("@driver.isdn")) {
+    username = `${username}@driver.ISDN`;
+  }
+
+  const payload = {};
+  if (driverData.full_name) payload.full_name = driverData.full_name;
+  if (username) payload.username = username;
+  if (driverData.password) payload.password = driverData.password;
+  if (driverData.email !== undefined) payload.Email = driverData.email;
+  if (driverData.phone !== undefined) payload["Phone Number"] = driverData.phone;
+  if (driverData.license_number !== undefined) payload.Type = driverData.license_number;
+  if (driverData.rdc_hub !== undefined) payload.Organization = driverData.rdc_hub;
+  if (driverData.is_active !== undefined) payload.Status = driverData.is_active ? "Active" : "Inactive";
+
+  const { data, error } = await supabase
+    .from("driver_users")
+    .update(payload)
+    .eq("id", id)
+    .select();
+
+  if (error) throw error;
+  const updated = data[0];
+  return {
+    id: updated.id,
+    full_name: updated.full_name,
+    username: updated.username,
+    email: updated.Email,
+    phone: updated["Phone Number"],
+    license_number: updated.Type,
+    rdc_hub: updated.Organization,
+    is_active: updated.Status === "Active"
+  };
+};
+
+// Delete Driver User
+export const deleteDriverUser = async (id) => {
+  const { error } = await supabase
+    .from("driver_users")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 };
 
 // Fetch All Admin Users
@@ -1020,14 +1168,7 @@ export const fetchAllCustomerUsers = async () => {
   return data;
 };
 
-// Fetch All Driver Users
-export const fetchAllDriverUsers = async () => {
-  const { data, error } = await supabase
-    .from("driver_users")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
-};
+// Fetch All Driver Users (Alias)
+export const fetchAllDriverUsers = fetchDriverUsers;
 
 // End of file

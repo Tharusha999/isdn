@@ -90,7 +90,13 @@ export default function DispatchManagementPage() {
             router.push('/dashboard');
         } else {
             loadMissionsData();
-            fetchDriverUsers().then(d => setDrivers(d || [])).catch(() => { });
+            fetchDriverUsers()
+                .then(d => {
+                    setDrivers(d || []);
+                })
+                .catch(err => {
+                    console.error("Dispatch: Error fetching drivers:", err);
+                });
         }
     }, [router]);
 
@@ -148,7 +154,7 @@ export default function DispatchManagementPage() {
 
     const handleUpdateLocation = async (missionId: string, location: string) => {
         try {
-            await updateMission(missionId, { destination: location });
+            await updateMission(missionId, { current_location: location });
             setMissions((prev: Mission[]) => prev.map((m: Mission) => {
                 if (m.id === missionId) {
                     return { ...m, currentLocation: location };
@@ -172,17 +178,17 @@ export default function DispatchManagementPage() {
             const missionId = `RT-${Math.floor(1000 + Math.random() * 9000)}`;
             await createMission({
                 id: missionId,
-                driver_id: newMission.driver_id || null,
+                driver_id: newMission.driver_id,
                 driver_name: newMission.driver_name,
                 vehicle: newMission.vehicle,
                 destination: newMission.destination,
-                status: "Pending",
+                status: "Idle",
                 progress: 0,
                 km_traversed: "0km",
                 telemetry: { fuel: "100%", temp: "24°C", load: "0kg" }
             });
             setShowCreateForm(false);
-            setNewMission({ driver_id: "", driver_name: "", vehicle: "", destination: "", status: "Pending" });
+            setNewMission({ driver_id: "", driver_name: "", vehicle: "", destination: "", status: "Idle" });
             await loadMissionsData();
         } catch (err) {
             console.error("Mission creation failed:", err);
@@ -221,15 +227,20 @@ export default function DispatchManagementPage() {
                                 <select
                                     value={newMission.driver_id}
                                     onChange={(e) => {
-                                        const driver = drivers.find((d: any) => String(d.id) === e.target.value);
+                                        const driver = drivers.find((d: any) => String(d.id || d.username) === e.target.value);
                                         setNewMission({ ...newMission, driver_id: e.target.value, driver_name: driver?.full_name || '' });
                                     }}
                                     className="w-full h-14 rounded-2xl bg-slate-50 border border-black/5 font-bold text-slate-900 px-4 text-sm"
                                 >
                                     <option value="">Select a driver...</option>
-                                    {drivers.map((d: any) => (
-                                        <option key={d.id} value={d.id}>{d.full_name} — {d.Organization || 'Fleet'}</option>
-                                    ))}
+                                    {drivers.map((d: any) => {
+                                        const driverId = d.id || d.username;
+                                        return (
+                                            <option key={driverId} value={driverId}>
+                                                {d.full_name} — {d.username || 'Fleet Node'}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div className="space-y-2">

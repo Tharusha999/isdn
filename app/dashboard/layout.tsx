@@ -40,6 +40,7 @@ export default function DashboardLayout({
         if (pathname === "/dashboard/staff") return "Retailer Portal";
         if (pathname === "/dashboard/management/staff") return "Staff Directory";
         if (pathname === "/dashboard/management/customers") return "Customer Directory";
+        if (pathname === "/dashboard/management/drivers") return "Driver Registry";
         if (pathname === "/dashboard/management/dispatch") return "Dispatch Command Center";
         if (pathname === "/dashboard/management/partners") return "RDC Partners Directory";
         if (pathname === "/dashboard/activity") return "System Activity Feed";

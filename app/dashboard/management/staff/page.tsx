@@ -236,7 +236,7 @@ export default function StaffPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                                        <DropdownMenuItem onClick={() => handleEdit(member)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleEdit(member)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit</DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleRemove(member.id)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Delete</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

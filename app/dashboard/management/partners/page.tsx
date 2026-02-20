@@ -274,7 +274,7 @@ export default function PartnersPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
-                                                        <DropdownMenuItem onClick={() => handleEdit(index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit Node</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleEdit(index)} className="font-bold text-xs uppercase tracking-wider cursor-pointer">Edit </DropdownMenuItem>
                                                         <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider cursor-pointer">Performance Audit</DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleRemove(index)} className="text-red-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Delete</DropdownMenuItem>
                                                     </DropdownMenuContent>
