@@ -284,7 +284,7 @@ export default function AdminsManagementPage() {
                                     onClick={() => setShowModal(false)}
                                     className="flex-1 h-14 rounded-2xl border-black/5 font-black text-[10px] uppercase tracking-widest"
                                 >
-                                    Terminate
+                                    Cancel
                                 </Button>
                                 <Button
                                     onClick={handleSave}
