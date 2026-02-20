@@ -29,7 +29,7 @@ import {
     X,
     TrendingDown
 } from "lucide-react";
-import { fetchProducts, fetchAllProductStocks, updateProduct, updateProductStock, createProductStock } from "@/public/src/supabaseClient";
+import { fetchProducts, fetchAllProductStocks, updateProduct, updateProductStock, createProductStock, createProduct } from "@/public/src/supabaseClient";
 import type { Product } from "@/lib/database-types";
 
 
@@ -70,6 +70,16 @@ export default function InventoryPage() {
         productId: "", productName: "", fromRdc: "", toRdc: "", quantity: 0
     });
     const [transferring, setTransferring] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+    const [newProduct, setNewProduct] = useState({
+        name: "",
+        category: "Packaged Food" as any,
+        price: 0,
+        image: "https://images.unsplash.com/photo-1583258292688-d506b747db62?auto=format&fit=crop&q=80&w=400",
+        description: "",
+        sku: ""
+    });
 
     // Derive RDC list dynamically from the database (distinct rdc values from product_stock)
     const rdcs: string[] = Array.from(new Set(allStocks.map(s => s.rdc))).sort();
@@ -190,6 +200,61 @@ export default function InventoryPage() {
             quantity: 1
         });
         setShowTransferModal(true);
+    };
+
+    const handleCreateProduct = async () => {
+        if (!newProduct.name || newProduct.price <= 0) {
+            alert("Please provide a valid product name and price.");
+            return;
+        }
+
+        setIsCreatingProduct(true);
+        try {
+            // 1. Create the product
+            const sku = newProduct.sku || `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            const productId = crypto.randomUUID();
+            const created = await createProduct({
+                id: productId,
+                name: newProduct.name,
+                sku: sku,
+                category: newProduct.category,
+                price: newProduct.price,
+                image: newProduct.image,
+                description: newProduct.description,
+                stock: 0 // Initial master stock
+            });
+
+            // 2. Initialize stock entries for each RDC with 0 quantity
+            if (rdcs.length > 0) {
+                for (const rdc of rdcs) {
+                    await createProductStock(created.id, rdc, 0);
+                }
+            } else {
+                // Fallback to default RDCs if none exist in DB yet
+                const defaultRdcs = ['North (Jaffna)', 'South (Galle)', 'East (Trincomalee)', 'West (Colombo)', 'Central (Kandy)'];
+                for (const rdc of defaultRdcs) {
+                    await createProductStock(created.id, rdc, 0);
+                }
+            }
+
+            setShowAddModal(false);
+            setNewProduct({
+                name: "",
+                category: "Packaged Food" as any,
+                price: 0,
+                image: "https://images.unsplash.com/photo-1583258292688-d506b747db62?auto=format&fit=crop&q=80&w=400",
+                description: "",
+                sku: ""
+            });
+            await loadData(false);
+            alert(`Product '${created.name}' created and synchronized across the network.`);
+        } catch (err: any) {
+            console.error("Failed to create product:", err);
+            const detail = err.message || "Unknown database error";
+            alert(`Failed to register new product: ${detail}`);
+        } finally {
+            setIsCreatingProduct(false);
+        }
     };
 
     const executeTransfer = async () => {
@@ -346,9 +411,16 @@ export default function InventoryPage() {
                         />
                     </div>
                     <Button
+                        onClick={() => setShowAddModal(true)}
+                        className="h-14 px-8 rounded-2xl bg-black text-white font-black uppercase text-[10px] tracking-widest shadow-xl hover:shadow-black/20"
+                    >
+                        <Package className="mr-2 h-4 w-4" />
+                        Add Product
+                    </Button>
+                    <Button
                         onClick={handleSync}
                         disabled={isSyncing}
-                        className="h-14 px-6 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest"
+                        className="h-14 px-6 rounded-2xl bg-white border border-black/5 hover:bg-slate-50 text-slate-900 font-black uppercase text-[10px] tracking-widest"
                     >
                         <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                         {isSyncing ? "Syncing..." : "Refresh"}
@@ -560,6 +632,88 @@ export default function InventoryPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Add Product Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[3rem] shadow-2xl p-12 w-full max-w-2xl space-y-10 animate-in fade-in zoom-in-95 duration-300">
+                        <div>
+                            <h2 className="text-3xl font-black uppercase tracking-tighter italic text-slate-900">Register New Inventory</h2>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">Initialize a new product across the distribution grid.</p>
+                        </div>
+
+                        <div className="grid gap-8 md:grid-cols-2">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Product Descriptor</label>
+                                <Input 
+                                    placeholder="e.g. Premium Basmati Rice"
+                                    value={newProduct.name}
+                                    onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                                    className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Category Node</label>
+                                <select 
+                                    value={newProduct.category}
+                                    onChange={e => setNewProduct({...newProduct, category: e.target.value as any})}
+                                    className="w-full h-14 rounded-2xl border border-black/10 px-6 font-bold text-sm bg-slate-50/50"
+                                >
+                                    <option>Packaged Food</option>
+                                    <option>Beverages</option>
+                                    <option>Home Cleaning</option>
+                                    <option>Personal Care</option>
+                                </select>
+                            </div>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unit Valuation (Rs.)</label>
+                                <Input 
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newProduct.price}
+                                    onChange={e => setNewProduct({...newProduct, price: parseFloat(e.target.value) || 0})}
+                                    className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Asset SKU (Leave blank for auto)</label>
+                                <Input 
+                                    placeholder="ISO-XXXXXX"
+                                    value={newProduct.sku}
+                                    onChange={e => setNewProduct({...newProduct, sku: e.target.value})}
+                                    className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
+                                />
+                            </div>
+                            <div className="md:col-span-2 space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Visual Representation URL</label>
+                                <Input 
+                                    placeholder="https://..."
+                                    value={newProduct.image}
+                                    onChange={e => setNewProduct({...newProduct, image: e.target.value})}
+                                    className="h-14 rounded-2xl font-bold border-black/10 bg-slate-50/50"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => setShowAddModal(false)}
+                                className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400"
+                            >
+                                Abort Initialization
+                            </Button>
+                            <Button 
+                                onClick={handleCreateProduct}
+                                disabled={isCreatingProduct}
+                                className="flex-1 h-14 rounded-2xl bg-black text-white font-black uppercase text-[10px] tracking-widest shadow-2xl"
+                            >
+                                {isCreatingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="mr-2 h-5 w-5" />Authorized Creation</>}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Transfer Modal */}
             {showTransferModal && (

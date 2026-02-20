@@ -29,6 +29,7 @@ import {
 import { RDCPartner } from "../../partners/data";
 import Link from "next/link";
 import { fetchPartners } from "@/public/src/supabaseClient";
+import { createPartner, updatePartner, deletePartner } from "@/public/src/partnerActions";
 
 export default function PartnersPage() {
     const [partnerList, setPartnerList] = useState<RDCPartner[]>([]);
@@ -36,6 +37,7 @@ export default function PartnersPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [search, setSearch] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState<RDCPartner>({
         id: "",
         name: "",
@@ -98,21 +100,63 @@ export default function PartnersPage() {
         setShowModal(true);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!form.name || !form.type || !form.hub || !form.email || !form.phone) return;
 
-        if (editingIndex !== null) {
-            const updated = [...partnerList];
-            updated[editingIndex] = form;
-            setPartnerList(updated);
-        } else {
-            setPartnerList([...partnerList, form]);
+        setIsSaving(true);
+        try {
+            if (editingIndex !== null) {
+                const partnerId = partnerList[editingIndex].id;
+                await updatePartner(partnerId, {
+                    name: form.name,
+                    type: form.type,
+                    hub: form.hub,
+                    contact: form.contact,
+                    email: form.email,
+                    phone: form.phone,
+                    status: form.status,
+                    updated_at: new Date().toISOString()
+                });
+            } else {
+                const newId = `RDC-${Math.floor(Math.random() * 899) + 101}`;
+                await createPartner({
+                    id: newId,
+                    name: form.name,
+                    type: form.type,
+                    hub: form.hub,
+                    contact: form.contact,
+                    email: form.email,
+                    phone: form.phone,
+                    status: form.status,
+                    rating: 5.0,
+                    contract_start: new Date().toISOString().split('T')[0],
+                    contract_end: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                    agreement_type: "Standard",
+                    compliance_score: 100
+                });
+            }
+            await loadPartners();
+            handleClose();
+        } catch (err: any) {
+            console.error("Error saving partner:", err);
+            const detail = err.message || "Unknown database error";
+            alert(`Failed to save partner: ${detail}`);
+        } finally {
+            setIsSaving(false);
         }
-        handleClose();
     };
 
-    const handleRemove = (index: number) => {
-        setPartnerList(partnerList.filter((_, i) => i !== index));
+    const handleRemove = async (index: number) => {
+        if (!confirm("Are you sure you want to terminate this partnership sync?")) return;
+        
+        try {
+            const partnerId = partnerList[index].id;
+            await deletePartner(partnerId);
+            await loadPartners();
+        } catch (err) {
+            console.error("Error removing partner:", err);
+            alert("Failed to remove partner from the database.");
+        }
     };
 
     const filtered = partnerList.filter(
@@ -272,13 +316,19 @@ export default function PartnersPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Designated Hub / Region</Label>
-                                <Input
-                                    placeholder="e.g. Central Hub"
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Distribution Center (RDC)</Label>
+                                <select
                                     value={form.hub}
                                     onChange={(e) => setForm({ ...form, hub: e.target.value })}
-                                    className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
-                                />
+                                    className="w-full h-12 rounded-xl bg-slate-50 border border-black/5 px-4 font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/5 cursor-pointer"
+                                >
+                                    <option value="">Select a Hub</option>
+                                    <option value="North (Jaffna)">North (Jaffna)</option>
+                                    <option value="South (Galle)">South (Galle)</option>
+                                    <option value="East (Trincomalee)">East (Trincomalee)</option>
+                                    <option value="West (Colombo)">West (Colombo)</option>
+                                    <option value="Central (Kandy)">Central (Kandy)</option>
+                                </select>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Contact Person</Label>
@@ -298,7 +348,7 @@ export default function PartnersPage() {
                                 >
                                     <option value="Active">Active</option>
                                     <option value="Review">Review</option>
-                                    <option value="Offline">Offline</option>
+                                    <option value="Inactive">Inactive</option>
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -334,10 +384,10 @@ export default function PartnersPage() {
                             </Button>
                             <Button
                                 onClick={handleSubmit}
-                                disabled={!form.name || !form.type || !form.hub || !form.email || !form.phone}
+                                disabled={isSaving || !form.name || !form.type || !form.hub || !form.email || !form.phone}
                                 className="flex-1 h-12 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-xl px-2"
                             >
-                                {editingIndex !== null ? "Save Changes" : "Register Partner"}
+                                {isSaving ? <Plus className="h-4 w-4 animate-spin" /> : (editingIndex !== null ? "Save Changes" : "Register Partner")}
                             </Button>
                         </div>
                     </div>

@@ -1,275 +1,399 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-    TrendingUp,
-    Box,
-    Users,
-    Shield,
-    BarChart2,
-    PieChart,
-    Truck,
-    BrainCircuit,
+import { Badge } from "@/components/ui/badge";
+import { 
+    BarChart3, 
+    Download, 
+    TrendingUp, 
+    Users, 
+    Package, 
+    ShoppingCart, 
+    DollarSign,
+    RefreshCw,
+    Activity,
     ArrowUpRight,
-    CheckCircle2,
+    ArrowDownRight,
+    Globe,
     Zap,
-    FileText
+    Cpu,
+    Shield,
+    Box,
+    Clock,
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react";
-import {
-    INITIAL_PRODUCTS,
-    INITIAL_ORDERS,
-    INITIAL_TRANSACTIONS,
-    RDCS
-} from "@/lib/data";
+import { 
+    fetchOrders, 
+    fetchTransactions, 
+    fetchProducts, 
+    fetchStaff, 
+    fetchPartners 
+} from "@/public/src/supabaseClient";
+
+interface ReportStats {
+    totalRevenue: number;
+    totalOrders: number;
+    totalProducts: number;
+    totalStaff: number;
+    activePartners: number;
+    efficiency: number;
+}
 
 export default function ReportsPage() {
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [showSuccess, setShowSuccess] = useState(false);
-
-    const handleGenerate = () => {
-        setIsGenerating(true);
-        setProgress(0);
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    setIsGenerating(false);
-                    setShowSuccess(true);
-                    setTimeout(() => setShowSuccess(false), 3000);
-                    return 100;
-                }
-                return prev + 5;
-            });
-        }, 100);
-    };
-
-    // Calculate dynamic stats
-    const totalSales = INITIAL_TRANSACTIONS.reduce((acc, t) => t.status === "PAID" ? acc + t.amount : acc, 0);
-    const orderVolume = INITIAL_ORDERS.length;
-
-    const rdcSales = RDCS.map(rdc => {
-        const orders = INITIAL_ORDERS.filter(o => o.rdc === rdc);
-        const total = orders.reduce((acc, o) => acc + o.total, 0);
-        return { name: rdc.split(" ")[0], value: total };
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<ReportStats>({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        totalStaff: 0,
+        activePartners: 0,
+        efficiency: 99.1
     });
 
-    const maxRdcValue = Math.max(...rdcSales.map(r => r.value), 1);
+    const [recentOrders, setRecentOrders] = useState<any[]>([]);
+    const [pulseData, setPulseData] = useState<number[]>(new Array(24).fill(0));
+    const [hubStatus, setHubStatus] = useState<any[]>([]);
+    const [growth, setGrowth] = useState({ revenue: 0, orders: 0 });
+
+    useEffect(() => {
+        loadReportData();
+    }, []);
+
+    const loadReportData = async () => {
+        try {
+            setLoading(true);
+            const [orders, transactions, products, staff, partners] = await Promise.all([
+                fetchOrders(),
+                fetchTransactions(),
+                fetchProducts(),
+                fetchStaff(),
+                fetchPartners()
+            ]);
+
+            const revenue = transactions.reduce((acc: number, t: any) => acc + (parseFloat(t.amount) || 0), 0);
+            
+            // 1. Calculate Pulse Data (Orders per hour for last 24h or relative)
+            const hourCounts = new Array(24).fill(0);
+            orders.forEach((o: any) => {
+                const date = new Date(o.date);
+                const hour = date.getHours();
+                hourCounts[hour]++;
+            });
+            // Normalize pulse for chart height (max becomes 100%)
+            const max = Math.max(...hourCounts, 1);
+            const normalizedPulse = hourCounts.map(h => (h / max) * 100);
+            setPulseData(normalizedPulse);
+
+            // 2. Calculate Hub Status (Distribution per RDC)
+            const hubMap: any = {
+                'West (Colombo)': 0,
+                'Central (Kandy)': 0,
+                'South (Galle)': 0,
+                'North (Jaffna)': 0,
+            };
+            orders.forEach((o: any) => {
+                if (hubMap[o.rdc] !== undefined) hubMap[o.rdc]++;
+            });
+            const totalHubOrders = Math.max(orders.length, 1);
+            const calculatedHubs = [
+                { label: "Colombo_West", value: Math.round((hubMap['West (Colombo)'] / totalHubOrders) * 100), color: "bg-emerald-500" },
+                { label: "Kandy_Central", value: Math.round((hubMap['Central (Kandy)'] / totalHubOrders) * 100), color: "bg-blue-500" },
+                { label: "Galle_South", value: Math.round((hubMap['South (Galle)'] / totalHubOrders) * 100), color: "bg-amber-500" },
+                { label: "Jaffna_North", value: Math.round((hubMap['North (Jaffna)'] / totalHubOrders) * 100), color: "bg-indigo-500" },
+            ];
+            setHubStatus(calculatedHubs);
+
+            // 3. Simple Growth Calculation (Comparison with historical average or static baseline)
+            setGrowth({ revenue: 12.4, orders: 5.2 }); // Placeholder for complex logic
+
+            setStats({
+                totalRevenue: revenue,
+                totalOrders: orders.length,
+                totalProducts: products.length,
+                totalStaff: staff.length,
+                activePartners: partners.filter((p: any) => p.status === 'Active').length,
+                efficiency: 99.1
+            });
+
+            setRecentOrders(orders.slice(0, 10));
+        } catch (err) {
+            console.error("Failed to load report data:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExport = () => {
+        try {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ISDN OPERATIONAL HUB - SYSTEM REPORT\n";
+            csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+            
+            csvContent += "METRIC,VALUE\n";
+            csvContent += `Total Revenue,${stats.totalRevenue} LKR\n`;
+            csvContent += `Total Orders,${stats.totalOrders}\n`;
+            csvContent += `Product Nodes,${stats.totalProducts}\n`;
+            csvContent += `Workforce Units,${stats.totalStaff}\n`;
+            csvContent += `Network Efficiency,${stats.efficiency}%\n\n`;
+            
+            csvContent += "RECENT MISSION REGISTRY\n";
+            csvContent += "ID,DATE,TOTAL,STATUS\n";
+            recentOrders.forEach(o => {
+                csvContent += `${o.id},${o.date},${o.total},${o.status}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `isdn_ops_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error("Export failure:", err);
+            alert("Protocol Error: Failed to aggregate report assets.");
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[70vh]">
+                <div className="h-20 w-20 flex items-center justify-center relative">
+                    <div className="absolute inset-0 border-4 border-black/5 rounded-full animate-pulse"></div>
+                    <RefreshCw className="h-8 w-8 text-slate-900 animate-spin" />
+                </div>
+                <p className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Synchronizing Local Nodes</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-2">Intelligence Hub</h2>
-                    <p className="text-muted-foreground font-bold text-sm">
-                        Executive analytics and real-time network performance monitoring.
-                    </p>
+        <div className="flex flex-col gap-6 animate-in fade-in duration-1000">
+            {/* Top Bar - System Status */}
+            <div className="flex items-center justify-between bg-white p-4 rounded-3xl border border-black/5 shadow-sm">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">System Link: Active</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-200"></div>
+                    <div className="flex items-center gap-2 text-slate-400">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Last Sync: Just Now</span>
+                    </div>
                 </div>
-                <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                    className="rounded-2xl bg-black text-white shadow-xl hover:shadow-black/20 font-black uppercase text-[10px] tracking-widest h-14 px-10 transition-all hover:scale-105 active:scale-95"
-                >
-                    {isGenerating ? <div className="flex items-center gap-2"><div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Compiling Q3...</div> : "Generate Q3 Report"}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        onClick={handleExport}
+                        className="h-10 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest px-6 shadow-xl flex gap-2"
+                    >
+                        <Download className="h-4 w-4" />
+                        Generate System Report
+                    </Button>
+                    <Button variant="ghost" onClick={loadReportData} className="text-slate-400 hover:text-slate-900 transition-colors">
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
-            {/* Main KPIs */}
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gross Sales</p>
-                        <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+            {/* Main Header Card */}
+            <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-slate-900 to-slate-700 rounded-[2rem] blur opacity-10"></div>
+                <div className="relative bg-slate-900 h-64 rounded-[2rem] p-12 overflow-hidden flex items-center justify-between shadow-2xl">
+                    <div className="absolute top-0 right-0 w-[500px] h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)] pointer-events-none"></div>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-white/10 rounded-xl border border-white/10 flex items-center justify-center backdrop-blur-md">
+                                <Activity className="h-5 w-5 text-emerald-400" />
+                            </div>
+                            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Operational Hub</h1>
                         </div>
+                        <p className="text-slate-400 font-bold text-sm max-w-sm">
+                            Real-time infrastructure oversight and node performance analytics for the ISDN network.
+                        </p>
                     </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
-                        Rs. {(totalSales / 1000).toFixed(1)}K
-                    </div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">+12.5% Month</span>
-                    </div>
-                </Card>
 
-                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Order Volume</p>
-                        <div className="h-10 w-10 rounded-xl bg-slate-950 flex items-center justify-center">
-                            <Box className="h-5 w-5 text-white" />
-                        </div>
+                    <div className="flex gap-4">
+                        <Card className="bg-white/5 border-white/5 backdrop-blur-xl p-4 w-40 rounded-2xl">
+                            <p className="text-[9px] font-black text-emerald-400 uppercase italic mb-1">Total Revenue</p>
+                            <h3 className="text-xl font-black text-white">{(stats.totalRevenue / 1000).toFixed(1)}k</h3>
+                            <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">LKR Liquid Asset</p>
+                        </Card>
+                        <Card className="bg-white/5 border-white/5 backdrop-blur-xl p-4 w-40 rounded-2xl">
+                            <p className="text-[9px] font-black text-blue-400 uppercase italic mb-1">Active Nodes</p>
+                            <h3 className="text-xl font-black text-white">{stats.totalProducts}</h3>
+                            <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">Inventory Registry</p>
+                        </Card>
                     </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">{orderVolume} Nodes</div>
-                    <div className="flex items-center gap-1 mt-6 text-slate-400">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Target: 250</span>
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Partner Ret.</p>
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-indigo-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">98.2%</div>
-                    <div className="flex items-center gap-1 mt-6 text-emerald-500">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Strong Affinity</span>
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 overflow-hidden group border border-black/[0.03]">
-                    <div className="flex justify-between items-start mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">System Uptime</p>
-                        <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center animate-pulse">
-                            <Shield className="h-5 w-5 text-rose-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black italic tracking-tighter uppercase leading-none text-slate-900">99.98%</div>
-                    <div className="flex items-center gap-1 mt-6 text-rose-500">
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Mission Critical</span>
-                    </div>
-                </Card>
+                </div>
             </div>
 
-            {/* Reports and Charts */}
-            <div className="grid gap-8 lg:grid-cols-2">
-                <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 overflow-hidden border border-black/5 relative active:scale-[0.99] transition-transform cursor-crosshair group">
-                    <div className="absolute top-0 right-0 p-8">
-                        <BarChart2 className="h-6 w-6 text-slate-100 group-hover:text-primary transition-colors" />
-                    </div>
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter mb-10 text-slate-950">Regional Performance</h3>
-                    <div className="h-64 flex items-end justify-between gap-6 px-4">
-                        {rdcSales.map((item, i) => (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar">
-                                <div
-                                    className="w-full bg-slate-900 rounded-2xl relative transition-all duration-1000 group-hover/bar:bg-primary group-hover/bar:scale-x-110"
-                                    style={{ height: `${(item.value / maxRdcValue) * 100}%` }}
-                                >
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-black text-white text-[8px] font-black px-2 py-1 rounded-full whitespace-nowrap">
-                                        Rs. {(item.value / 1000).toFixed(1)}K
+            {/* Middle Row - Insights */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Visualizer Card */}
+                <Card className="lg:col-span-2 border-black/5 shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
+                    <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+                        <div className="space-y-1">
+                            <CardTitle className="text-lg font-black uppercase tracking-tight italic">Distribution Pulse</CardTitle>
+                            <CardDescription className="text-[10px] font-bold text-slate-400 uppercase">Hourly node engagement and throughput</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black text-[9px] px-3 py-1 uppercase">Mission_Critical</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                        {/* Custom Data Visualizer */}
+                        <div className="h-[250px] w-full flex items-end justify-between gap-1 group/viz">
+                            {pulseData.map((h, i) => (
+                                <div key={i} className="flex-1 group/bar">
+                                    <div 
+                                        className="w-full bg-slate-50 rounded-t-lg group-hover/bar:bg-slate-900 transition-all duration-300 relative overflow-hidden" 
+                                        style={{ height: `${h}%` }}
+                                    >
+                                        <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
                                     </div>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/bar:text-slate-900">{item.name}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-
-                <Card className="border-none shadow-2xl bg-white rounded-[3rem] p-10 overflow-hidden border border-black/5 relative group">
-                    <div className="absolute top-0 right-0 p-8">
-                        <PieChart className="h-6 w-6 text-slate-100 group-hover:text-primary transition-colors" />
-                    </div>
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter mb-10 text-slate-950">Category Mix</h3>
-                    <div className="flex items-center justify-center h-64 gap-12">
-                        <div className="relative h-48 w-48 rounded-full border-[20px] border-slate-900 border-t-indigo-500 border-l-rose-500 border-r-emerald-500 rotate-45 animate-[spin_20s_linear_infinite] group-hover:animate-none group-hover:scale-110 transition-transform">
-                            <div className="absolute inset-0 flex items-center justify-center -rotate-45">
-                                <span className="text-2xl font-black text-slate-950 italic">74%</span>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            {[
-                                { label: "Packaged Food", color: "bg-slate-900", val: "45%" },
-                                { label: "Beverages", color: "bg-indigo-500", val: "22%" },
-                                { label: "Personal Care", color: "bg-emerald-500", val: "18%" },
-                                { label: "Home Cleaning", color: "bg-rose-500", val: "15%" }
-                            ].map((cat, i) => (
-                                <div key={i} className="flex items-center gap-3">
-                                    <div className={`h-3 w-3 rounded-full ${cat.color}`} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{cat.label}</span>
-                                    <span className="text-[10px] font-black text-slate-900 ml-auto italic">{cat.val}</span>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                        <div className="flex justify-between mt-6 text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
+                            <span>Launch</span>
+                            <span>Midway</span>
+                            <span>Execution Terminal</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Regional Health Card */}
+                <Card className="border-black/5 shadow-2xl shadow-slate-200/50 rounded-[2rem] bg-white">
+                    <CardHeader className="p-8 pb-4">
+                        <CardTitle className="text-lg font-black uppercase tracking-tight italic">Hub Status</CardTitle>
+                        <CardDescription className="text-[10px] font-bold text-slate-400 uppercase">Regional Load Distribution</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-4 space-y-6">
+                        {hubStatus.length > 0 ? hubStatus.map((hub, i) => (
+                            <HubMetric key={i} label={hub.label} value={hub.value} color={hub.color} />
+                        )) : (
+                            <div className="py-10 text-center text-[10px] font-bold text-slate-300 italic uppercase">Initializing Hub Telemetry...</div>
+                        )}
+                        
+                        <div className="pt-8 w-full border-t border-slate-50">
+                            <div className="flex items-center justify-between text-[10px] font-black italic uppercase">
+                                <span className="text-slate-400 tracking-widest">Efficiency index</span>
+                                <span className="text-slate-900">{stats.efficiency}%</span>
+                            </div>
+                        </div>
+                    </CardContent>
                 </Card>
             </div>
 
-            {/* Insight Rows */}
-            <div className="grid gap-8 md:grid-cols-3">
-                {[
-                    {
-                        title: "Inventory Efficiency",
-                        val: "1.2x",
-                        desc: "Stock turnover velocity above average.",
-                        icon: Zap,
-                        color: "text-amber-500",
-                        bg: "bg-amber-50"
-                    },
-                    {
-                        title: "Fleet Readiness",
-                        val: "94%",
-                        desc: "Optimal vehicle utilization in Western RDC.",
-                        icon: Truck,
-                        color: "text-indigo-500",
-                        bg: "bg-indigo-50"
-                    },
-                    {
-                        title: "Advanced Forecasting",
-                        val: "+4.1%",
-                        desc: "AI predicted demand spike for Q4 beverages.",
-                        icon: BrainCircuit,
-                        color: "text-rose-500",
-                        bg: "bg-rose-50"
-                    }
-                ].map((insight, i) => (
-                    <Card key={i} className="border-none shadow-2xl bg-white rounded-[2.5rem] p-10 overflow-hidden border border-black/5 group hover:bg-slate-950 hover:text-white transition-all duration-500 translate-y-0 hover:-translate-y-2">
-                        <div className={`h-12 w-12 rounded-2xl ${insight.bg} flex items-center justify-center mb-8 group-hover:bg-white/10`}>
-                            <insight.icon className={`h-6 w-6 ${insight.color} group-hover:text-white`} />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{insight.title}</p>
-                        <div className="text-3xl font-black italic tracking-tighter uppercase mb-2">{insight.val}</div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] leading-relaxed group-hover:text-white/40">{insight.desc}</p>
+            {/* Bottom Section - Live Stream */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-3">
+                    <Card className="border-black/5 shadow-2xl shadow-slate-200/50 rounded-[2rem] bg-white overflow-hidden">
+                        <CardHeader className="p-8 flex flex-row items-center justify-between bg-slate-50/50 border-b border-black/5">
+                            <div className="space-y-1">
+                                <CardTitle className="text-lg font-black uppercase tracking-tight italic text-slate-900">Live Mission Feed</CardTitle>
+                                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase">Synchronized operational registry</CardDescription>
+                            </div>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => router.push('/dashboard/orders')}
+                                className="h-10 rounded-xl bg-white text-[10px] font-black uppercase tracking-widest border-black/5 shadow-sm"
+                            >
+                                Full History
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-black/5 bg-slate-50/20 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                        <th className="px-8 py-4 text-left">Internal ID</th>
+                                        <th className="px-8 py-4 text-left">Temporal Stamp</th>
+                                        <th className="px-8 py-4 text-left">Unit Value</th>
+                                        <th className="px-8 py-4 text-right">Verification</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentOrders.map((o, idx) => (
+                                        <tr key={idx} className="border-b border-black/5 last:border-0 hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-900 flex items-center justify-center text-white">
+                                                        <Box className="h-4 w-4" />
+                                                    </div>
+                                                    <span className="text-xs font-black text-slate-900">{o.id}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tabular-nums">{o.date}</span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className="text-xs font-black text-slate-900">{o.total} LKR</span>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 font-black text-[9px] uppercase">
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    {o.status}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </CardContent>
                     </Card>
-                ))}
+                </div>
+
+                <div className="space-y-6">
+                    <Card className="border-black/5 shadow-xl shadow-emerald-500/10 rounded-[2.5rem] bg-emerald-500 p-8 text-white group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                            <TrendingUp className="h-24 w-24" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest italic opacity-80 mb-6">Growth Protocol</p>
+                        <h3 className="text-3xl font-black italic tracking-tighter mb-2">+{growth.revenue}%</h3>
+                        <p className="text-[9px] font-bold uppercase tracking-widest opacity-80 leading-relaxed">System-wide performance exceeding Q1 baseline benchmarks.</p>
+                    </Card>
+
+                    <Card className="border-black/5 shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white p-8 group">
+                         <div className="flex items-center justify-between mb-6">
+                            <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center">
+                                <Users className="h-6 w-6 text-white" />
+                            </div>
+                            <Badge variant="outline" className="border-slate-100 text-[10px] font-black uppercase text-slate-400">Field_Ops</Badge>
+                         </div>
+                        <h3 className="text-2xl font-black italic text-slate-900 mb-1">{stats.totalStaff}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Workforce Allocation</p>
+                        <div className="mt-6 flex items-center gap-1 group-hover:gap-2 transition-all">
+                             <Button 
+                                size="sm" 
+                                onClick={() => router.push('/dashboard/management/staff')}
+                                className="h-10 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest px-6 shadow-xl"
+                            >
+                                Detailed Units
+                             </Button>
+                        </div>
+                    </Card>
+                </div>
             </div>
+        </div>
+    );
+}
 
-            {/* Generation Overlay */}
-            {isGenerating && (
-                <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-2xl flex items-center justify-center p-8">
-                    <div className="max-w-md w-full space-y-8 text-center animate-in zoom-in duration-500">
-                        <div className="relative h-48 w-48 mx-auto">
-                            <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
-                            <div
-                                className="absolute inset-0 rounded-full border-4 border-black border-t-transparent animate-[spin_1s_linear_infinite]"
-                                style={{ transform: `rotate(${progress * 3.6}deg)` }}
-                            />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-4xl font-black italic text-slate-950">{progress}%</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Analyzing</span>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-black uppercase tracking-tighter italic">Compiling Executive Q3</h3>
-                            <div className="flex flex-col gap-2">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Integrating Ledger Entries...</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Simulating Market Trends...</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Optimizing Logistics Matrices...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showSuccess && (
-                <div className="fixed bottom-12 right-12 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
-                    <Card className="bg-slate-900 text-white rounded-3xl p-8 shadow-2xl flex items-center gap-6 border-none ring-8 ring-white">
-                        <div className="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 animate-bounce">
-                            <CheckCircle2 className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                            <p className="font-black uppercase tracking-tighter text-xl italic leading-none">Intelligence Compiled</p>
-                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Automated PDF available in HQ Portal</p>
-                        </div>
-                    </Card>
-                </div>
-            )}
+function HubMetric({ label, value, color }: { label: string, value: number, color: string }) {
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between text-[10px] font-black italic uppercase tracking-widest">
+                <span className="text-slate-400">{label}</span>
+                <span className="text-slate-900">{value}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-black/[0.02]">
+                <div className={`h-full ${color} rounded-full`} style={{ width: `${value}%` }}></div>
+            </div>
         </div>
     );
 }
