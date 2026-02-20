@@ -22,6 +22,10 @@ import {
     Trash2,
     Edit2,
     Check,
+    CreditCard,
+    Clock,
+    Receipt,
+    CheckCircle2,
 } from "lucide-react";
 import {
     Sheet,
@@ -81,6 +85,23 @@ export default function ProductsPage() {
         setRole(storedRole);
         loadProducts();
     }, []);
+
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
+
+    const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
+    const cartTotal = Object.entries(cart).reduce((total, [id, qty]) => {
+        const product = products.find(p => p.id === id);
+        return total + (product?.price || 0) * qty;
+    }, 0);
+
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + 2);
+
+    const isAdmin = role === "admin";
 
     const loadProducts = async () => {
         try {
@@ -213,6 +234,51 @@ export default function ProductsPage() {
         }
     };
 
+    const [orderInfo, setOrderInfo] = useState<{ 
+        id: string, 
+        total: number, 
+        date: string, 
+        eta: string, 
+        invoice: string, 
+        method: string,
+        items: { name: string, quantity: number, price: number }[]
+    } | null>(null);
+
+    const downloadReceipt = () => {
+        if (!orderInfo) return;
+
+        // CSV Headers
+        const headers = ["Order ID", "Invoice", "Date", "Customer", "Product Name", "Quantity", "Unit Price (Rs.)", "Line Total (Rs.)", "Grand Total (Rs.)", "Payment Method", "Estimated Arrival"];
+        
+        // CSV Rows
+        const rows = (orderInfo.items || []).map(item => [
+            orderInfo.id,
+            orderInfo.invoice,
+            orderInfo.date,
+            localStorage.getItem("profileName") || "Retail Partner",
+            item.name || "Unknown Product",
+            item.quantity || 0,
+            item.price || 0,
+            (item.price || 0) * (item.quantity || 0),
+            orderInfo.total,
+            orderInfo.method,
+            orderInfo.eta
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        ].join("\n");
+
+        const element = document.createElement("a");
+        const file = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        element.href = URL.createObjectURL(file);
+        element.download = `Transaction_${orderInfo.id}.csv`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
+
     const handleCheckout = async () => {
         try {
             setIsCheckingOut(true);
@@ -247,6 +313,15 @@ export default function ProductsPage() {
                 };
             });
 
+            const itemsWithNames = Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return {
+                    name: product?.name || "Unknown Product",
+                    quantity: qty,
+                    price: product?.price || 0
+                };
+            });
+
             const transactionData = {
                 id: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
                 customer: localStorage.getItem("profileName") || "Retail Partner",
@@ -259,6 +334,15 @@ export default function ProductsPage() {
             await createOrderWithItems(orderData, itemsData, transactionData);
             await loadProducts();
 
+            setOrderInfo({
+                id: orderId,
+                total: cartTotal,
+                date: orderData.date,
+                eta: orderData.eta,
+                invoice: transactionData.id,
+                method: transactionData.method,
+                items: itemsWithNames
+            });
             setShowSuccess(true);
             setCart({});
         } catch (err: any) {
@@ -285,51 +369,119 @@ export default function ProductsPage() {
         }
     };
 
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
 
-    const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
-    const cartTotal = Object.entries(cart).reduce((total, [id, qty]) => {
-        const product = products.find(p => p.id === id);
-        return total + (product?.price || 0) * qty;
-    }, 0);
-
-    const estimatedDelivery = new Date();
-    estimatedDelivery.setDate(estimatedDelivery.getDate() + 2);
-
-    const isAdmin = role === "admin";
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Success Overlay */}
-            {showSuccess && (
-                <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500">
-                    <div className="max-w-md w-full text-center space-y-10">
-                        <div className="h-24 w-24 bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl animate-bounce border border-white/20">
-                            <Zap className="h-10 w-10 text-primary fill-current" />
-                        </div>
-                        <div className="space-y-3">
-                            <h2 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">Order Established</h2>
-                            <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest">Network Synchronisation Complete</p>
-                        </div>
-                        <Card className="bg-white border-black/5 shadow-2xl p-10 rounded-[3rem]">
-                            <div className="flex flex-col items-center gap-6">
-                                <div className="h-16 w-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                    <Calendar className="h-8 w-8 text-indigo-600" />
+            {showSuccess && orderInfo && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-500">
+                    <div className="max-w-2xl w-full bg-white rounded-[3rem] shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] overflow-hidden scale-in-95 animate-in zoom-in-95 duration-500 border border-white/20">
+                        <div className="flex flex-col md:flex-row h-full">
+                            {/* Left Side: Status & Hero */}
+                            <div className="w-full md:w-5/12 bg-slate-900 p-10 text-white flex flex-col justify-between relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <Zap className="h-40 w-40 rotate-12" />
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Expected Trajectory</p>
-                                    <p className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">{estimatedDelivery.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                    <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full mt-3">24-48 HOUR GUARANTEE</Badge>
+                                
+                                <div className="relative z-10">
+                                    <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center mb-8 backdrop-blur-md">
+                                        <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                                    </div>
+                                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none mb-4">
+                                        Order <br />Confirmed
+                                    </h2>
+                                    <p className="text-white/40 font-black uppercase text-[10px] tracking-widest leading-relaxed">
+                                        Your transaction has been <br />validated across the <br />network mesh.
+                                    </p>
+                                </div>
+
+                                <div className="relative z-10 pt-12">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Node Synchronized</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Inventory Reserved</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </Card>
-                        <Button size="lg" onClick={() => setShowSuccess(false)} className="bg-slate-900 text-white hover:bg-black w-full h-18 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20">
-                            Back to Network Hub
-                        </Button>
+
+                            {/* Right Side: Details */}
+                            <div className="w-full md:w-7/12 p-10 bg-white">
+                                <div className="flex justify-between items-start mb-8">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Confirmation ID</p>
+                                        <p className="text-lg font-black font-mono text-slate-900">{orderInfo.id}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Transaction Date</p>
+                                        <p className="text-xs font-black text-slate-900">{new Date(orderInfo.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Financial Widget */}
+                                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                                                <CreditCard className="h-5 w-5 text-slate-900" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Settlement Amount</p>
+                                                <p className="text-xl font-black italic tracking-tight text-slate-900">Rs. {orderInfo.total.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4 border-t border-slate-200/50">
+                                            <div className="flex items-center gap-2">
+                                                <Receipt className="h-3 w-3 text-slate-400" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Invoice: {orderInfo.invoice}</span>
+                                            </div>
+                                            <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-black text-[8px] uppercase tracking-widest px-2 py-0.5">
+                                                {orderInfo.method}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    {/* Logistics Widget */}
+                                    <div className="p-6 rounded-2xl bg-indigo-50/50 border border-indigo-100/50">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                                                <Clock className="h-5 w-5 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400/70">Estimated Arrival</p>
+                                                <p className="text-xl font-black italic tracking-tight text-indigo-900">
+                                                    {new Date(orderInfo.eta).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-indigo-600/5 px-3 py-2 rounded-lg">
+                                            <div className="h-1 w-1 bg-indigo-600 rounded-full animate-pulse" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600">Priority Logistics Route Active</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-10 flex flex-col gap-3">
+                                    <Button 
+                                        onClick={() => setShowSuccess(false)} 
+                                        className="h-14 bg-slate-900 text-white hover:bg-black w-full rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-900/20"
+                                    >
+                                        Acknowledge & Continue
+                                    </Button>
+                                    <button 
+                                        onClick={downloadReceipt}
+                                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors text-center py-2"
+                                    >
+                                        Download Transaction CSV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
