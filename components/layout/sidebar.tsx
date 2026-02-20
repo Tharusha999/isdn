@@ -39,7 +39,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
-    const [adminName, setAdminName] = useState("Alex Rivera");
+    const [adminName, setAdminName] = useState("Administrator");
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {

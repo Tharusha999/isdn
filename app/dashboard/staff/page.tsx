@@ -47,10 +47,7 @@ export default function RetailerPortal() {
         }
     };
 
-    const quickReorder = [
-        { name: "Alpine Spring Water (24pk)", lastOrdered: "2 days ago", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&q=80&w=100" },
-        { name: "Ultra Clean Detergent (5L)", lastOrdered: "1 week ago", image: "https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&q=80&w=100" }
-    ];
+    const quickReorder: any[] = [];
 
     // Filter products based on category enum
     const filteredProducts = activeTab === "all"
@@ -111,75 +108,78 @@ export default function RetailerPortal() {
                 </div>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
-                {/* Active Order Tracking */}
-                <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/10 rounded-lg">
-                                <Truck className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-lg font-black tracking-tight">Order #4429 is Out for Delivery</CardTitle>
-                                <p className="text-xs text-muted-foreground font-medium mt-0.5">Estimated Arrival: 11:45 AM (Today)</p>
-                            </div>
-                        </div>
-                        <Button variant="ghost" className="text-primary text-xs font-bold hover:bg-primary/5">View Full Map</Button>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="relative h-2 bg-secondary/50 rounded-full mb-8">
-                            <div className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full w-[75%] shadow-[0_0_12px_rgba(16,185,129,0.3)]" />
-
-                            <div className="absolute -top-1 left-0 flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
-                                <span className="absolute top-6 text-[10px] font-black text-muted-foreground uppercase whitespace-nowrap">Packed</span>
-                            </div>
-                            <div className="absolute -top-1 left-[33%] flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
-                                <span className="absolute top-6 text-[10px] font-black text-muted-foreground uppercase whitespace-nowrap">Transit</span>
-                            </div>
-                            <div className="absolute -top-1 left-[66%] flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm ring-4 ring-emerald-500/20" />
-                                <span className="absolute top-6 text-[10px] font-black text-foreground uppercase whitespace-nowrap">On Route</span>
-                            </div>
-                            <div className="absolute -top-1 right-0 flex flex-col items-center">
-                                <div className="w-4 h-4 rounded-full bg-white border-2 border-secondary" />
-                                <span className="absolute top-6 text-[10px] font-black text-muted-foreground/50 uppercase whitespace-nowrap">Arrived</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Quick Reorder */}
-                <Card className="border-none shadow-sm bg-white/50">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-sm font-black uppercase tracking-widest">Quick Reorder</CardTitle>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {quickReorder.map((item, i) => (
-                            <div key={i} className="flex items-center gap-4 group cursor-pointer hover:bg-black/[0.02] p-2 rounded-xl transition-colors">
-                                <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover shadow-sm group-hover:scale-105 transition-transform" />
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{item.name}</h4>
-                                    <p className="text-[10px] text-muted-foreground">Last ordered {item.lastOrdered}</p>
+            {/* Active Order Tracking & Quick Reorder - Hidden when no dynamic data available */}
+            {quickReorder.length > 0 && (
+                <div className="grid gap-8 lg:grid-cols-3">
+                    {/* Active Order Tracking */}
+                    <Card className="lg:col-span-2 border-none shadow-sm bg-white/50 backdrop-blur-sm">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                    <Truck className="h-5 w-5 text-emerald-600" />
                                 </div>
-                                <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-secondary/50 group-hover:bg-primary group-hover:text-white transition-all">
-                                    <Plus className="h-4 w-4" />
-                                </Button>
+                                <div>
+                                    <CardTitle className="text-lg font-black tracking-tight">Active Delivery Node</CardTitle>
+                                    <p className="text-xs text-muted-foreground font-medium mt-0.5">Tracking live logistics...</p>
+                                </div>
                             </div>
-                        ))}
-                        <Button variant="outline" className="w-full text-xs font-bold border-black/5 hover:bg-black/5 rounded-xl h-10 ring-offset-background transition-all">
-                            View Order History
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
+                            <Button variant="ghost" className="text-primary text-xs font-bold hover:bg-primary/5">View Full Map</Button>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <div className="relative h-2 bg-secondary/50 rounded-full mb-8">
+                                <div className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full w-[75%] shadow-[0_0_12px_rgba(16,185,129,0.3)]" />
+
+                                <div className="absolute -top-1 left-0 flex flex-col items-center">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
+                                    <span className="absolute top-6 text-[10px] font-black text-muted-foreground uppercase whitespace-nowrap">Packed</span>
+                                </div>
+                                <div className="absolute -top-1 left-[33%] flex flex-col items-center">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
+                                    <span className="absolute top-6 text-[10px] font-black text-muted-foreground uppercase whitespace-nowrap">Transit</span>
+                                </div>
+                                <div className="absolute -top-1 left-[66%] flex flex-col items-center">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm ring-4 ring-emerald-500/20" />
+                                    <span className="absolute top-6 text-[10px] font-black text-foreground uppercase whitespace-nowrap">On Route</span>
+                                </div>
+                                <div className="absolute -top-1 right-0 flex flex-col items-center">
+                                    <div className="w-4 h-4 rounded-full bg-white border-2 border-secondary" />
+                                    <span className="absolute top-6 text-[10px] font-black text-muted-foreground/50 uppercase whitespace-nowrap">Arrived</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Quick Reorder */}
+                    <Card className="border-none shadow-sm bg-white/50">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-primary" />
+                                <CardTitle className="text-sm font-black uppercase tracking-widest">Quick Reorder</CardTitle>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {quickReorder.map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 group cursor-pointer hover:bg-black/[0.02] p-2 rounded-xl transition-colors">
+                                    <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover shadow-sm group-hover:scale-105 transition-transform" />
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">{item.name}</h4>
+                                        <p className="text-[10px] text-muted-foreground">Last ordered {item.lastOrdered}</p>
+                                    </div>
+                                    <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-secondary/50 group-hover:bg-primary group-hover:text-white transition-all">
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            <Button variant="outline" className="w-full text-xs font-bold border-black/5 hover:bg-black/5 rounded-xl h-10 ring-offset-background transition-all">
+                                View Order History
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* Product Catalog Section */}
             <div className="space-y-6">

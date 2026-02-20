@@ -71,7 +71,7 @@ export default function DashboardPage() {
                 else if (storedRole === 'customer') storedName = localStorage.getItem('isdn_customer_name');
                 else if (storedRole === 'driver') storedName = localStorage.getItem('isdn_driver_name');
 
-                setProfileName(storedName || (storedRole === 'admin' ? "Alex Rivera" : storedRole === 'driver' ? "Sam Perera" : "Partner Store"));
+                setProfileName(storedName || (storedRole === 'admin' ? "Global Admin" : storedRole === 'driver' ? "System Driver" : "Partner Store"));
             } catch (err) {
                 console.error("Dashboard data load error:", err);
             } finally {
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                     {[
                         { label: "New Order", path: "/dashboard/products", color: "bg-indigo-50", icon: Package, val: "Catalog", text: "text-indigo-600" },
                         { label: "Active Orders", path: "/dashboard/orders", color: "bg-emerald-50", icon: Truck, val: `${activeOrders.length} Active`, text: "text-emerald-600" },
-                        { label: "Payment Due", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: "Rs. 0.00", text: "text-amber-600" },
+                        { label: "Payment Due", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: `Rs. ${transactions.filter(t => t.status === 'PENDING').reduce((sum, t) => sum + Number(t.amount || 0), 0).toLocaleString()}`, text: "text-amber-600" },
                         { label: "Priority Help", path: "/dashboard/settings", color: "bg-slate-50", icon: ShieldCheck, val: "24/7 Desk", text: "text-slate-900" }
                     ].map((hub) => (
                         <Card key={hub.label} onClick={() => router.push(hub.path)} className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 cursor-pointer group border border-black/[0.03] transition-all hover:scale-[1.02] hover:shadow-black/10">
@@ -334,9 +334,9 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[
-                    { label: "Pulse Revenue", val: `Rs. ${totalRev.toLocaleString()}`, color: "bg-emerald-500/10", icon: DollarSign, iconColor: "text-emerald-600", sub: "+12.5% vs LW" },
+                    { label: "Pulse Revenue", val: `Rs. ${totalRev.toLocaleString()}`, color: "bg-emerald-500/10", icon: DollarSign, iconColor: "text-emerald-600", sub: "Month to Date" },
                     { label: "Active Units", val: `${activeFleet} Units`, color: "bg-blue-500/10", icon: Truck, iconColor: "text-blue-600", sub: "Fleet Nominal" },
-                    { label: "Active Orders", val: `${activeOrders} Pending`, color: "bg-amber-500/10", icon: Package, iconColor: "text-amber-600", sub: "Requires Sync" },
+                    { label: "Active Orders", val: `${activeOrders} Pending`, color: "bg-amber-500/10", icon: Package, iconColor: "text-amber-600", sub: "Real-time Sync" },
                     { label: "Compliance", val: `${complianceScore}%`, color: "bg-purple-500/10", icon: ShieldCheck, iconColor: "text-purple-600", sub: "High Grade" }
                 ].map((stat) => (
                     <Card key={stat.label} className="border-none shadow-sm bg-white/50 backdrop-blur-sm group hover:bg-black/5 transition-all duration-300">
