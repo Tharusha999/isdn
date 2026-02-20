@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
     // --- CUSTOMER VIEW ---
     if (role === 'customer') {
-        const activeOrders = orders.slice(0, 3);
+        const activeOrders = orders;
         return (
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
