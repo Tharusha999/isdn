@@ -160,21 +160,21 @@ export const decrementProductStock = async (productId, rdc, quantity) => {
       if (rdcError) throw rdcError;
     }
 
-    // 2. Decrement from master product table
-    const { data: product, error: pFetchError } = await supabase
-      .from("products")
-      .select("stock")
-      .eq("id", productId);
+    // 2. Recalculate master total from ALL regional nodes for this product
+    const { data: allRdcStocks, error: fetchAllError } = await supabase
+      .from("product_stock")
+      .select("quantity")
+      .eq("product_id", productId);
 
-    if (pFetchError) throw pFetchError;
+    if (fetchAllError) throw fetchAllError;
 
-    if (product && product.length > 0) {
-      const newTotalStock = (product[0].stock || 0) - quantity;
-      const { error: pError } = await supabase
+    if (allRdcStocks) {
+      const newTotalStock = allRdcStocks.reduce((sum, row) => sum + (row.quantity || 0), 0);
+      const { error: pUpdateError } = await supabase
         .from("products")
-        .update({ stock: Math.max(0, newTotalStock) })
+        .update({ stock: newTotalStock })
         .eq("id", productId);
-      if (pError) throw pError;
+      if (pUpdateError) throw pUpdateError;
     }
   } catch (err) {
     console.error(`Stock update failed for product ${productId}:`, err);
