@@ -756,12 +756,21 @@ export const updateMissionProgress = async (missionId, progress) => {
 };
 
 export const createMission = async (missionData) => {
-  const { data, error } = await supabase
-    .from("missions")
-    .insert([missionData])
-    .select();
+  const { data, error } = await supabase.rpc("create_new_mission", {
+    p_id: missionData.id,
+    p_driver_id: missionData.driver_id || null,
+    p_driver_name: missionData.driver_name || "Unassigned",
+    p_vehicle: missionData.vehicle || "N/A",
+    p_current_location: missionData.destination || missionData.current_location || "N/A",
+    p_status: missionData.status || "Pending",
+    p_progress: missionData.progress || 0,
+    p_km_traversed: missionData.km_traversed || "0km",
+    p_fuel_level: missionData.fuel_level || "100%",
+    p_temperature: missionData.temperature || "24°C",
+    p_load_weight: missionData.load_weight || "0kg"
+  });
   if (error) throw error;
-  return data[0];
+  return data;
 };
 
 export const fetchDriverUsers = async () => {
