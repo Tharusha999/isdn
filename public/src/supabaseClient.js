@@ -698,13 +698,12 @@ export const subscribeToMissions = (callback) => {
 // ============================================
 
 // Login for Admin Users
-export const loginAdmin = async (username, password, adminKey) => {
+export const loginAdmin = async (username, password) => {
   const { data, error } = await supabase
     .from("admin_users")
     .select("*")
     .eq("username", username)
     .eq("password", password)
-    .eq("admin_key", adminKey)
     .single();
 
   if (error || !data) {
@@ -773,24 +772,28 @@ export const loginDriver = async (username, password) => {
 };
 
 // Universal Login - Returns user object with role
-export const loginUser = async (username, password, adminKey) => {
-  // Try admin login
-  try {
-    const adminUser = await loginAdmin(username, password, adminKey);
-    return { ...adminUser, role: "admin" };
-  } catch (e) {
-    // Try customer login
+export const loginUser = async (username, password) => {
+  // Pattern Check: If username ends with @admin.ISDN, it's an admin
+  if (username.toLowerCase().includes("@admin.isdn")) {
     try {
-      const customerUser = await loginCustomer(username, password);
-      return { ...customerUser, role: "customer" };
+      const adminUser = await loginAdmin(username, password);
+      return { ...adminUser, role: "admin" };
     } catch (e) {
-      // Try driver login
-      try {
-        const driverUser = await loginDriver(username, password);
-        return { ...driverUser, role: "driver" };
-      } catch (e) {
-        throw new Error("Invalid username or password");
-      }
+      throw new Error("Invalid admin credentials");
+    }
+  }
+
+  // Otherwise, default to customer login
+  try {
+    const customerUser = await loginCustomer(username, password);
+    return { ...customerUser, role: "customer" };
+  } catch (e) {
+    // Final fallback: try driver login if customer fails
+    try {
+      const driverUser = await loginDriver(username, password);
+      return { ...driverUser, role: "driver" };
+    } catch (e2) {
+      throw new Error("Invalid username or password");
     }
   }
 };

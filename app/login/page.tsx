@@ -7,12 +7,10 @@ import { loginUser, registerCustomerUser } from "@/public/src/supabaseClient";
 export default function LoginPage() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [adminKey, setAdminKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +22,7 @@ export default function LoginPage() {
     try {
       let user;
       if (isLogin) {
-        user = await loginUser(username, password, isAdmin ? adminKey : undefined);
+        user = await loginUser(username, password);
       } else {
         user = await registerCustomerUser({
           username,
@@ -78,22 +76,16 @@ export default function LoginPage() {
           {/* Form Toggle */}
           <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
             <button
-              onClick={() => { setIsLogin(true); setIsAdmin(false); }}
-              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLogin && !isAdmin ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+              onClick={() => { setIsLogin(true); }}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLogin ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
             >
               Sign In
             </button>
             <button
-              onClick={() => { setIsLogin(false); setIsAdmin(false); }}
+              onClick={() => { setIsLogin(false); }}
               className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isLogin ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
             >
               First Time
-            </button>
-            <button
-              onClick={() => { setIsLogin(true); setIsAdmin(true); }}
-              className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLogin && isAdmin ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
-            >
-              Admin Access
             </button>
           </div>
 
@@ -160,31 +152,18 @@ export default function LoginPage() {
               />
             </div>
 
-            {isAdmin && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                <label className="block text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-2 px-1">Verification Token</label>
-                <input
-                  type="password"
-                  required
-                  value={adminKey}
-                  onChange={(e) => setAdminKey(e.target.value)}
-                  placeholder="Admin Security Token"
-                  className="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition font-black text-sm text-indigo-600 placeholder:text-indigo-200"
-                  disabled={loading}
-                />
-              </div>
-            )}
+
 
             {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
-              className={`w-full ${isAdmin ? 'bg-indigo-600 shadow-indigo-200' : 'bg-slate-900 shadow-slate-200'} shadow-xl text-white font-black uppercase tracking-widest text-[10px] py-5 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all mt-4 flex items-center justify-center`}
+              className="w-full bg-slate-900 shadow-slate-200 shadow-xl text-white font-black uppercase tracking-widest text-[10px] py-5 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all mt-4 flex items-center justify-center"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                isLogin ? (isAdmin ? "Authorize Admin Access" : "Synchronise Account") : "Initialize Network Identity"
+                isLogin ? "Synchronise Account" : "Initialize Network Identity"
               )}
             </button>
           </form>
