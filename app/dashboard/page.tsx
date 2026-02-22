@@ -42,6 +42,7 @@ export default function DashboardPage() {
     const [partners, setPartners] = useState<any[]>([]);
     const [allStocks, setAllStocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [driverSelectedMissionId, setDriverSelectedMissionId] = useState<string | null>(null);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
@@ -230,9 +231,12 @@ export default function DashboardPage() {
 
     // --- DRIVER VIEW ---
     if (role === 'driver') {
-        const activeRoute = missions.find(m => m.driver_name === profileName) || missions[0];
+        const driverMissions = missions.filter(m => m.driver_name === profileName || m.driverName === profileName);
+        const activeRoute = driverSelectedMissionId
+            ? driverMissions.find(m => m.id === driverSelectedMissionId) || driverMissions[0]
+            : driverMissions[0];
 
-        if (!activeRoute) {
+        if (driverMissions.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center min-h-[60vh]">
                     <Truck className="h-12 w-12 text-slate-300 mb-4" />
@@ -243,15 +247,41 @@ export default function DashboardPage() {
 
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic leading-none">Operations Cockpit</h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Active Duty: {profileName} | Asset: {activeRoute.vehicle}</p>
                     </div>
-                    <Badge variant="outline" className="h-10 px-6 rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-black uppercase tracking-widest text-[9px]">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" /> Live Grid Connection
-                    </Badge>
+                    <div className="flex items-center gap-4">
+                        <Badge variant="outline" className="h-10 px-6 rounded-xl border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-black uppercase tracking-widest text-[9px]">
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" /> Live Grid Connection
+                        </Badge>
+                    </div>
                 </div>
+
+                {/* Driver Mission Selector */}
+                {driverMissions.length > 1 && (
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                        {driverMissions.map(m => (
+                            <Card
+                                key={m.id}
+                                onClick={() => setDriverSelectedMissionId(m.id)}
+                                className={`min-w-[200px] cursor-pointer transition-all border-none shadow-sm ${activeRoute.id === m.id ? 'bg-slate-900 text-white' : 'bg-white/50 hover:bg-white'}`}
+                            >
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <Truck className={`h-4 w-4 ${activeRoute.id === m.id ? 'text-white' : 'text-slate-400'}`} />
+                                        <Badge className={`text-[8px] font-black uppercase px-2 ${m.status === 'In Transit' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                            {m.status}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-tighter italic">{m.id}</p>
+                                    <p className={`text-[8px] font-bold uppercase mt-1 ${activeRoute.id === m.id ? 'text-white/60' : 'text-slate-400'}`}>{m.current_location || m.currentLocation}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     {[
