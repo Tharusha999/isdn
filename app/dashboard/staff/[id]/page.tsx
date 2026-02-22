@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { supabase } from "@/public/src/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import type { StaffWithDetails, StaffActivity } from "@/lib/database-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

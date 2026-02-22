@@ -2,7 +2,7 @@
 // Use these types throughout your Next.js application
 
 export type ProductCategory = 'Packaged Food' | 'Beverages' | 'Home Cleaning' | 'Personal Care'
-export type RDCType = 'North (Jaffna)' | 'South (Galle)' | 'East (Trincomalee)' | 'West (Colombo)' | 'Central (Kandy)'
+export type RDCType = string // Now fetched dynamically from the database
 export type OrderStatusType = 'Pending' | 'In Transit' | 'Delivered' | 'Cancelled'
 export type TransactionStatusType = 'PAID' | 'PENDING' | 'FAILED'
 export type PaymentMethodType = 'Credit Card' | 'Bank Transfer' | 'Online Banking' | 'Cash on Delivery'
@@ -142,6 +142,8 @@ export interface Order {
   updated_at: string
   // Compatibility fields
   items?: number | string
+  driver_id?: string | null
+  driver_name?: string | null
 }
 
 export interface OrderItem {

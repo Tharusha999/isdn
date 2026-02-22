@@ -29,7 +29,7 @@ import {
     X,
     TrendingDown
 } from "lucide-react";
-import { fetchProducts, fetchAllProductStocks, updateProduct, updateProductStock, createProductStock, createProduct } from "@/public/src/supabaseClient";
+import { fetchProducts, fetchAllProductStocks, updateProduct, updateProductStock, createProductStock, createProduct, fetchRDCHubs } from "@/lib/supabaseClient";
 import type { Product } from "@/lib/database-types";
 
 
@@ -81,18 +81,22 @@ export default function InventoryPage() {
         sku: ""
     });
 
-    // Derive RDC list dynamically from the database (distinct rdc values from product_stock)
-    const rdcs: string[] = Array.from(new Set(allStocks.map(s => s.rdc))).sort();
+    const [activeRdcs, setActiveRdcs] = useState<string[]>([]);
+
+    // Derive RDC list dynamically from the database
+    const rdcs = activeRdcs;
 
     const loadData = useCallback(async (showLoader = true) => {
         try {
             if (showLoader) setLoading(true);
-            const [productsData, stocksData] = await Promise.all([
+            const [productsData, stocksData, hubsData] = await Promise.all([
                 fetchProducts(),
-                fetchAllProductStocks()
+                fetchAllProductStocks(),
+                fetchRDCHubs()
             ]);
             setProducts(productsData || []);
             setAllStocks(stocksData || []);
+            setActiveRdcs(hubsData ? hubsData.map((h: any) => h.name).sort() : []);
             setError(null);
         } catch (err: unknown) {
             console.error("Error fetching inventory:", err);
@@ -115,14 +119,15 @@ export default function InventoryPage() {
 
         try {
             setIsSyncing(true);
-            const [productsData, stocksData] = await Promise.all([
+            const [productsData, stocksData, hubsData] = await Promise.all([
                 fetchProducts(),
-                fetchAllProductStocks()
+                fetchAllProductStocks(),
+                fetchRDCHubs()
             ]);
 
-            // Derive available RDCs from the database (not hardcoded)
-            const availableRdcs = Array.from(new Set((stocksData || []).map(s => s.rdc))).sort();
-            const defaultRdc = availableRdcs[0]; // Use the first RDC that exists in the DB
+            // Derive available RDCs from the definitive hubs table
+            const availableRdcs = hubsData ? hubsData.map((h: any) => h.name) : [];
+            const defaultRdc = availableRdcs.length > 0 ? availableRdcs[0] : "";
 
             let created = 0;
             if (defaultRdc) {
@@ -153,7 +158,7 @@ export default function InventoryPage() {
             }
 
             await loadData(false);
-            alert(`Sync complete!\n${created > 0 ? `• ${created} unallocated product(s) added to ${defaultRdc}\n` : ''}• All master stock totals recalculated from regional nodes.`);
+            alert(`Sync complete!\n${created > 0 ? `• ${created} unallocated product(s) added to ${defaultRdc}\n` : ''}• All master stock totals recalculated and synchronized across ${availableRdcs.length} nodes.`);
         } catch (err) {
             console.error("Resync failed:", err);
             alert("Resync failed. Check the console for details.");
@@ -224,17 +229,9 @@ export default function InventoryPage() {
                 stock: 0 // Initial master stock
             });
 
-            // 2. Initialize stock entries for each RDC with 0 quantity
-            if (rdcs.length > 0) {
-                for (const rdc of rdcs) {
-                    await createProductStock(created.id, rdc, 0);
-                }
-            } else {
-                // Fallback to default RDCs if none exist in DB yet
-                const defaultRdcs = ['North (Jaffna)', 'South (Galle)', 'East (Trincomalee)', 'West (Colombo)', 'Central (Kandy)'];
-                for (const rdc of defaultRdcs) {
-                    await createProductStock(created.id, rdc, 0);
-                }
+            // 2. Initialize stock entries for each active RDC with 0 quantity
+            for (const rdc of activeRdcs) {
+                await createProductStock(created.id, rdc, 0);
             }
 
             setShowAddModal(false);

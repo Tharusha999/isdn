@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { MissionWithTasks, OrderWithDetails, Transaction, Product, MissionTask } from "@/lib/database-types";
-import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks, fetchMissionsByDriver, updateMissionTask, updateMissionProgress, updateMissionStatus } from "@/public/src/supabaseClient";
+import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks, fetchMissionsByDriver, updateMissionTask, updateMissionProgress, updateMissionStatus } from "@/lib/supabaseClient";
 
 // Custom Globe Icon
 const Globe = ({ className }: { className?: string }) => (
@@ -45,6 +45,10 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const storedRole = localStorage.getItem('userRole');
+        if (storedRole === 'partner') {
+            router.push('/dashboard/partners');
+            return;
+        }
         setRole(storedRole);
         loadDashboardData();
     }, []);
@@ -57,7 +61,7 @@ export default function DashboardPage() {
             const userId = authUser.id;
 
             const [missionsData, ordersData, transactionsData, productsData, partnersData, stocksData] = await Promise.all([
-                storedRole === 'driver' ? fetchMissionsByDriver(userId) : fetchMissions(),
+                storedRole === 'driver' ? fetchMissionsByDriver(userId, authUser.full_name) : fetchMissions(),
                 fetchOrders(),
                 fetchTransactions(),
                 fetchProducts(),
@@ -101,7 +105,7 @@ export default function DashboardPage() {
 
             // Refresh data
             const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
-            const missionsData = await fetchMissionsByDriver(authUser.id);
+            const missionsData = await fetchMissionsByDriver(authUser.id, authUser.full_name);
             setMissions(missionsData as MissionWithTasks[] || []);
         } catch (err) {
             console.error("Task toggle error:", err);

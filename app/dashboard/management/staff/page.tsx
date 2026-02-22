@@ -14,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { fetchStaff, createStaffMember, updateStaffMember, deleteStaffMember } from "@/public/src/supabaseClient";
+import { fetchStaff, createStaffMember, updateStaffMember, deleteStaffMember } from "@/lib/supabaseClient";
 import { StaffMember, StaffStatusType } from "@/lib/database-types";
 
 export default function StaffPage() {

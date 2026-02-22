@@ -43,6 +43,8 @@ export default function DashboardLayout({
         if (pathname === "/dashboard/management/drivers") return "Driver Registry";
         if (pathname === "/dashboard/management/dispatch") return "Dispatch Command Center";
         if (pathname === "/dashboard/management/partners") return "RDC Partners Directory";
+        if (pathname === "/dashboard/kpi") return "My Performance";
+        if (pathname === "/dashboard/partners") return "RDC Partner Hub";
         if (pathname === "/dashboard/activity") return "System Activity Feed";
         if (pathname === "/dashboard/notifications") return "Alert Center";
         if (pathname === "/dashboard/settings") return "Settings";
@@ -108,6 +110,11 @@ export default function DashboardLayout({
             label: "Logistics Driver",
             avatar: "driver"
         },
+        partner: {
+            name: userName,
+            label: "RDC Partner",
+            avatar: "partner"
+        },
         loading: {
             name: "Synchronising Identity...",
             label: "...",
@@ -115,7 +122,7 @@ export default function DashboardLayout({
         }
     };
 
-    const currentInfo = role === 'customer' ? roleInfo.customer : (role === 'admin' ? roleInfo.admin : (role === 'driver' ? roleInfo.driver : roleInfo.loading));
+    const currentInfo = role === 'customer' ? roleInfo.customer : (role === 'admin' ? roleInfo.admin : (role === 'driver' ? roleInfo.driver : (role === 'partner' ? roleInfo.partner : roleInfo.loading)));
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

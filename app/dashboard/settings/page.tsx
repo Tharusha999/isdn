@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { updateAdmin, updateCustomer } from "@/public/src/supabaseClient";
+import { updateAdmin, updateCustomer } from "@/lib/supabaseClient";
 
 export default function SettingsPage() {
     const [user, setUser] = useState<any>(null);

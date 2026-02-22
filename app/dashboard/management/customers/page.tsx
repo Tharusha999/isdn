@@ -19,7 +19,7 @@ import {
     MapPin,
     MoreHorizontal
 } from "lucide-react";
-import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer } from "@/public/src/supabaseClient";
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer } from "@/lib/supabaseClient";
 import type { Customer } from "@/lib/database-types";
 import {
     DropdownMenu,

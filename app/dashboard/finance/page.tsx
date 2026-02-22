@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
     Transaction
 } from "@/lib/database-types";
-import { fetchTransactions, fetchProducts, fetchOrders } from "@/public/src/supabaseClient";
+import { fetchTransactions, fetchProducts, fetchOrders } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

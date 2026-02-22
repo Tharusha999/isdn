@@ -35,11 +35,18 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct, updateProductStock } from "@/public/src/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct, updateProductStock } from "@/lib/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
 const PRODUCT_CATEGORIES: ProductCategory[] = ["Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
+
+const PAYMENT_METHODS = [
+    { id: "Credit Card", label: "Credit/Debit Card", icon: CreditCard, color: "text-blue-500", bg: "bg-blue-50" },
+    { id: "Bank Transfer", label: "Bank Transfer", icon: Receipt, color: "text-emerald-500", bg: "bg-emerald-50" },
+    { id: "Online Banking", label: "Online Banking", icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
+    { id: "Cash on Delivery", label: "Cash on Delivery", icon: Package, color: "text-rose-500", bg: "bg-rose-50" },
+];
 
 const generateSKU = (count: number): string => {
     const num = String(count + 1).padStart(2, "0");
@@ -61,6 +68,7 @@ export default function ProductsPage() {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [cart, setCart] = useState<Record<string, number>>({});
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Online Banking");
     const [showSuccess, setShowSuccess] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
     const [allStocks, setAllStocks] = useState<any[]>([]);
@@ -113,9 +121,14 @@ export default function ProductsPage() {
 
             // Sync master stock totals from regional nodes for UI consistency
             const syncedProducts = (productsData || []).map(p => {
-                const totalStock = (stocksData || [])
-                    .filter(s => s.product_id === p.id)
-                    .reduce((acc, s) => acc + (s.quantity || 0), 0);
+                const productStocks = (stocksData || []).filter(s => s.product_id === p.id);
+
+                // Fallback: If no regional entries exist, use the master stock record
+                // Otherwise, sum the regional nodes for the definitive total
+                const totalStock = productStocks.length > 0
+                    ? productStocks.reduce((acc, s) => acc + (s.quantity || 0), 0)
+                    : (p.stock || 0);
+
                 return { ...p, stock: totalStock };
             });
 
@@ -210,13 +223,15 @@ export default function ProductsPage() {
 
             await updateProduct(editingProduct.id, productData);
 
-            // If stock was changed manually, update the regional distribution node
+            // If stock was changed manually, update the regional distribution node(s)
             if (stockDifference !== 0 && defaultRdc) {
                 const existingRdcStock = allStocks.find(s => s.product_id === editingProduct.id && s.rdc === defaultRdc);
+
+                // If it's a new product or first-time setup, we might need to create the row
                 if (existingRdcStock) {
                     await updateProductStock(editingProduct.id, defaultRdc, Math.max(0, (existingRdcStock.quantity || 0) + stockDifference));
                 } else {
-                    await createProductStock(editingProduct.id, defaultRdc, Math.max(0, stockDifference));
+                    await createProductStock(editingProduct.id, defaultRdc, Math.max(0, newStockTotal));
                 }
             }
 
@@ -351,7 +366,7 @@ export default function ProductsPage() {
                 amount: cartTotal,
                 date: new Date().toISOString().split('T')[0],
                 status: 'PAID', // Assuming instant payment for demo
-                method: 'Online Banking'
+                method: selectedPaymentMethod
             };
 
             await createOrderWithItems(orderData, itemsData, transactionData);
@@ -1009,7 +1024,7 @@ export default function ProductsPage() {
                                 </SheetDescription>
                             </SheetHeader>
 
-                            <div className="flex-1 overflow-y-auto p-10 space-y-8">
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 {Object.entries(cart).map(([id, qty]) => {
                                     const p = products.find(prod => prod.id === id);
                                     if (!p) return null;
@@ -1034,10 +1049,37 @@ export default function ProductsPage() {
                                         </div>
                                     );
                                 })}
+
+                                {/* Payment Method Selection inside scrollable area */}
+                                <div className="pt-6 border-t border-black/5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Select Payment Method</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {PAYMENT_METHODS.map((method) => (
+                                            <button
+                                                key={method.id}
+                                                onClick={() => setSelectedPaymentMethod(method.id)}
+                                                className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${selectedPaymentMethod === method.id
+                                                    ? "bg-white border-slate-900 shadow-lg ring-1 ring-slate-900/5 scale-[1.02]"
+                                                    : "bg-white border-black/5 hover:border-slate-200"
+                                                    }`}
+                                            >
+                                                <div className={`${method.bg} ${method.color} h-10 w-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                                                    <method.icon className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase tracking-tight text-slate-900 leading-none">{method.label}</p>
+                                                {selectedPaymentMethod === method.id && (
+                                                    <div className="absolute top-3 right-3 h-5 w-5 bg-slate-900 rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                                                        <Check className="h-3 w-3 text-white" />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="p-10 space-y-6 bg-slate-900 text-white rounded-t-[3rem]">
-                                <div className="space-y-4 pt-4">
+                            <div className="p-8 space-y-4 bg-slate-900 text-white rounded-t-[3rem]">
+                                <div className="space-y-4 pt-2">
                                     <div className="flex justify-between items-baseline opacity-40">
                                         <span className="text-[10px] font-black uppercase tracking-widest">Subtotal</span>
                                         <span className="font-bold text-sm">Rs. {cartTotal.toLocaleString()}</span>

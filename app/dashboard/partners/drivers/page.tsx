@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,7 @@ const EMPTY_FORM = {
 };
 
 export default function DriversManagementPage() {
+    const router = useRouter();
     const [drivers, setDrivers] = useState<DriverUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -50,20 +53,54 @@ export default function DriversManagementPage() {
     const [form, setForm] = useState(EMPTY_FORM);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [partnerHub, setPartnerHub] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [hubOptions, setHubOptions] = useState<string[]>([]);
 
     useEffect(() => {
-        fetchRDCHubs().then(hubs => {
-            setHubOptions(hubs.map((h: any) => h.name));
-        });
-        loadData();
-    }, []);
+        const authUserString = localStorage.getItem("authUser");
+        if (!authUserString) {
+            router.push("/login");
+            return;
+        }
 
-    const loadData = async () => {
+        const authUser = JSON.parse(authUserString);
+        const role = authUser.role || localStorage.getItem("userRole");
+
+        if (role !== "partner" && role !== "admin") {
+            router.push("/dashboard");
+            return;
+        }
+
+        const adminUser = role === "admin";
+        setIsAdmin(adminUser);
+
+        const hub = authUser.rdc_hub;
+        setPartnerHub(adminUser ? null : hub);
+
+        if (!adminUser && hub) {
+            setForm(prev => ({ ...prev, rdc_hub: hub as RDCType }));
+        }
+
+        fetchRDCHubs().then(hubsData => {
+            const names = hubsData.map((h: any) => h.name);
+            setHubOptions(names);
+        });
+
+        loadData(adminUser ? null : hub);
+    }, [router]);
+
+    const loadData = async (hubFilter: string | null) => {
         try {
             setLoading(true);
             const data = await fetchAllDriverUsers();
-            setDrivers((data || []) as DriverUser[]);
+            let allDrivers = (data || []) as DriverUser[];
+
+            if (hubFilter) {
+                allDrivers = allDrivers.filter(d => (d.rdc_hub || (d as any).Organization) === hubFilter);
+            }
+
+            setDrivers(allDrivers);
             setError(null);
         } catch (err: any) {
             console.error("Error loading drivers:", err);
@@ -74,7 +111,10 @@ export default function DriversManagementPage() {
     };
 
     const handleOpenAdd = () => {
-        setForm(EMPTY_FORM);
+        setForm({
+            ...EMPTY_FORM,
+            rdc_hub: partnerHub ? (partnerHub as RDCType) : "West (Colombo)",
+        });
         setIsEditing(false);
         setCurrentId(null);
         setShowModal(true);
@@ -103,14 +143,25 @@ export default function DriversManagementPage() {
 
             if (isEditing && currentId) {
                 if (!payload.password) delete payload.password;
+
+                // Ensure partner cannot change the driver's hub out of their own hub context
+                if (!isAdmin && partnerHub) {
+                    payload.rdc_hub = partnerHub;
+                }
+
                 await updateDriverUser(currentId, payload);
             } else {
+                // Ensure partner cannot create a driver outside of their own hub context
+                if (!isAdmin && partnerHub) {
+                    payload.rdc_hub = partnerHub;
+                }
+
                 await createDriverUser({
                     ...payload,
                     is_active: true
                 });
             }
-            await loadData();
+            await loadData(partnerHub);
             setShowModal(false);
         } catch (err: any) {
             console.error("Error saving driver:", err);
@@ -124,7 +175,7 @@ export default function DriversManagementPage() {
         if (!confirm("Are you sure you want to terminate this driver node? This action is permanent.")) return;
         try {
             await deleteDriverUser(id);
-            await loadData();
+            await loadData(partnerHub);
         } catch (err: any) {
             console.error("Error deleting driver:", err);
             alert("Failed to delete driver.");
@@ -140,8 +191,10 @@ export default function DriversManagementPage() {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Driver <span className="text-indigo-600">Registry</span></h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Consolidated directory of registered logistics personnel nodes.</p>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">My <span className="text-indigo-600">Drivers</span></h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">
+                        {isAdmin ? "Global directory of all registered driver logistics nodes." : `Manage drivers securely isolated to the ${partnerHub || "assigned"} Hub.`}
+                    </p>
                 </div>
                 <Button onClick={handleOpenAdd} className="bg-indigo-600 text-white hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 shadow-2xl shadow-indigo-500/20">
                     <Plus className="mr-3 h-4 w-4" /> Add Driver Node
@@ -312,7 +365,8 @@ export default function DriversManagementPage() {
                                     <select
                                         value={form.rdc_hub}
                                         onChange={(e) => setForm({ ...form, rdc_hub: e.target.value as RDCType })}
-                                        className="w-full h-14 rounded-2xl bg-slate-50 border-transparent font-bold text-slate-900 px-6 focus:bg-white focus:ring-1 focus:ring-indigo-500/20 transition-all outline-none text-sm appearance-none"
+                                        disabled={!isAdmin && !!partnerHub}
+                                        className="w-full h-14 rounded-2xl bg-slate-50 border-transparent font-bold text-slate-900 px-6 focus:bg-white focus:ring-1 focus:ring-indigo-500/20 transition-all outline-none text-sm appearance-none disabled:opacity-50"
                                     >
                                         {hubOptions.length === 0 && <option value="West (Colombo)">West (Colombo)</option>}
                                         {hubOptions.map(hub => (

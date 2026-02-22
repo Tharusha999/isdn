@@ -13,6 +13,7 @@ import {
     ShoppingCart,
     Truck,
     Users,
+    Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,8 +22,11 @@ import { useEffect, useState } from "react";
 
 const sidebarItems = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { title: "Partner Hub", href: "/dashboard/partners", icon: BarChart3 },
+    { title: "My Drivers", href: "/dashboard/partners/drivers", icon: Truck },
     { title: "Products", href: "/dashboard/products", icon: Package },
     { title: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
+    { title: "My KPIs", href: "/dashboard/kpi", icon: BarChart3 },
     { title: "Inventory", href: "/dashboard/inventory", icon: Package },
     { title: "Delivery", href: "/dashboard/logistics", icon: Truck },
     { title: "Billing", href: "/dashboard/finance", icon: CreditCard },
@@ -33,6 +37,7 @@ const sidebarItems = [
     { title: "Drivers", href: "/dashboard/management/drivers", icon: Truck },
     { title: "RDC Partners", href: "/dashboard/management/partners", icon: Truck },
     { title: "Administrators", href: "/dashboard/management/admins", icon: ShieldCheck },
+    { title: "RDC Hubs", href: "/dashboard/settings/hubs", icon: Building2 },
     { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -65,11 +70,18 @@ export function Sidebar() {
     const filteredItems = sidebarItems.filter(item => {
         if (!isLoaded) return false;
         if (role === 'customer') {
-            return ['Dashboard', 'Products', 'Orders', 'Billing', 'Settings'].includes(item.title);
+            return ['Dashboard', 'Products', 'Orders', 'My KPIs', 'Billing', 'Settings'].includes(item.title);
         }
         if (role === 'driver') {
             return ['Dashboard', 'Logistics', 'Settings'].includes(item.title);
         }
+        if (role === 'partner') {
+            return ['Partner Hub', 'My Drivers', 'Settings'].includes(item.title);
+        }
+
+        // Hide My KPIs from everyone except customers (especially Admins)
+        if (item.title === 'My KPIs') return false;
+
         return true;
     });
 
@@ -82,10 +94,10 @@ export function Sidebar() {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-lg font-bold tracking-tight leading-none text-foreground">
-                            {role === 'admin' ? (adminName || 'Global Admin') : 'IslandLink'}
+                            {role === 'admin' ? (adminName || 'Global Admin') : role === 'partner' ? (adminName || 'Partner') : 'IslandLink'}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1.5 uppercase tracking-wider">
-                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : 'Systems Executive'))}
+                            {!isLoaded ? 'Loading...' : (role === 'customer' ? 'Customer Portal' : (role === 'driver' ? 'Driver Portal' : (role === 'partner' ? 'Partner Portal' : 'Systems Executive')))}
                         </span>
                     </div>
                 </Link>

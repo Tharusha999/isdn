@@ -32,7 +32,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
-import { fetchMissions } from "@/public/src/supabaseClient";
+import { fetchMissions } from "@/lib/supabaseClient";
 
 export default function LogisticsPage() {
     const router = useRouter();

@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Download, Filter, Plus, Search, Calendar, ChevronRight, Loader2, MoreHorizontal, ShoppingBag } from "lucide-react";
+import { Download, Filter, Plus, Search, Calendar, ChevronRight, Loader2, MoreHorizontal, ShoppingBag, MapPin, Truck, CheckCircle2, Box, X, ArrowRight } from "lucide-react";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { useRouter } from "next/navigation";
-import { fetchOrders } from "@/public/src/supabaseClient";
+import { fetchOrders } from "@/lib/supabaseClient";
 import type { OrderWithDetails } from "@/lib/database-types";
 import {
     DropdownMenu,
@@ -23,6 +23,7 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<OrderWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [trackingOrder, setTrackingOrder] = useState<OrderWithDetails | null>(null);
 
     useEffect(() => {
         loadData();
@@ -201,7 +202,12 @@ export default function OrdersPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl bg-white/90 backdrop-blur-md">
                                                         <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider cursor-pointer">Print Invoice</DropdownMenuItem>
-                                                        <DropdownMenuItem className="font-bold text-xs uppercase tracking-wider cursor-pointer">Track Logistics</DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => setTrackingOrder(order)}
+                                                            className="font-bold text-xs uppercase tracking-wider cursor-pointer"
+                                                        >
+                                                            Track Logistics
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem className="text-rose-600 font-bold text-xs uppercase tracking-wider cursor-pointer">Flag Issue</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -214,6 +220,116 @@ export default function OrdersPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Tracking Modal */}
+            {trackingOrder && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[3rem] shadow-2xl p-8 sm:p-12 w-full max-w-2xl space-y-8 animate-in zoom-in-95 duration-200 border border-black/5 flex flex-col max-h-[90vh]">
+
+                        {/* Modal Header */}
+                        <div className="flex items-start justify-between shrink-0">
+                            <div>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter italic text-slate-900 leading-none">Logistics Tracker</h2>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mt-3">Requisition ID: <span className="text-slate-500 font-mono tracking-normal">{trackingOrder.id}</span></p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setTrackingOrder(null)}
+                                className="h-12 w-12 rounded-2xl bg-slate-50 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-all shrink-0"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        {/* Modal Content - Scrollable */}
+                        <div className="overflow-y-auto pr-2 pb-4 space-y-8">
+
+                            {/* Order Details Summary */}
+                            <div className="flex items-center gap-6 p-6 rounded-[2rem] bg-slate-50 border border-black/[0.03]">
+                                <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center shrink-0">
+                                    <ShoppingBag className="h-8 w-8 text-primary/60" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Destination Identity</p>
+                                    <h3 className="text-xl font-bold tracking-tight text-slate-900 leading-none">
+                                        {trackingOrder.customers?.name || trackingOrder.customer_id || "Retail Partner"}
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-500 mt-2">{trackingOrder.items || "1"} Units • {trackingOrder.date}</p>
+                                </div>
+                                <div className="ml-auto flex shrink-0">
+                                    <OrderStatusBadge status={trackingOrder.status} />
+                                </div>
+                            </div>
+
+                            {/* Timeline Visualizer */}
+                            <div className="relative pl-6 sm:pl-10 pb-4">
+                                {/* Connecting Line */}
+                                <div className="absolute top-8 bottom-8 left-[39px] sm:left-[55px] w-1 bg-slate-100 rounded-full" />
+
+                                <div className="space-y-12 relative z-10">
+
+                                    {/* Step 1: Processing */}
+                                    <div className="flex gap-6 sm:gap-8 group">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${['Pending', 'Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'bg-slate-100 text-slate-400'}`}>
+                                            <Box className="h-5 w-5" />
+                                        </div>
+                                        <div className="pt-2">
+                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${['Pending', 'Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) ? 'text-slate-900' : 'text-slate-400'}`}>Order Received</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Payment verified. Routing to fulfillment grid.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Step 2: Regional Hub Assignment */}
+                                    <div className="flex gap-6 sm:gap-8 group">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${['Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) || trackingOrder.rdc ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110' : 'bg-slate-100 text-slate-400'}`}>
+                                            <MapPin className="h-5 w-5" />
+                                        </div>
+                                        <div className="pt-2">
+                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${['Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) || trackingOrder.rdc ? 'text-slate-900' : 'text-slate-400'}`}>Nodes Assigned</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                                {trackingOrder.rdc ? (
+                                                    <span className="text-indigo-600 font-black">Regional Hub: {trackingOrder.rdc}</span>
+                                                ) : "Awaiting assignment to logistics node."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Step 3: Out for Delivery */}
+                                    <div className="flex gap-6 sm:gap-8 group">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${['In Transit', 'Delivered'].includes(trackingOrder.status) ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 scale-110' : 'bg-slate-100 text-slate-400'}`}>
+                                            <Truck className="h-5 w-5" />
+                                        </div>
+                                        <div className="pt-2">
+                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${['In Transit', 'Delivered'].includes(trackingOrder.status) ? 'text-slate-900' : 'text-slate-400'}`}>In Transit</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                                {trackingOrder.driver_name ? (
+                                                    <span>Agent Assigned: <span className="text-amber-600 font-black">{trackingOrder.driver_name}</span></span>
+                                                ) : "Waiting for driver dispatch."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Step 4: Completed */}
+                                    <div className="flex gap-6 sm:gap-8 group">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${trackingOrder.status === 'Delivered' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-110' : 'bg-slate-100 text-slate-400'}`}>
+                                            <CheckCircle2 className="h-6 w-6" />
+                                        </div>
+                                        <div className="pt-2">
+                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${trackingOrder.status === 'Delivered' ? 'text-emerald-600' : 'text-slate-400'}`}>Fulfillment Complete</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                                {trackingOrder.status === 'Delivered' ? "Package securely handed over to destination." : "Awaiting final delivery."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

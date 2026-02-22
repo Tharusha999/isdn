@@ -25,7 +25,7 @@ import {
     AlertTriangle,
     UserPlus
 } from "lucide-react";
-import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/public/src/supabaseClient";
+import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/lib/supabaseClient";
 import type { AdminUser } from "@/lib/database-types";
 
 

@@ -21,7 +21,7 @@ import {
     AlertCircle
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchProducts } from "@/public/src/supabaseClient";
+import { fetchProducts } from "@/lib/supabaseClient";
 
 export default function RetailerPortal() {
     const [products, setProducts] = useState<Product[]>([]);

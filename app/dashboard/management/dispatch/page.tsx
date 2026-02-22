@@ -21,7 +21,7 @@ import {
     ChevronLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionTask, updateMission, createMission, fetchDriverUsers } from "@/public/src/supabaseClient";
+import { fetchMissions, updateMissionTask, updateMissionProgress, createMissionTask, updateMission, createMission, fetchStaffDrivers } from "@/lib/supabaseClient";
 
 export default function DispatchManagementPage() {
     const router = useRouter();
@@ -38,6 +38,7 @@ export default function DispatchManagementPage() {
         driver_name: "",
         vehicle: "",
         destination: "",
+        load_weight: "0kg",
         status: "Pending"
     });
     const [creating, setCreating] = useState(false);
@@ -61,9 +62,9 @@ export default function DispatchManagementPage() {
                     location: t.location,
                     done: t.done
                 })),
-                currentLocation: m.destination || "N/A",
+                currentLocation: m.current_location || m.destination || "N/A",
                 kmTraversed: m.km_traversed || "0km",
-                telemetry: m.telemetry || { fuel: "100%", temp: "24°C", load: "Optimal" }
+                telemetry: m.telemetry || { fuel: m.fuel_level || "100%", temp: m.temperature || "24°C", load: m.load_weight || "0kg" }
             })) as Mission[];
 
             setMissions(mappedMissions);
@@ -90,7 +91,7 @@ export default function DispatchManagementPage() {
             router.push('/dashboard');
         } else {
             loadMissionsData();
-            fetchDriverUsers()
+            fetchStaffDrivers()
                 .then(d => {
                     setDrivers(d || []);
                 })
@@ -166,9 +167,21 @@ export default function DispatchManagementPage() {
         }
     };
 
-    const handleSaveMission = () => {
-        alert("Mission configuration synchronized with Supabase cloud.");
-        setSelectedMission(null);
+    const handleSaveMission = async () => {
+        if (!currentSelectedMission) return;
+        try {
+            await updateMission(currentSelectedMission.id, {
+                current_location: currentSelectedMission.currentLocation,
+                progress: currentSelectedMission.progress,
+                load_weight: currentSelectedMission.telemetry?.load
+            });
+            alert("Mission configuration synchronized with Supabase cloud.");
+            setSelectedMission(null);
+            await loadMissionsData();
+        } catch (err) {
+            console.error("Failed to save mission:", err);
+            alert("Failed to save mission updates.");
+        }
     };
 
     const handleCreateMission = async () => {
@@ -185,10 +198,10 @@ export default function DispatchManagementPage() {
                 status: "Idle",
                 progress: 0,
                 km_traversed: "0km",
-                telemetry: { fuel: "100%", temp: "24°C", load: "0kg" }
+                telemetry: { fuel: "100%", temp: "24°C", load: newMission.load_weight || "0kg" }
             });
             setShowCreateForm(false);
-            setNewMission({ driver_id: "", driver_name: "", vehicle: "", destination: "", status: "Idle" });
+            setNewMission({ driver_id: "", driver_name: "", vehicle: "", destination: "", load_weight: "0kg", status: "Idle" });
             await loadMissionsData();
         } catch (err) {
             console.error("Mission creation failed:", err);
@@ -227,17 +240,17 @@ export default function DispatchManagementPage() {
                                 <select
                                     value={newMission.driver_id}
                                     onChange={(e) => {
-                                        const driver = drivers.find((d: any) => String(d.id || d.username) === e.target.value);
-                                        setNewMission({ ...newMission, driver_id: e.target.value, driver_name: driver?.full_name || '' });
+                                        const driver = drivers.find((d: any) => String(d.id) === e.target.value);
+                                        setNewMission({ ...newMission, driver_id: e.target.value, driver_name: driver?.name || '' });
                                     }}
                                     className="w-full h-14 rounded-2xl bg-slate-50 border border-black/5 font-bold text-slate-900 px-4 text-sm"
                                 >
                                     <option value="">Select a driver...</option>
                                     {drivers.map((d: any) => {
-                                        const driverId = d.id || d.username;
+                                        const driverId = d.id;
                                         return (
                                             <option key={driverId} value={driverId}>
-                                                {d.full_name} — {d.username || 'Fleet Node'}
+                                                {d.name} — {driverId}
                                             </option>
                                         );
                                     })}
@@ -253,14 +266,25 @@ export default function DispatchManagementPage() {
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Destination Route</Label>
-                            <Input
-                                placeholder="e.g. Colombo → Kandy → Nuwara Eliya"
-                                value={newMission.destination}
-                                onChange={(e) => setNewMission({ ...newMission, destination: e.target.value })}
-                                className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-lg"
-                            />
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Destination Route</Label>
+                                <Input
+                                    placeholder="e.g. Colombo → Kandy"
+                                    value={newMission.destination}
+                                    onChange={(e) => setNewMission({ ...newMission, destination: e.target.value })}
+                                    className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-lg"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Initial Load Weight</Label>
+                                <Input
+                                    placeholder="e.g. 500kg"
+                                    value={newMission.load_weight}
+                                    onChange={(e) => setNewMission({ ...newMission, load_weight: e.target.value })}
+                                    className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-lg"
+                                />
+                            </div>
                         </div>
                         <div className="flex gap-4">
                             <Button
@@ -388,6 +412,23 @@ export default function DispatchManagementPage() {
                                             />
                                             <span className="font-black italic text-xl tabular-nums text-indigo-600 w-12 text-right">{currentSelectedMission.progress}%</span>
                                         </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Active Load Weight</Label>
+                                        <Input
+                                            value={currentSelectedMission.telemetry?.load}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setMissions((prev: Mission[]) => prev.map((m: Mission) => {
+                                                    if (m.id === currentSelectedMission.id) {
+                                                        const currentTelemetry = m.telemetry || { fuel: "100%", temp: "24°C", load: "0kg" };
+                                                        return { ...m, telemetry: { ...currentTelemetry, load: val } };
+                                                    }
+                                                    return m;
+                                                }));
+                                            }}
+                                            className="h-14 rounded-2xl bg-slate-50 border-black/5 font-bold text-slate-900 text-lg shadow-sm"
+                                        />
                                     </div>
                                 </div>
 

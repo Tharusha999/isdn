@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser, registerCustomerUser } from "@/public/src/supabaseClient";
+import { loginUser, registerCustomerUser } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,6 +41,7 @@ export default function LoginPage() {
           email: user.email,
           full_name: user.full_name,
           role: user.role,
+          rdc_hub: user.rdc_hub || null
         }),
       );
 
@@ -51,6 +52,8 @@ export default function LoginPage() {
       // Redirect based on role
       if (user.role === "admin" || user.role === "driver") {
         router.push("/dashboard");
+      } else if (user.role === "partner") {
+        router.push("/dashboard/partners");
       } else {
         router.push("/dashboard/products");
       }

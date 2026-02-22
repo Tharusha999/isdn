@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import Link from "next/link";
-import { fetchPartners, fetchAllProductStocks, createPartner, updatePartner, deletePartner } from "@/public/src/supabaseClient";
+import { fetchPartners, fetchAllProductStocks, createPartner, updatePartner, deletePartner } from "@/lib/supabaseClient";
 
 export default function PartnersPage() {
     const [partnerList, setPartnerList] = useState<RDCPartner[]>([]);
@@ -112,7 +112,10 @@ export default function PartnersPage() {
     };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.type || !form.hub || !form.email || !form.phone) return;
+        if (!form.name || !form.type || !form.hub || !form.email || !form.phone) {
+            alert("Please fill in all required fields including Email and Phone before registering.");
+            return;
+        }
 
         setIsSaving(true);
         try {
@@ -130,7 +133,7 @@ export default function PartnersPage() {
                 });
             } else {
                 const newId = `RDC-${Math.floor(Math.random() * 899) + 101}`;
-                await createPartner({
+                const newPartner = await createPartner({
                     id: newId,
                     name: form.name,
                     type: form.type,
@@ -145,6 +148,10 @@ export default function PartnersPage() {
                     agreement_type: "Standard",
                     compliance_score: 100
                 });
+
+                if (newPartner && newPartner.portal_username) {
+                    alert(`Partner Created Successfully!\n\nPortal Access Credentials:\nUsername: ${newPartner.portal_username}\nPassword: ${newPartner.portal_password}\n\nPlease save and share these securely with the partner.`);
+                }
             }
             await loadPartners();
             handleClose();
@@ -340,13 +347,37 @@ export default function PartnersPage() {
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Contact Person</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Contact Person *</Label>
                                 <Input
                                     placeholder="e.g. Damien Silva"
                                     value={form.contact || ""}
                                     onChange={(e) => setForm({ ...form, contact: e.target.value })}
                                     className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                    required
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address *</Label>
+                                    <Input
+                                        type="email"
+                                        placeholder="e.g. ops@lanka.com"
+                                        value={form.email || ""}
+                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phone Number *</Label>
+                                    <Input
+                                        placeholder="e.g. 0771234567"
+                                        value={form.phone || ""}
+                                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                        className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900"
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Status</Label>

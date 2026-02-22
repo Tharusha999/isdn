@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Circle, User, Truck, Package, Activity, Info, AlertCircle, CheckCircle2 } from "lucide-react";
-import { fetchAllStaffActivity } from "@/public/src/supabaseClient";
+import { fetchAllStaffActivity } from "@/lib/supabaseClient";
 
 export default function ActivityPage() {
   const [activities, setActivities] = useState<any[]>([]);

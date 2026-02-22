@@ -32,7 +32,7 @@ import {
     fetchProducts,
     fetchStaff,
     fetchPartners
-} from "@/public/src/supabaseClient";
+} from "@/lib/supabaseClient";
 
 interface ReportStats {
     totalRevenue: number;
