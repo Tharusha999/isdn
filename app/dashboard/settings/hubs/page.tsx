@@ -105,7 +105,7 @@ export default function RDCHubsSettingsPage() {
                     onClick={() => setShowAddModal(true)}
                     className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-200 transition-all"
                 >
-                    <Plus className="mr-3 h-5 w-5" /> Initialize New Node
+                    <Plus className="mr-3 h-5 w-5" /> Initialize New Hub
                 </Button>
             </div>
 

@@ -67,13 +67,17 @@ export default function ReportsPage() {
     const loadReportData = async () => {
         try {
             setLoading(true);
-            const [orders, transactions, products, staff, partners] = await Promise.all([
+            const results = await Promise.allSettled([
                 fetchOrders(),
                 fetchTransactions(),
                 fetchProducts(),
                 fetchStaff(),
                 fetchPartners()
             ]);
+
+            const [orders, transactions, products, staff, partners] = results.map((r: any) =>
+                r.status === 'fulfilled' ? (r.value || []) : []
+            );
 
             const revenue = transactions.reduce((acc: number, t: any) => acc + (parseFloat(t.amount) || 0), 0);
 

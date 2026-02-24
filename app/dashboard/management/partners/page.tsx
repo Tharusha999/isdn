@@ -65,11 +65,14 @@ export default function PartnersPage() {
     const loadPartners = async () => {
         try {
             setLoading(true);
-            const [partnerData, stocksData] = await Promise.all([
+            const [partnerResult, stocksResult] = await Promise.allSettled([
                 fetchPartners(),
                 fetchAllProductStocks()
             ]);
-            setPartnerList(partnerData as RDCPartner[] || []);
+            const partnerData = partnerResult.status === 'fulfilled' ? (partnerResult.value || []) : [];
+            const stocksData = stocksResult.status === 'fulfilled' ? (stocksResult.value || []) : [];
+
+            setPartnerList(partnerData as RDCPartner[]);
 
             // Derive unique RDCs from the database
             const uniqueRdcs = Array.from(new Set((stocksData || []).map((s: any) => s.rdc))).sort();

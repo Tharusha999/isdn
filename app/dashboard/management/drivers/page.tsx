@@ -144,7 +144,7 @@ export default function DriversManagementPage() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Consolidated directory of registered logistics personnel nodes.</p>
                 </div>
                 <Button onClick={handleOpenAdd} className="bg-indigo-600 text-white hover:bg-indigo-700 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 shadow-2xl shadow-indigo-500/20">
-                    <Plus className="mr-3 h-4 w-4" /> Add Driver Node
+                    <Plus className="mr-3 h-4 w-4" /> Add Driver
                 </Button>
             </div>
 

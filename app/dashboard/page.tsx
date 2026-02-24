@@ -61,7 +61,7 @@ export default function DashboardPage() {
             const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
             const userId = authUser.id;
 
-            const [missionsData, ordersData, transactionsData, productsData, partnersData, stocksData] = await Promise.all([
+            const results = await Promise.allSettled([
                 storedRole === 'driver' ? fetchMissionsByDriver(userId, authUser.full_name) : fetchMissions(),
                 fetchOrders(),
                 fetchTransactions(),
@@ -69,6 +69,13 @@ export default function DashboardPage() {
                 fetchPartners(),
                 fetchAllProductStocks()
             ]);
+
+            const missionsData = results[0].status === 'fulfilled' ? results[0].value : [];
+            const ordersData = results[1].status === 'fulfilled' ? results[1].value : [];
+            const transactionsData = results[2].status === 'fulfilled' ? results[2].value : [];
+            const productsData = results[3].status === 'fulfilled' ? results[3].value : [];
+            const partnersData = results[4].status === 'fulfilled' ? results[4].value : [];
+            const stocksData = results[5].status === 'fulfilled' ? results[5].value : [];
 
             setMissions(missionsData as MissionWithTasks[] || []);
             setOrders(ordersData as OrderWithDetails[] || []);
@@ -345,7 +352,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between text-[10px] font-black uppercase">
-                                    <span className="text-slate-400">Next Node</span>
+                                    <span className="text-slate-400">Next </span>
                                     <span className="text-emerald-400">Sector {activeRoute.id.slice(-4)}</span>
                                 </div>
                                 <div className="h-1 bg-white/5 rounded-full overflow-hidden">

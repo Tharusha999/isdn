@@ -35,7 +35,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct, updateProductStock } from "@/lib/supabaseClient";
+import { fetchProducts, createProduct, fetchAllProductStocks, createProductStock, createOrderWithItems, deleteProduct, updateProduct, updateProductStock, fetchRDCHubs } from "@/lib/supabaseClient";
 import type { Product, ProductCategory } from "@/lib/database-types";
 
 const CATEGORIES = ["All", "Packaged Food", "Beverages", "Home Cleaning", "Personal Care"];
@@ -332,12 +332,25 @@ export default function ProductsPage() {
                 customerId = user.id;
             }
 
+            // Fetch the first available RDC directly from DB to guarantee it's populated
+            let resolvedRdc = defaultRdc || '';
+            if (!resolvedRdc) {
+                try {
+                    const hubs = await fetchRDCHubs();
+                    if (hubs && hubs.length > 0) {
+                        resolvedRdc = hubs[0].name;
+                    }
+                } catch (rdcErr) {
+                    console.warn('Could not fetch RDC hubs during checkout:', rdcErr);
+                }
+            }
+
             const orderData = {
                 id: orderId,
                 customer_id: customerId,
                 total: cartTotal,
                 status: 'Pending',
-                rdc: defaultRdc || '', // First RDC from database
+                rdc: resolvedRdc,
                 date: new Date().toISOString().split('T')[0],
                 eta: estimatedDelivery.toISOString().split('T')[0]
             };
