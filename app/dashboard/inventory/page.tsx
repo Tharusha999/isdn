@@ -348,7 +348,7 @@ export default function InventoryPage() {
                                 <Building2 className="h-6 w-6" />
                             </div>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active RDC Nodes</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active RDC HUB</p>
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">{rdcs.length}</h3>
                         <p className="text-[9px] text-slate-400 mt-1 font-medium">All nodes operational</p>
                     </CardContent>
