@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { updateAdmin, updateCustomer } from "@/lib/supabaseClient";
+import { updateAdmin, updateCustomer, fetchRDCHubs } from "@/lib/supabaseClient";
 
 export default function SettingsPage() {
     const [user, setUser] = useState<any>(null);
@@ -41,8 +41,10 @@ export default function SettingsPage() {
     const [profileData, setProfileData] = useState({
         full_name: "",
         email: "",
-        username: ""
+        username: "",
+        rdc_hub: ""
     });
+    const [hubs, setHubs] = useState<any[]>([]);
     
     const [businessData, setBusinessData] = useState({
         company_name: "",
@@ -65,7 +67,8 @@ export default function SettingsPage() {
             setProfileData({
                 full_name: userData.full_name || "",
                 email: userData.email || "",
-                username: userData.username || ""
+                username: userData.username || "",
+                rdc_hub: userData.rdc_hub || ""
             });
             if (userData.role === 'customer') {
                 setBusinessData({
@@ -75,6 +78,10 @@ export default function SettingsPage() {
                 });
             }
         }
+        
+        // Fetch hubs
+        fetchRDCHubs().then(setHubs).catch(console.error);
+        
         setLoading(false);
     }, []);
 
@@ -85,7 +92,8 @@ export default function SettingsPage() {
             const updateFn = user.role === 'admin' ? updateAdmin : updateCustomer;
             const result = await updateFn(user.id, {
                 full_name: profileData.full_name,
-                email: profileData.email
+                email: profileData.email,
+                rdc_hub: profileData.rdc_hub
             });
             
             // Update local storage
@@ -265,6 +273,19 @@ export default function SettingsPage() {
                                                 onChange={(e) => setProfileData({...profileData, email: e.target.value})}
                                                 className="h-16 bg-slate-50 border-transparent rounded-[1.25rem] focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-950 px-6 text-base" 
                                             />
+                                        </div>
+                                        <div className="space-y-4 md:col-span-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Regional Distribution Partner (RDC)</Label>
+                                            <select 
+                                                value={profileData.rdc_hub}
+                                                onChange={(e) => setProfileData({...profileData, rdc_hub: e.target.value})}
+                                                className="w-full h-16 bg-slate-50 border-transparent rounded-[1.25rem] focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold text-slate-950 px-6 text-base outline-none appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Global / Unassigned</option>
+                                                {hubs.map((hub) => (
+                                                    <option key={hub.id} value={hub.name}>{hub.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 

@@ -22,6 +22,7 @@ export interface AdminUser {
   email: string
   full_name: string
   phone?: string
+  rdc_hub?: string
   role: UserRole
   is_active: boolean
   created_at: string
@@ -39,6 +40,7 @@ export interface CustomerUser {
   company_name?: string
   address?: string
   city?: string
+  rdc_hub?: string
   role: UserRole
   is_active: boolean
   created_at: string
