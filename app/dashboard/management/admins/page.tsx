@@ -25,8 +25,8 @@ import {
     AlertTriangle,
     UserPlus
 } from "lucide-react";
-import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin } from "@/lib/supabaseClient";
-import type { AdminUser } from "@/lib/database-types";
+import { fetchAdmins, createAdmin, updateAdmin, deleteAdmin, fetchRDCHubs } from "@/lib/supabaseClient";
+import type { AdminUser, RDCType } from "@/lib/database-types";
 
 
 
@@ -43,19 +43,25 @@ export default function AdminsManagementPage() {
     const [editingAdmin, setEditingAdmin] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [hubs, setHubs] = useState<any[]>([]);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const [form, setForm] = useState({
         full_name: "",
         username: "",
-        password: ""
+        password: "",
+        rdc_hub: ""
     });
 
-    const loadAdmins = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
-            const data = await fetchAdmins();
-            setAdmins(data);
+            const [adminsData, hubsData] = await Promise.all([
+                fetchAdmins(),
+                fetchRDCHubs()
+            ]);
+            setAdmins(adminsData);
+            setHubs(hubsData);
         } catch (err) {
             setError("Failed to fetch administrative records.");
             console.error(err);
@@ -65,7 +71,7 @@ export default function AdminsManagementPage() {
     };
 
     useEffect(() => {
-        loadAdmins();
+        loadData();
     }, []);
 
     const handleOpenAdd = () => {
@@ -73,7 +79,8 @@ export default function AdminsManagementPage() {
         setForm({
             full_name: "",
             username: "",
-            password: ""
+            password: "",
+            rdc_hub: ""
         });
         setSaveError(null);
         setShowModal(true);
@@ -84,7 +91,8 @@ export default function AdminsManagementPage() {
         setForm({
             full_name: admin.full_name,
             username: admin.username,
-            password: admin.password
+            password: admin.password,
+            rdc_hub: admin.rdc_hub || ""
         });
         setSaveError(null);
         setShowModal(true);
@@ -98,7 +106,7 @@ export default function AdminsManagementPage() {
             } else {
                 await createAdmin(form);
             }
-            await loadAdmins();
+            await loadData();
             setShowModal(false);
         } catch (err: any) {
             setSaveError(err.message || "Failed to commit administrative change.");
@@ -118,7 +126,7 @@ export default function AdminsManagementPage() {
         try {
             setLoading(true);
             await deleteAdmin(id);
-            await loadAdmins();
+            await loadData();
         } catch (err) {
             alert("Failed to revoke access.");
             console.error(err);
@@ -209,7 +217,12 @@ export default function AdminsManagementPage() {
                                 </div>
 
                                 <div className="flex items-center justify-between pt-2">
-                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-black/10">Active Session</Badge>
+                                    <div className="flex flex-col gap-1">
+                                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-black/10 w-fit">Active Session</Badge>
+                                        {(admin as any).rdc_hub && (
+                                            <span className="text-[8px] font-black text-primary uppercase tracking-widest">Hub: {(admin as any).rdc_hub}</span>
+                                        )}
+                                    </div>
                                     <span className="text-[9px] text-slate-400 font-bold uppercase">{new Date(admin.created_at).toLocaleDateString()}</span>
                                 </div>
                             </CardContent>
@@ -253,14 +266,28 @@ export default function AdminsManagementPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Password</Label>
-                                        <Input
+                                        <input
                                             type="password"
                                             placeholder="••••••••"
                                             value={form.password}
                                             onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                            className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold"
+                                            className="w-full h-12 rounded-xl bg-slate-50 border-black/5 font-bold px-4 text-sm outline-none"
                                         />
                                     </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Regional Distribution Partner (RDC)</Label>
+                                    <select
+                                        value={form.rdc_hub}
+                                        onChange={(e) => setForm({ ...form, rdc_hub: e.target.value })}
+                                        className="w-full h-12 rounded-xl bg-slate-50 border-black/5 font-bold px-4 text-sm outline-none focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Global / Unassigned</option>
+                                        {hubs.map((hub) => (
+                                            <option key={hub.id} value={hub.name}>{hub.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-between group">

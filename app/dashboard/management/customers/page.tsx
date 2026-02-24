@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,7 @@ import {
     MapPin,
     MoreHorizontal
 } from "lucide-react";
-import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer } from "@/lib/supabaseClient";
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, fetchRDCHubs } from "@/lib/supabaseClient";
 import type { Customer } from "@/lib/database-types";
 import {
     DropdownMenu,
@@ -34,6 +35,7 @@ const EMPTY_FORM = {
     phone: "",
     address: "",
     city: "",
+    rdc_hub: "",
 };
 
 export default function CustomersManagementPage() {
@@ -46,6 +48,7 @@ export default function CustomersManagementPage() {
     const [form, setForm] = useState(EMPTY_FORM);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hubs, setHubs] = useState<any[]>([]);
 
     useEffect(() => {
         loadData();
@@ -54,8 +57,12 @@ export default function CustomersManagementPage() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const data = await fetchCustomers();
-            setCustomers(data || []);
+            const [customersData, hubsData] = await Promise.all([
+                fetchCustomers(),
+                fetchRDCHubs()
+            ]);
+            setCustomers(customersData || []);
+            setHubs(hubsData || []);
             setError(null);
         } catch (err: any) {
             console.error("Error loading customers:", err);
@@ -79,6 +86,7 @@ export default function CustomersManagementPage() {
             phone: customer.phone || "",
             address: customer.address || "",
             city: customer.city || "",
+            rdc_hub: (customer as any).rdc_hub || "",
         });
         setIsEditing(true);
         setCurrentId(customer.id);
@@ -186,6 +194,9 @@ export default function CustomersManagementPage() {
                                                     <div>
                                                         <p className="font-black text-slate-900 italic tracking-tight uppercase">{customer.name}</p>
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ref ID: {customer.id}</p>
+                                                        {(customer as any).rdc_hub && (
+                                                            <Badge variant="outline" className="text-[8px] font-black border-primary/20 text-primary bg-primary/5 uppercase tracking-widest mt-2">{ (customer as any).rdc_hub }</Badge>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
@@ -301,6 +312,20 @@ export default function CustomersManagementPage() {
                                     onChange={(e) => setForm({ ...form, city: e.target.value })}
                                     className="h-14 rounded-2xl bg-slate-50 border-transparent font-bold text-slate-900 px-6 focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all"
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">RDCPartner / Hub Assignment</Label>
+                                <select
+                                    value={form.rdc_hub}
+                                    onChange={(e) => setForm({ ...form, rdc_hub: e.target.value })}
+                                    className="w-full h-14 rounded-2xl bg-slate-50 border-transparent font-bold text-slate-900 px-6 focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all outline-none appearance-none cursor-pointer"
+                                >
+                                    <option value="">Global / No Hub</option>
+                                    {hubs.map((hub) => (
+                                        <option key={hub.id} value={hub.name}>{hub.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="space-y-2">
