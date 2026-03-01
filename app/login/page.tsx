@@ -72,7 +72,7 @@ export default function LoginPage() {
           <div className="text-center mb-10">
             <h1 className="text-4xl font-black italic tracking-tighter text-slate-900 mb-2">ISDN</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Integrated Supply Distribution Network
+              IslandLink Sales Distribution Network
             </p>
           </div>
 
