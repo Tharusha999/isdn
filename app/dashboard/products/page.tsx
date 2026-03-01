@@ -378,7 +378,7 @@ export default function ProductsPage() {
                 customer: localStorage.getItem("profileName") || "Retail Partner",
                 amount: cartTotal,
                 date: new Date().toISOString().split('T')[0],
-                status: 'PAID', // Assuming instant payment for demo
+                status: 'PAID', 
                 method: selectedPaymentMethod
             };
 
