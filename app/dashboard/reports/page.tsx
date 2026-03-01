@@ -240,7 +240,7 @@ export default function ReportsPage() {
                             <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">LKR Liquid Asset</p>
                         </Card>
                         <Card className="bg-white/5 border-white/5 backdrop-blur-xl p-4 w-40 rounded-2xl">
-                            <p className="text-[9px] font-black text-blue-400 uppercase italic mb-1">Active Nodes</p>
+                            <p className="text-[9px] font-black text-blue-400 uppercase italic mb-1">Active Staff</p>
                             <h3 className="text-xl font-black text-white">{stats.totalProducts}</h3>
                             <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">Inventory Registry</p>
                         </Card>
