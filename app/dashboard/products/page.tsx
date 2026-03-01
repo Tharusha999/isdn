@@ -123,8 +123,7 @@ export default function ProductsPage() {
             const syncedProducts = (productsData || []).map(p => {
                 const productStocks = (stocksData || []).filter(s => s.product_id === p.id);
 
-                // Fallback: If no regional entries exist, use the master stock record
-                // Otherwise, sum the regional nodes for the definitive total
+                
                 const totalStock = productStocks.length > 0
                     ? productStocks.reduce((acc, s) => acc + (s.quantity || 0), 0)
                     : (p.stock || 0);
