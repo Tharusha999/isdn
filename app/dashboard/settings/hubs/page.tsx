@@ -98,7 +98,7 @@ export default function RDCHubsSettingsPage() {
             {/* Header */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Global <span className="text-indigo-600">Distribution Nodes</span></h2>
+                    <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Global <span className="text-indigo-600">Distribution Hubs</span></h2>
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Manage the foundational infrastructure of the logistics lattice.</p>
                 </div>
                 <Button
@@ -115,7 +115,7 @@ export default function RDCHubsSettingsPage() {
                     <CardHeader className="p-10 border-b border-black/5 bg-slate-50/50">
                         <CardTitle className="text-xl font-black uppercase tracking-tighter italic text-slate-900 flex items-center gap-3">
                             <Network className="h-6 w-6 text-indigo-600" />
-                            Active Nodes Network
+                            Active Hub Network
                         </CardTitle>
                         <CardDescription className="font-bold text-slate-400 text-[10px] uppercase tracking-widest mt-1">
                             Live visualization of operational fulfillment centers.
