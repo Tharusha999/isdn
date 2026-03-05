@@ -63,8 +63,8 @@ export default function DashboardPage() {
 
             const results = await Promise.allSettled([
                 storedRole === 'driver' ? fetchMissionsByDriver(userId, authUser.full_name) : fetchMissions(),
-                fetchOrders(),
-                fetchTransactions(),
+                fetchOrders(userId || undefined, storedRole || undefined),
+                fetchTransactions(userId || undefined, storedRole || undefined),
                 fetchProducts(),
                 fetchPartners(),
                 fetchAllProductStocks()
@@ -131,7 +131,7 @@ export default function DashboardPage() {
 
     // --- CUSTOMER VIEW ---
     if (role === 'customer') {
-        const activeOrders = orders;
+        const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled');
         return (
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -148,7 +148,17 @@ export default function DashboardPage() {
                     {[
                         { label: "New Order", path: "/dashboard/products", color: "bg-indigo-50", icon: Package, val: "Catalog", text: "text-indigo-600" },
                         { label: "Active Orders", path: "/dashboard/orders", color: "bg-emerald-50", icon: Truck, val: `${activeOrders.length} Active`, text: "text-emerald-600" },
-                        { label: "Payment Due", path: "/dashboard/finance", color: "bg-amber-50", icon: DollarSign, val: `Rs. ${transactions.filter(t => t.status === 'PENDING').reduce((sum, t) => sum + Number(t.amount || 0), 0).toLocaleString()}`, text: "text-amber-600" },
+                        {
+                            label: "Payment Due",
+                            path: "/dashboard/finance",
+                            color: "bg-amber-50",
+                            icon: DollarSign,
+                            val: `Rs. ${Math.max(
+                                transactions.filter(t => t.status === 'PENDING').reduce((sum, t) => sum + Number(t.amount || 0), 0),
+                                orders.filter(o => o.status === 'Pending' || o.status === 'In Transit').reduce((sum, o) => sum + Number(o.total || 0), 0)
+                            ).toLocaleString()}`,
+                            text: "text-amber-600"
+                        },
                         { label: "Priority Help", path: "/dashboard/settings", color: "bg-slate-50", icon: ShieldCheck, val: "24/7 Desk", text: "text-slate-900" }
                     ].map((hub) => (
                         <Card key={hub.label} onClick={() => router.push(hub.path)} className="border-none shadow-2xl bg-white rounded-[2.5rem] p-8 cursor-pointer group border border-black/[0.03] transition-all hover:scale-[1.02] hover:shadow-black/10">

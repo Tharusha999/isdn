@@ -47,7 +47,9 @@ export default function FinancePage() {
         try {
             setLoading(true);
             const userRole = localStorage.getItem('userRole');
-            const userId = localStorage.getItem('userId');
+            const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
+            const userId = authUser.id || localStorage.getItem('userId');
+
             setRole(userRole);
 
             const [transData, productData, orderData] = await Promise.all([

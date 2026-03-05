@@ -48,6 +48,7 @@ export default function LoginPage() {
       // Legacy support for specific pages
       localStorage.setItem("profileName", user.full_name);
       localStorage.setItem("userRole", user.role);
+      localStorage.setItem("userId", user.id);
 
       // Redirect based on role
       if (user.role === "admin" || user.role === "driver") {
