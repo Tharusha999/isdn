@@ -531,7 +531,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="space-y-1 p-6 bg-white/5 rounded-3xl border border-white/5">
                                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Last Cryptographic Sync</p>
-                                    <p className="text-xs font-black italic tracking-tight">{new Date().toLocaleTimeString()} @ Network Time</p>
+                                    <p className="text-xs font-black italic tracking-tight">{new Date().toLocaleTimeString()} @  Time</p>
                                 </div>
                                 <Button 
                                     onClick={handleIntegrityScan}
