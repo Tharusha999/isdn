@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { MissionWithTasks, OrderWithDetails, Transaction, Product, MissionTask } from "@/lib/database-types";
-import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks, fetchMissionsByDriver, updateMissionTask, updateMissionProgress, updateMissionStatus } from "@/lib/supabaseClient";
+import { fetchMissions, fetchOrders, fetchTransactions, fetchProducts, fetchPartners, fetchAllProductStocks, fetchMissionsByDriver, updateMissionTask, updateMissionProgress, updateMissionStatus, fetchStaffDrivers } from "@/lib/supabaseClient";
 
 // Custom Globe Icon
 const Globe = ({ className }: { className?: string }) => (
@@ -41,6 +41,7 @@ export default function DashboardPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [partners, setPartners] = useState<any[]>([]);
     const [allStocks, setAllStocks] = useState<any[]>([]);
+    const [allDrivers, setAllDrivers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [driverSelectedMissionId, setDriverSelectedMissionId] = useState<string | null>(null);
 
@@ -67,7 +68,8 @@ export default function DashboardPage() {
                 fetchTransactions(userId || undefined, storedRole || undefined),
                 fetchProducts(),
                 fetchPartners(),
-                fetchAllProductStocks()
+                fetchAllProductStocks(),
+                fetchStaffDrivers()
             ]);
 
             const missionsData = results[0].status === 'fulfilled' ? results[0].value : [];
@@ -83,6 +85,7 @@ export default function DashboardPage() {
             setProducts(productsData as Product[] || []);
             setPartners(partnersData || []);
             setAllStocks(stocksData || []);
+            setAllDrivers(results[6].status === 'fulfilled' ? results[6].value : []);
 
             // Profile Name resolution
             setProfileName(authUser.full_name || (storedRole === 'admin' ? "Global Admin" : storedRole === 'driver' ? "System Driver" : "Partner Store"));
@@ -388,6 +391,7 @@ export default function DashboardPage() {
 
     const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
     const activeFleet = missions.filter(m => m.status === 'In Transit').length;
+    const totalFleet = allDrivers.length || 1;
 
     // Dynamic Compliance Score
     const complianceScore = partners.length > 0
@@ -422,7 +426,7 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[
                     { label: "Pulse Revenue", val: `Rs. ${totalRev.toLocaleString()}`, color: "bg-emerald-500/10", icon: DollarSign, iconColor: "text-emerald-600", sub: "Month to Date" },
-                    { label: "Active Units", val: `${activeFleet} Units`, color: "bg-blue-500/10", icon: Truck, iconColor: "text-blue-600", sub: "Fleet Nominal" },
+                    { label: "Active Fleet", val: `${activeFleet}/${totalFleet}`, color: "bg-blue-500/10", icon: Truck, iconColor: "text-blue-600", sub: "Active Vehicles/Active Drivers" },
                     { label: "Active Orders", val: `${activeOrders} Pending`, color: "bg-amber-500/10", icon: Package, iconColor: "text-amber-600", sub: "Real-time Sync" },
                     { label: "Compliance", val: `${complianceScore}%`, color: "bg-purple-500/10", icon: ShieldCheck, iconColor: "text-purple-600", sub: "High Grade" }
                 ].map((stat) => (
