@@ -855,7 +855,7 @@ export default function ProductsPage() {
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input
-                            placeholder="Identify Product..."
+                            placeholder="Search Product..."
                             className="pl-12 pr-6 h-14 rounded-2xl bg-white border-black/5 shadow-sm focus:ring-1 focus:ring-primary/20 w-full lg:w-[350px] font-bold"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}

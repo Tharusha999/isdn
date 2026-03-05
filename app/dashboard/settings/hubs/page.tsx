@@ -179,7 +179,7 @@ export default function RDCHubsSettingsPage() {
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400/80 mb-2">Network Capacity</p>
                                 <div className="text-4xl font-black italic tracking-tighter uppercase flex items-center gap-3">
-                                    {loading ? "-" : hubs.length} Nodes
+                                    {loading ? "-" : hubs.length} HUBS
                                 </div>
                             </div>
                             <div className="space-y-2 p-5 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">

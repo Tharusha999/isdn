@@ -79,7 +79,13 @@ export default function ReportsPage() {
                 r.status === 'fulfilled' ? (r.value || []) : []
             );
 
-            const revenue = transactions.reduce((acc: number, t: any) => acc + (parseFloat(t.amount) || 0), 0);
+            const txRevenue = transactions.reduce((acc: number, t: any) => acc + (parseFloat(t.amount) || 0), 0);
+            const orderRevenue = orders
+                .filter((o: any) => o.status !== 'Cancelled')
+                .reduce((acc: number, o: any) => acc + (parseFloat(o.total) || 0), 0);
+
+            // Fallback to order revenue if transactions are empty
+            const revenue = transactions.length > 0 ? txRevenue : orderRevenue;
 
             // 1. Calculate Pulse Data (Orders per hour for last 24h or relative)
             const hourCounts = new Array(24).fill(0);
@@ -93,22 +99,27 @@ export default function ReportsPage() {
             const normalizedPulse = hourCounts.map(h => (h / max) * 100);
             setPulseData(normalizedPulse);
 
-            // 2. Calculate Hub Status (Distribution per RDC)
-            const hubCounts: Record<string, number> = {};
+            // 2. Calculate Hub Status (Distribution per Region)
+            const regionCounts: Record<string, number> = {};
             orders.forEach((o: any) => {
                 if (o.rdc) {
-                    hubCounts[o.rdc] = (hubCounts[o.rdc] || 0) + 1;
+                    // Normalize "CENTRAL (KANDY)" -> "CENTRAL"
+                    const region = o.rdc.split(' (')[0].trim().toUpperCase();
+                    regionCounts[region] = (regionCounts[region] || 0) + 1;
                 }
             });
 
             const colors = ["bg-emerald-500", "bg-blue-500", "bg-amber-500", "bg-indigo-500", "bg-rose-500", "bg-violet-500"];
-            const totalHubOrders = Math.max(orders.length, 1);
+            const totalHubOrders = Object.values(regionCounts).reduce((sum, count) => sum + count, 0) || 1;
 
-            const calculatedHubs = Object.keys(hubCounts).slice(0, 6).map((label, idx) => ({
-                label: label.split(' (')[0].replace(' ', '_'),
-                value: Math.round((hubCounts[label] / totalHubOrders) * 100),
-                color: colors[idx % colors.length]
-            }));
+            const calculatedHubs = Object.keys(regionCounts)
+                .sort((a, b) => regionCounts[b] - regionCounts[a]) // Sort by count descending
+                .slice(0, 6)
+                .map((region, idx) => ({
+                    label: region,
+                    value: Math.round((regionCounts[region] / totalHubOrders) * 100),
+                    color: colors[idx % colors.length]
+                }));
 
             setHubStatus(calculatedHubs);
 
@@ -241,8 +252,8 @@ export default function ReportsPage() {
                         </Card>
                         <Card className="bg-white/5 border-white/5 backdrop-blur-xl p-4 w-40 rounded-2xl">
                             <p className="text-[9px] font-black text-blue-400 uppercase italic mb-1">Active Staff</p>
-                            <h3 className="text-xl font-black text-white">{stats.totalProducts}</h3>
-                            <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">Inventory Registry</p>
+                            <h3 className="text-xl font-black text-white">{stats.totalStaff}</h3>
+                            <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">Workforce Registry</p>
                         </Card>
                     </div>
                 </div>

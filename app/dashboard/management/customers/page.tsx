@@ -137,7 +137,7 @@ export default function CustomersManagementPage() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">Consolidated directory of registered network service recipients.</p>
                 </div>
                 <Button onClick={handleOpenAdd} className="bg-slate-900 text-white hover:bg-black h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 shadow-2xl shadow-black/20">
-                    <Plus className="mr-3 h-4 w-4" /> Add Partner
+                    <Plus className="mr-3 h-4 w-4" /> Add Customer
                 </Button>
             </div>
 
@@ -147,7 +147,7 @@ export default function CustomersManagementPage() {
                         <div className="relative flex-1 max-w-md group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                             <Input
-                                placeholder="Identify customer node..."
+                                placeholder="Search customer..."
                                 className="pl-12 h-12 rounded-xl bg-white border-black/5 font-bold focus:ring-1 focus:ring-primary/20"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -157,7 +157,7 @@ export default function CustomersManagementPage() {
                             <div className="h-10 w-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-slate-400">
                                 <Users className="h-5 w-5" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{filteredCustomers.length} Total Nodes</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{filteredCustomers.length} Total Customers</span>
                         </div>
                     </div>
                 </CardHeader>
@@ -170,7 +170,7 @@ export default function CustomersManagementPage() {
                     ) : filteredCustomers.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
                             <AlertTriangle className="h-12 w-12 text-slate-200 mb-4" />
-                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No matching customer nodes found in current sector.</p>
+                            <p className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">No matching customer  found in current sector.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -178,7 +178,7 @@ export default function CustomersManagementPage() {
                                 <thead>
                                     <tr className="border-b border-black/5">
                                         <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Identity</th>
-                                        <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Vector</th>
+                                        <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Details</th>
                                         <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Deployment Logic</th>
                                         <th className="px-10 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
                                     </tr>
@@ -265,7 +265,7 @@ export default function CustomersManagementPage() {
                                 <Users className="h-6 w-6" />
                             </div>
                             <h3 className="text-3xl font-black italic tracking-tighter uppercase text-slate-900">
-                                {isEditing ? "Modify Node" : "Register Node"}
+                                {isEditing ? "Modify Customer" : "Register Customer"}
                             </h3>
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-10 pl-1">

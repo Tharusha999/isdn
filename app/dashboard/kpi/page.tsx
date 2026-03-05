@@ -89,16 +89,30 @@ export default function CustomerKPIPage() {
         0
     );
 
-    // ── KPI Computations from transactions table ─────────────────────────────
-    // transactions.customer = UUID of the customer
+    // ── KPI Computations from transactions table & orders fallback ───────────
     // transactions.status: 'PAID' | 'PENDING' | 'FAILED'
-    const totalSpend = transactions
+    // fallback: derive from orders if transactions are empty or to complement them
+    const txTotalSpend = transactions
         .filter(t => t.status === "PAID")
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    const pendingPayment = transactions
+    const orderTotalSpend = orders
+        .filter(o => o.status === "Delivered")
+        .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    // Use transactions if they exist, otherwise fallback to delivered orders
+    const totalSpend = transactions.length > 0 ? txTotalSpend : orderTotalSpend;
+
+    const txPendingPayment = transactions
         .filter(t => t.status === "PENDING")
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    const orderPendingPayment = orders
+        .filter(o => o.status === "Pending" || o.status === "In Transit")
+        .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    // Use transactions if they exist, otherwise fallback to unpaid orders
+    const pendingPayment = transactions.length > 0 ? txPendingPayment : orderPendingPayment;
 
     // Payment method breakdown
     const methodCounts: Record<string, number> = {};
@@ -145,7 +159,9 @@ export default function CustomerKPIPage() {
         {
             label: "Total Spend",
             value: `Rs. ${totalSpend.toLocaleString()}`,
-            sub: `${transactions.filter(t => t.status === "PAID").length} Paid Transactions`,
+            sub: transactions.length > 0
+                ? `${transactions.filter(t => t.status === "PAID").length} Paid Transactions`
+                : `${orders.filter(o => o.status === "Delivered").length} Delivered Orders`,
             icon: DollarSign,
             color: "bg-emerald-50",
             text: "text-emerald-600",
@@ -153,7 +169,9 @@ export default function CustomerKPIPage() {
         {
             label: "Pending Payments",
             value: `Rs. ${pendingPayment.toLocaleString()}`,
-            sub: `${transactions.filter(t => t.status === "PENDING").length} Awaiting Clearance`,
+            sub: transactions.length > 0
+                ? `${transactions.filter(t => t.status === "PENDING").length} Awaiting Clearance`
+                : `${orders.filter(o => o.status === "Pending" || o.status === "In Transit").length} Unsettled Orders`,
             icon: Clock,
             color: "bg-amber-50",
             text: "text-amber-600",
