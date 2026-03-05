@@ -350,7 +350,7 @@ export default function InventoryPage() {
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active RDC HUB</p>
                         <h3 className="text-3xl font-black italic tracking-tighter text-slate-900">{rdcs.length}</h3>
-                        <p className="text-[9px] text-slate-400 mt-1 font-medium">All nodes operational</p>
+                        <p className="text-[9px] text-slate-400 mt-1 font-medium">All HUBS operational</p>
                     </CardContent>
                 </Card>
 
@@ -809,7 +809,7 @@ export default function InventoryPage() {
                         <div className="hidden md:block">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Global Allocation Active</p>
                             <p className="font-bold text-slate-600 text-sm italic tracking-tight">
-                                {loading ? "Loading..." : `${totalGlobalStock.toLocaleString()} total units across ${rdcs.length} nodes`}
+                                {loading ? "Loading..." : `${totalGlobalStock.toLocaleString()} total units across ${rdcs.length} Hubs`}
                             </p>
                         </div>
                     </div>
