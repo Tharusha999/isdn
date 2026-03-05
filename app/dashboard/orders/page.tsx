@@ -286,7 +286,7 @@ export default function OrdersPage() {
                                             <MapPin className="h-5 w-5" />
                                         </div>
                                         <div className="pt-2">
-                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${['Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) || trackingOrder.rdc ? 'text-slate-900' : 'text-slate-400'}`}>Nodes Assigned</h4>
+                                            <h4 className={`text-lg font-black uppercase tracking-tight italic ${['Processing', 'In Transit', 'Delivered'].includes(trackingOrder.status) || trackingOrder.rdc ? 'text-slate-900' : 'text-slate-400'}`}>HUB Assigned</h4>
                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                                                 {trackingOrder.rdc ? (
                                                     <span className="text-indigo-600 font-black">Regional Hub: {trackingOrder.rdc}</span>
