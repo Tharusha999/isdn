@@ -134,8 +134,41 @@ export default function FinancePage() {
         return { ...order, items };
     };
 
-    const totalReceivables = transactions.reduce((acc, t) => t.status === "PENDING" ? acc + (Number(t.amount) || 0) : acc, 0);
-    const totalRevenue = transactions.reduce((acc, t) => t.status === "PAID" ? acc + (Number(t.amount) || 0) : acc, 0);
+    // ── KPI Computations from transactions & orders ──────────────────────────
+    const txReceivables = transactions
+        .filter(t => t.status === "PENDING")
+        .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+
+    const orderReceivables = orders
+        .filter(o => o.status === "Pending" || o.status === "In Transit")
+        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+
+    const totalReceivables = Math.max(txReceivables, orderReceivables);
+
+    const txRevenue = transactions
+        .filter(t => t.status === "PAID")
+        .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+
+    const orderRevenue = orders
+        .filter(o => o.status === "Delivered")
+        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+
+    const totalRevenue = Math.max(txRevenue, orderRevenue);
+
+    // Dynamic Net Cash Flow: Gross Volume - Active Billing Overhead
+    const netCashFlow = totalRevenue - (totalReceivables * 0.05);
+
+    // ── Unified Ledger logic ─────────────────────────────────────────────────
+    // If transactions exist, we use them. If not, we map orders to ledger entries.
+    const displayLedger = transactions.length > 0 ? transactions : orders.map(o => ({
+        id: o.id,
+        customer: (o.customers as any)?.name || o.customer_id || "Retail Partner",
+        amount: Number(o.total || 0),
+        date: o.date,
+        status: o.status === 'Delivered' ? 'PAID' : (o.status === 'Cancelled' ? 'FAILED' : 'PENDING'),
+        method: 'System Payout',
+        orderId: o.id
+    }));
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -334,7 +367,7 @@ export default function FinancePage() {
                             </div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Net Cash Flow</p>
                             <div className="text-4xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
-                                Rs. {((totalRevenue - 120000) / 1000).toFixed(1)}K
+                                Rs. {(netCashFlow / 1000).toFixed(1)}K
                             </div>
                             <div className="flex items-center gap-1 mt-6 text-emerald-500">
                                 <CheckCircle2 className="h-3 w-3" />

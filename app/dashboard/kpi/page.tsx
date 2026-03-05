@@ -100,8 +100,8 @@ export default function CustomerKPIPage() {
         .filter(o => o.status === "Delivered")
         .reduce((sum, o) => sum + Number(o.total || 0), 0);
 
-    // Use transactions if they exist, otherwise fallback to delivered orders
-    const totalSpend = transactions.length > 0 ? txTotalSpend : orderTotalSpend;
+    // Use the higher of the two sources to ensure we don't show low values if transactions are only partially recorded
+    const totalSpend = Math.max(txTotalSpend, orderTotalSpend);
 
     const txPendingPayment = transactions
         .filter(t => t.status === "PENDING")
@@ -111,8 +111,7 @@ export default function CustomerKPIPage() {
         .filter(o => o.status === "Pending" || o.status === "In Transit")
         .reduce((sum, o) => sum + Number(o.total || 0), 0);
 
-    // Use transactions if they exist, otherwise fallback to unpaid orders
-    const pendingPayment = transactions.length > 0 ? txPendingPayment : orderPendingPayment;
+    const pendingPayment = Math.max(txPendingPayment, orderPendingPayment);
 
     // Payment method breakdown
     const methodCounts: Record<string, number> = {};

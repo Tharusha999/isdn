@@ -370,7 +370,12 @@ export default function DashboardPage() {
     }
 
     // --- ADMIN VIEW (DEFAULT) ---
-    const totalRev = transactions.filter(t => t.status === 'PAID').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const txPaid = transactions.filter(t => t.status === 'PAID').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const orderPaid = orders.filter(o => o.status === 'Delivered').reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    // Sync logic: Use whichever is higher (likely orders until transactions catch up)
+    const totalRev = Math.max(txPaid, orderPaid);
+
     const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
     const activeFleet = missions.filter(m => m.status === 'In Transit').length;
 

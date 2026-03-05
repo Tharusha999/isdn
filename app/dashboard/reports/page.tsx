@@ -81,11 +81,11 @@ export default function ReportsPage() {
 
             const txRevenue = transactions.reduce((acc: number, t: any) => acc + (parseFloat(t.amount) || 0), 0);
             const orderRevenue = orders
-                .filter((o: any) => o.status !== 'Cancelled')
+                .filter((o: any) => o.status === 'Delivered')
                 .reduce((acc: number, o: any) => acc + (parseFloat(o.total) || 0), 0);
 
-            // Fallback to order revenue if transactions are empty
-            const revenue = transactions.length > 0 ? txRevenue : orderRevenue;
+            // Use the higher value (likely orders until transactions are fully synced)
+            const revenue = Math.max(txRevenue, orderRevenue);
 
             // 1. Calculate Pulse Data (Orders per hour for last 24h or relative)
             const hourCounts = new Array(24).fill(0);
