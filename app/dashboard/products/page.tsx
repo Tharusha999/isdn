@@ -567,7 +567,7 @@ export default function ProductsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">SKU *</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID *</Label>
                                         <button
                                             type="button"
                                             onClick={() => setForm(prev => ({ ...prev, sku: generateSKU(products.length) }))}
@@ -577,7 +577,7 @@ export default function ProductsPage() {
                                         </button>
                                     </div>
                                     <Input
-                                        placeholder="e.g. ISDN-FD-101"
+                                        placeholder="e.g. ISDN-01"
                                         value={form.sku}
                                         onChange={(e) => setForm({ ...form, sku: e.target.value })}
                                         className="h-12 rounded-xl bg-slate-50 border-black/5 font-bold text-slate-900 font-mono"
