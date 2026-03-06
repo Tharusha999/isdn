@@ -34,7 +34,6 @@ const sidebarItems = [
     { title: "Staff", href: "/dashboard/management/staff", icon: Users },
     { title: "Customers", href: "/dashboard/management/customers", icon: Users },
     { title: "Dispatch", href: "/dashboard/management/dispatch", icon: Navigation },
-    { title: "Drivers", href: "/dashboard/management/drivers", icon: Truck },
     { title: "RDC Partners", href: "/dashboard/management/partners", icon: Truck },
     { title: "Administrators", href: "/dashboard/management/admins", icon: ShieldCheck },
     { title: "RDC Hubs", href: "/dashboard/settings/hubs", icon: Building2 },
